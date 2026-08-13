@@ -1,0 +1,22 @@
+public function getActivitylogOptions(): LogOptions
+{
+    return LogOptions::defaults()
+        ->useLogName('lop_status')
+        ->logFillable()
+        ->logOnlyDirty()
+        ->dontSubmitEmptyLogs()
+        ->setDescriptionForEvent(fn(string $eventName) => 
+            "LOP Status has been {$eventName}"
+        );
+}
+
+public function tapActivity(Activity $activity, string $eventName)
+{
+    if (auth()->check()) {
+        $activity->causer_id = auth()->id();
+    }
+
+    $activity->properties = $activity->properties->merge([
+        'plot_id' => $this->plot_id,
+    ]);
+}

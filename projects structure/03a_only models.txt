@@ -1,0 +1,472 @@
+
+models
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class AreaVariation extends Model
+{
+    use HasFactory;
+    use LogsActivity;
+
+
+    protected $guarded = [];
+    // ];
+    protected $casts = [
+        'measured_date' => 'date',
+    ];
+
+
+    public function plot() {
+        return $this->belongsTo(Plot::class);
+    }
+
+}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Block extends Model
+{
+    protected $fillable = ['project_id', 'block_name', 'remarks'];
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    public function streets()
+    {
+        return $this->hasMany(Street::class);
+    }
+
+    public function plots()
+    {
+        return $this->hasMany(Plot::class);
+    }
+
+}
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class DevelopmentStatus extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'plot_id', 'sewer_manholes', 'asphalt_tst', 'overall_status', 'remarks'
+    ];
+
+    public function plot() {
+        return $this->belongsTo(Plot::class);
+    }
+}
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class LopStatus extends Model
+{
+    use HasFactory;
+
+    protected $fillable = ['plot_id', 'lop_status', 'remarks'];
+
+    public function plot() {
+        return $this->belongsTo(Plot::class);
+    }
+}
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class MortgageStatus extends Model
+{
+    use HasFactory;
+
+    protected $fillable = ['plot_id', 'is_mortgaged', 'remarks'];
+
+    public function plot() {
+        return $this->belongsTo(Plot::class);
+    }
+}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Permission extends Model
+{
+    protected static function booted()
+    {
+        // DELETE se protect
+        static::deleting(function ($permission) {
+
+            $protected = [
+                'user.view',
+                'role.view',
+                'permission.view',
+            ];
+
+            if (in_array($permission->name, $protected)) {
+                abort(403, 'This permission is protected and cannot be deleted.');
+            }
+        });
+
+        // UPDATE / RENAME se protect
+        static::updating(function ($permission) {
+
+            $protected = [
+                'user.view',
+                'role.view',
+                'permission.view',
+            ];
+
+            if (in_array($permission->getOriginal('name'), $protected)) {
+                abort(403, 'This permission is protected and cannot be updated.');
+            }
+        });
+    }
+    
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class);
+    }
+
+}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+
+class Plot extends Model
+{
+
+
+    use SoftDeletes;
+
+
+    protected $guarded =[];
+    // protected $fillable = ['project_id','block_id','street_id','plot_number','size','numbering_type','remarks','created_at','updated_at'];
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
+ 
+    public function block()
+    {
+        return $this->belongsTo(Block::class);
+    }
+
+    public function street()
+    {
+        return $this->belongsTo(Street::class);
+    }
+
+    public function plotsize() 
+    { 
+        return $this->belongsTo(PlotSize::class, 'size_id'); 
+    }
+    public function psize() 
+    { 
+        return $this->belongsTo(PlotSize::class); 
+    }
+    public function size() 
+    { 
+        return $this->belongsTo(PlotSize::class, 'size_id'); 
+    }
+
+    public function plotsizeav() 
+    { 
+        return $this->belongsTo(PlotSize::class); 
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(PlotCategoryType::class);
+    }
+    
+    // new added
+
+    // Relationships
+
+    public function developmentStatus() {
+        return $this->hasOne(DevelopmentStatus::class);
+    }
+
+    public function coordinates(){
+        return $this->hasOne(PlotCoordinate::class);
+    }
+
+    public function lopStatus() {
+        return $this->hasOne(LopStatus::class);
+    }
+
+    public function mortgageStatus() {
+        return $this->hasOne(MortgageStatus::class);
+    }
+
+    public function possessionStatus() {
+        return $this->hasOne(PossessionStatus::class);
+    }
+
+    public function areaVariations() {
+        return $this->hasMany(AreaVariation::class);
+    }
+
+    public function latestAreavariation(){
+        return $this->hasone(AreaVariation::class)->latestOfMany();
+    }
+
+    public function plotArea() {
+        return $this->belongsTo(Plotsize::class);
+    }
+    
+
+}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class PlotCategoryType extends Model
+{
+    protected $guarded =[]; 
+    public function plot()
+    {        
+        return $this->hasOne(Plot::class);
+
+    }
+    // public function project()
+    // {        
+    //     return $this->belongsTo(Project::class);
+
+    // }
+}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class PlotCoordinate extends Model
+{
+    protected $guarded =[];
+    public function coordinate()
+    {
+        return $this->belongsTo(Plot::class);
+
+    }
+}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Plotsize extends Model
+{
+    use SoftDeletes;
+
+    protected $table = 'plotsizes';
+
+    protected $fillable = [
+        'title',
+        'size_area',
+        'project_id',
+        'remarks',
+    ];
+    
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    // public function plot()
+    // {
+    //     return $this->hasMany(Plot::class, 'size_id');
+    // }
+
+    // public function streets()
+    // {
+    //     return $this->hasMany(Street::class);
+    // }
+
+}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class PossessionStatus extends Model
+{
+    use HasFactory;
+
+    protected $fillable = ['plot_id', 'possession_status', 'remarks'];
+
+    public function plot() {
+        return $this->belongsTo(Plot::class);
+    }
+}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Project extends Model
+{
+    use HasFactory;
+    // public $timestamps = false;
+    protected $fillable = [
+        'project_name',
+        'project_remarks',
+    ];
+
+    public function plots() {
+        return $this->hasMany(Plot::class);
+    }
+
+    public function sizes() {
+        return $this->hasMany(Size::class);
+    }
+    public function blocks() {
+        return $this->hasMany(Block::class);
+    }
+
+    public function streets() {
+        return $this->hasMany(Street::class);
+    }
+
+    
+}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Role extends Model
+{
+
+    public function permissions()
+    {
+        return $this->belongsToMany(Permission::class);
+    }
+
+    public function users()
+    {
+        return $this->belongsToMany(User::class);
+    }
+
+}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use App\Http\Controllers\StreetController;
+
+class Street extends Model
+{
+    use HasFactory;
+    protected $guarded = [];
+
+    public function block()
+    {
+        return $this->belongsTo(Block::class);
+    }
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    public function plots()
+    {
+        return $this->hasMany(Plot::class);
+    }
+
+}
+<?php
+
+namespace App\Models;
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
+
+
+class User extends Authenticatable
+{
+    /** @use HasFactory<\Database\Factories\UserFactory> */
+    use HasFactory, Notifiable;
+    use HasRoles;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    // protected $fillable = [
+    //     'name',
+    //     'email',
+    //     'password',
+    // ];
+    protected $guarded = [];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+}

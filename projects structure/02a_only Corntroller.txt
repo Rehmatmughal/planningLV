@@ -1,0 +1,2550 @@
+
+controllers/admin/.....
+
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\Middleware;
+
+
+class AdminDashboardController extends Controller
+{
+       public static function middleware(): array
+    {
+        return [
+            new Middleware('role:admin'),
+        ];
+    }
+
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        return view('admin.admindashboard');
+        
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        //
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        //
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        //
+    }
+}
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Spatie\Permission\Models\Permission;
+
+
+class PermissionController extends Controller
+{
+    public function index()
+    {
+        // $permissions = Permission::all();
+        $permissions = Permission::orderBy('name')->get();
+        return view('admin.permissions.index', compact('permissions'));
+    }
+
+    public function create()
+    {
+        return view('admin.permissions.create');
+        
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|unique:permissions,name'
+        ]);
+
+        Permission::create([
+            'name' => $request->name
+        ]);
+
+        // Permission::create([
+        //     'name' => $request->name
+        // ]);
+
+        return redirect()
+            ->route('admin.permissions.index')
+            ->with('success', 'Permission updated');
+        // return redirect()->route('admin.permissions.index');
+    }
+
+    public function destroy(Permission $permission)
+    {
+        $protected = [
+            'user.view',
+            'role.view',
+            'permission.view',
+        ];
+
+        if (in_array($permission->name, $protected)) {
+            abort(403, 'This permission is protected.');
+            // return back()->with('error', 'This permission cannot be deleted');
+
+        }
+        
+        $permission->roles()->detach();
+        $permission->delete();
+
+        return redirect()->back()->with('success', 'Permission deleted successfully');
+    }
+
+    public function edit(Permission $permission){   // 👈 MUST exist
+        
+        return view('admin.permissions.edit', compact('permission'));
+    }
+    public function update(Request $request, Permission $permission)
+    {
+        $request->validate([
+            'name' => 'required|unique:permissions,name,' . $permission->id,
+        ]);
+
+        $permission->update([
+            'name' => $request->name,
+        ]);
+
+        return redirect()
+            ->route('admin.permissions.index')
+            ->with('success', 'Permission updated successfully');
+    }
+
+
+
+}
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+use Illuminate\Support\Facades\DB;
+
+class RoleController extends Controller
+{
+    public function index()
+    {
+        $roles = Role::all();
+        return view('admin.roles.index', compact('roles'));
+    }
+
+    public function create()
+    {
+        $permissions = Permission::all();
+        return view('admin.roles.create', compact('permissions'));
+    }
+
+    public function store(Request $request)
+    {
+        $role = Role::create([
+            'name' => $request->name
+        ]);
+
+        $role->syncPermissions($request->permissions);
+
+        return redirect()->route('admin.roles.index');
+    }
+
+    public function edit(Role $role)
+    {
+        $permissions = Permission::all();
+        $rolePermissions = $role->permissions->pluck('name')->toArray();
+
+        return view('admin.roles.edit', compact(
+            'role',
+            'permissions',
+            'rolePermissions'
+        ));
+    }
+
+    public function update(Request $request, Role $role)
+    {
+        $role->update([
+            'name' => $request->name
+        ]);
+
+        $role->syncPermissions($request->permissions);
+
+        return redirect()->route('admin.roles.index')
+            ->with('success','Role updated');
+    }
+    public function destroy(Role $role)
+    {
+        
+        // 1. Protect core roles
+        if (in_array($role->name, ['admin', 'super-admin'])) {
+            // abort(403);
+            return back()->with('error', 'This role cannot be deleted');
+        }
+
+        // // 2. Check users attached
+        // if ($role->users()->exists()) {
+        //     return back()->with('error', 'Role assigned to users');
+        // }
+        DB::table('model_has_roles')->where('role_id', $role->id)->delete();
+
+        // detach permissions
+        DB::table('role_has_permissions')->where('role_id', $role->id)->delete();
+
+        // // 3. Detach permissions
+        // $role->permissions()->detach();
+        // $role->syncPermissions([]);
+        // $role->users()->detach(); // agar many-to-many hai
+
+
+        // 4. Delete role
+        $role->delete();
+
+        return back()->with('success', 'Role deleted');
+    }
+
+}
+
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\User;
+use Spatie\Permission\Models\Role;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
+use Spatie\Permission\Models\Permission;
+
+// class UserController extends Controller
+class UserController extends Controller implements HasMiddleware
+{
+    // public function __construct()
+    // {
+    //     // $this->middleware(['role:admin']);
+    //     $this->middleware('role:admin');
+    //     // $this->middleware('permission:manage users');
+    // }
+
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('role:admin'),
+        ];
+    }
+
+    // public function __construct()
+    // {
+    //     $this->middleware('permission:manage users');
+    // }
+
+    public function index()
+    {
+        $permissions = Permission::all();
+
+        $users = User::with('roles')->get();
+        return view('admin.users.index', compact(['users','permissions']));
+    }
+
+    public function create()
+    {
+        $roles = Role::all();
+        return view('admin.users.create', compact('roles'));
+    }
+
+    public function store(Request $request)
+    {
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt('12345678'),
+        ]);
+
+        $user->assignRole($request->role);
+
+        return redirect()->route('admin.users.index')
+            ->with('success', 'User Created');
+    }
+
+    public function edit(User $user)
+    {
+        $roles = Role::all();
+        return view('admin.users.edit', compact('user', 'roles'));
+    }
+
+    public function update(Request $request, User $user)
+    {
+        $user->update($request->only('name','email'));
+        $user->syncRoles([$request->role]);
+
+        return redirect()->route('admin.users.index')
+            ->with('success', 'User Updated');
+    }
+
+    public function destroy(User $user)
+    {
+        $user->delete();
+        return back()->with('success', 'User Deleted');
+    }
+}
+controllers/auth/.....
+is mn jo auth k default package k sath aty han wo default controllers han
+ab 
+controllers/....
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\AreaVariation;
+use App\Models\Plot;
+use App\Models\Plotsize;
+use App\Models\DevelopmentStatus;
+use App\Models\LopStatus;
+use App\Models\MortgageStatus;
+use App\Models\PossessionStatus;
+use Illuminate\Http\Request;
+// for import area variations
+use Carbon\Carbon;
+
+use App\Models\Project;
+use App\Models\Block;
+use Illuminate\Support\Facades\Log;
+
+
+class AreaVariationController extends Controller
+{
+    public function activityLogs()
+    {
+        $logs = Activity::with('causer')
+            ->latest()
+            ->paginate(20);
+
+        return view('admin.activity_logs', compact('logs'));
+    }
+    
+    // for imports area variations ---**** for date format check /** */
+    private function parseDate($date)
+    {
+        try {
+            return Carbon::parse($date)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+// for import data
+    public function importAreaVariations()
+    {
+        // for remove time limits
+        set_time_limit(0); // unlimited execution time
+        ini_set('memory_limit', '-1');
+        
+        $file = storage_path('app/Area-variations.csv');
+
+        if (!file_exists($file)) {
+            return 'CSV file not found';
+        }
+
+        $rows = array_map('str_getcsv', file($file));
+        $header = array_shift($rows);
+
+        foreach ($rows as $index => $row) {
+            try {
+                $data = array_combine($header, $row);
+
+                // 🔹 Project
+                $project = Project::where('project_name', trim($data['Project']))->first();
+                if (!$project) {
+                    throw new \Exception('Project not found');
+                }
+
+                // 🔹 Block
+                $block = Block::where('block_name', trim($data['Block']))
+                    ->where('project_id', $project->id)
+                    ->first();
+
+                if (!$block) {
+                    throw new \Exception('Block not found');
+                }
+
+                // 🔹 Plot
+                $plot = Plot::where('plot_number', trim($data['Plot']))
+                    ->where('block_id', $block->id)
+                    ->first();
+
+                if (!$plot) {
+                    throw new \Exception('Plot not found');
+                }
+
+                // 🔹 Previous Area
+                $previousArea = AreaVariation::where('plot_id', $plot->id)
+                    ->latest('measured_date')
+                    ->value('measured_area') ?? 0;
+
+                // 🔹 Save Area Variation
+                AreaVariation::create([
+                    'plot_id'            => $plot->id,
+                    'previous_area'      => $previousArea,
+                    'measured_area'      => (float) $data['measured_area'],
+                    'measured_date'   => $this->parseDate($data['created_at']),
+                    'remarks'            => $data['Remarks'] ?? null,
+
+                    // 🧊 SNAPSHOT FIELDS
+                    'lop_status_at_time' =>
+                        strtolower($data['LOP_status']) == 'lop'
+                            ? 'lop'
+                            : 'non_lop',
+ 
+                    'road_status_at_time' =>
+                        strtolower($data['asphalttstroad_status']) == 'completed'
+                            ? 'complete'
+                            : 'not_complete',
+
+                    // 'sewer_status_at_time' =>
+                    //     str_contains(strtolower($data['sewer_status']), 'constructed')
+                    //         ? 'constructed'
+                    //         : 'not_constructed',
+                                        // 'sewer_status_at_time' =>
+                        'sewer_status_at_time' =>
+                            strtolower($data['sewer_status']) === 'mh not constructed'
+                                ? 'not_constructed'
+                                : (strtolower($data['sewer_status']) === 'mh constructed'
+                                    ? 'constructed'
+                                    : 'not_constructed'),
+
+
+                ]);
+
+            } catch (\Throwable $e) {
+                Log::error('AreaVariation Import Failed', [
+                    'row'    => $index + 2,
+                    'reason' => $e->getMessage(),
+                    'data'   => $row,
+                ]);
+            }
+        }
+
+        return 'Area Variation Import Completed';
+    }
+
+    // end imports area variations 
+
+    public function index(Request $request)
+    {
+        $query = AreaVariation::with([
+            'plot.project',
+            'plot.block',
+            'plot.street',
+            'plot.plotsize',
+            'plot.developmentStatus',
+            'plot.lopStatus',
+            'plot.mortgageStatus',
+            'plot.possessionStatus'
+        ]);
+
+        // 📅 Date range
+        if ($request->filled('from_date')) {
+            $query->whereDate('measured_date', '>=', $request->from_date);
+        }
+
+        if ($request->filled('to_date')) {
+            $query->whereDate('measured_date', '<=', $request->to_date);
+        }
+
+        // 🏢 Project
+        if ($request->filled('project_id')) {
+            $query->whereHas('plot', function ($q) use ($request) {
+                $q->where('project_id', $request->project_id);
+            });
+        }
+
+        // 🧱 Block
+        if ($request->filled('block_id')) {
+            $query->whereHas('plot', function ($q) use ($request) {
+                $q->where('block_id', $request->block_id);
+            });
+        }
+
+        // 🔢 Plot number
+        if ($request->filled('plot_number')) {
+            $query->whereHas('plot', function ($q) use ($request) {
+                $q->where('plot_number', 'like', '%' . $request->plot_number . '%');
+            });
+        }
+
+        $areaVariations = $query->latest()->paginate(5)->withQueryString();
+
+        return view('plots.area_variations.index', [
+            'areaVariations' => $areaVariations,
+            'projects' => Project::orderBy('project_name')->get(),
+            'blocks' => Block::orderBy('block_name')->get(),
+        ]);
+    }
+
+    // public function index()
+    // {
+    //     $areaVariations = AreaVariation::with([
+    //         'plot.project',
+    //         'plot.block',
+    //         'plot.street',
+    //         // 'plot.plotsize',
+    //         'plot.developmentStatus',
+    //         'plot.lopStatus',
+    //         'plot.mortgageStatus',
+    //         'plot.possessionStatus'
+    //     // ])->latest()->get();
+    //     ])->latest()->paginate(7);
+
+    //     return view('plots.area_variations.index', compact('areaVariations'));
+    // }
+    //   <button class="btn btn-sm btn-warning mb-1 edit-av-btn"
+    //                     data-id="{{ $av->id }}"
+    //                     data-plot-id="{{ $av->plot->id }}"
+    //                     data-plot-size="{{ $av->plot->size }}"
+    //                     data-measured-area="{{ $av->measured_area }}"
+    //                     data-measured-by="{{ $av->measured_by }}"
+    //                     data-measured-date="{{ $av->measured_date }}"
+    //                     data-remarks="{{ $av->remarks }}"
+    //                     data-sewer="{{ $av->plot->developmentStatus->sewer_manholes ?? '' }}"
+    //                     data-road="{{ $av->plot->developmentStatus->asphalt_tst ?? '' }}"
+    //                     data-overall="{{ $av->plot->developmentStatus->overall_status ?? '' }}"
+    //                     data-lop="{{ $av->plot->lopStatus->lop_status ?? '' }}"
+    //                     data-mortgage="{{ $av->plot->mortgageStatus->is_mortgaged ?? '' }}"
+    //                     data-possession="{{ $av->plot->possessionStatus->possession_status ?? '' }}"
+    //                 >Edit</button> 
+    public function edit($id)
+    {
+        $av = AreaVariation::with([
+            'plot.project',
+            'plot.block',
+            'plot.street',
+            'plot.developmentStatus',
+            'plot.lopStatus',
+            'plot.mortgageStatus',
+            'plot.possessionStatus'
+        ])->findOrFail($id);
+
+        return view('plots.area_variations.edit', compact('av'));
+    }
+    public function create(Plot $plot)
+    {
+        $latestArea = $plot->latestAreavariation?->measured_area ?? $plot->size;
+
+        return view('plots.area_variations.create', compact('plot', 'latestArea'));
+    }
+
+    // new store method
+    // public function store(Request $request, Plot $plot)
+    // {
+    //     $request->validate([
+    //         'measured_area' => 'required|numeric',
+    //         'measured_by'   => 'nullable|string',
+    //         'measured_date' => 'required|date',
+    //         'remarks'       => 'nullable|string',
+    //     ]);
+
+    //     // 🔹 Current Development Status
+    //     $dev = $plot->developmentStatus;
+    //     $lop = $plot->lopStatus;
+
+    //     $area = AreaVariation::create([
+    //         'plot_id'        => $plot->id,
+    //         'previous_area'  => $plot->latestAreavariation->measured_area ?? null,
+    //         'measured_area'  => $request->measured_area,
+    //         'measured_by'    => $request->measured_by,
+    //         'measured_date'  => $request->measured_date,
+    //         'remarks'        => $request->remarks,
+
+    //         // 🧊 SNAPSHOT FIELDS
+    //         'road_status_at_time'  => $dev?->asphalt_tst == 'yes'
+    //                                         ? 'complete'
+    //                                         : 'not_complete',
+
+    //         'sewer_status_at_time' => $dev?->sewer_manholes ?? 'not_constructed',
+
+    //         'lop_status_at_time'   => $lop?->lop_status ?? null,
+    //     ]);
+
+    //     return response()->json($area);
+    // }
+    public function store(Request $request)
+    {
+        // return $request;
+        $request->validate([
+            'plot_id'           => 'required|exists:plots,id',
+            'previous_area'     => 'required|numeric',
+            'measured_area'     => 'required|numeric',
+            'measured_date'  => 'required|date',
+            'measured_by'       => 'nullable|string',
+        ]);
+        // return $request;
+
+        $plot = Plot::with(['developmentStatus', 'lopStatus'])->findOrFail($request->plot_id);
+        // return $plot;
+
+        $dev = $plot->developmentStatus;   // may be null
+        $lop = $plot->lopStatus;           // may be null
+        // return $dev;
+        // return $lop;
+
+
+        AreaVariation::create([
+            'plot_id'          => $plot->id,
+        //     'previous_area'    => $request->previous_area,
+        //     'measured_area'    => $request->measured_area,
+            'previous_area' => (float) $request->previous_area,
+            'measured_area' => (float) $request->measured_area,
+            'measured_date' => $request->measured_date,
+            'measured_by'      => $request->measured_by ?? 'system',
+
+            // 🧊 SNAPSHOT FIELDS (FIXED & SAFE)
+            'road_status_at_time'  => $dev?->asphalt_tst === 'yes'
+                                        ? 'complete'
+                                        : 'not_complete',
+
+            'sewer_status_at_time' => $dev?->sewer_manholes === 'constructed'
+                                        ? 'constructed'
+                                        : 'not_constructed',
+
+            'lop_status_at_time'   => $lop?->lop_status, // lop | non_lop | mortgaged | null
+        ]);
+
+        return redirect()
+            ->route('plots.show', $plot->id)
+            ->with('success', 'Area variation added successfully');
+    }
+
+        // new after filter eleminate -- start --
+    // public function store(Request $r)
+    // {
+    //     $r->validate([
+    //         'plot_id'        => 'required|exists:plots,id',
+    //         'measured_area'  => 'required|numeric',
+    //         'measured_date'  => 'required|date',
+    //         // 'measured_area'  => 'nullable|numeric',
+    //         // 'measured_date'  => 'nullable|date',
+    //     ]);
+
+    //     $variation = AreaVariation::create([
+    //         'plot_id'        => $r->plot_id,
+    //         'measured_area' => $r->previous_area,
+    //         // 'measured_area'  => $r->measured_area,
+    //         // 'measured_date'  => $r->measured_date,
+    //         'source'         => 'draftsman', // default
+    //     ]);
+
+    //     return back()->with('success', 'Area variation added.');
+
+    //     // return response()->json([
+    //     //     'measured_area' => $variation->measured_area,
+    //     //     // 'measured_area' => $r->previous_area
+    //     // ]);
+    // }
+    public function storearea(Request $r)
+    {
+        $r->validate([
+            'plot_id'        => 'required|exists:plots,id',
+            'measured_area'  => 'required|numeric',
+            // 'measured_date'  => 'required|date',
+            // 'measured_area'  => 'nullable|numeric',
+            // 'measured_date'  => 'nullable|date',
+        ]);
+
+        $variation = AreaVariation::create([
+            'plot_id'        => $r->plot_id,
+            // 'measured_area' => $r->previous_area,
+            'measured_area'  => $r->measured_area,
+            // 'measured_date'  => $r->measured_date,
+            'source'         => 'draftsman', // default
+        ]);
+
+        // return back()->with('success', 'Area variation added.');
+
+        return response()->json([
+            'measured_area' => $variation->measured_area,
+            // 'measured_area' => $r->previous_area
+        ]);
+    }
+    // new after filter eleminate -- end --
+
+    // // new store method
+    
+    // public function store(Request $request)
+    // {
+    //     $data = $request->validate([
+    //         'plot_id' => 'required|exists:plots,id',
+    //         'measured_area' => 'required|numeric',
+    //         'measured_date' => 'nullable|date',
+    //         'measured_by' => 'nullable|string|max:255',
+    //         'remarks' => 'nullable|string',
+    //         'source' => 'nullable|string' // optional
+    //     ]);
+
+    //     $data['source'] = $data['source'] ?? 'survey';
+
+    //     AreaVariation::create($data);
+
+    //     return back()->with('success','Area variation saved.');
+    // }
+
+    // store new measurement
+    // public function store(Request $request)
+    // {
+    //     $data = $request->validate([
+    //         'plot_id' => 'required|exists:plots,id',
+    //         // 'measured_area' => 'required|numeric',
+    //         // 'measured_date' => 'nullable|date',
+    //         // 'measured_by' => 'nullable|string|max:255',
+    //         // 'remarks' => 'nullable|string',
+    //     ]);
+
+    //     AreaVariation::create($data);
+
+    //     return back()->with('success', 'Area variation saved.');
+    // }
+
+    // update an area variation and optionally update statuses
+    public function update(Request $request, $id)
+    {
+        $av = AreaVariation::findOrFail($id);
+
+        $data = $request->validate([
+            'measured_area' => 'required|numeric',
+            'measured_date' => 'nullable|date',
+            'measured_by' => 'nullable|string|max:255',
+            'remarks' => 'nullable|string',
+
+            // optional status updates (coming from modal)
+            'sewer_manholes' => 'nullable|in:constructed,not_constructed',
+            'asphalt_tst' => 'nullable|in:yes,no',
+            'overall_status' => 'nullable|in:developed,under_development,not_developed',
+
+            'lop_status' => 'nullable|in:lop,non_lop',
+            'is_mortgaged' => 'nullable|in:yes,no',
+            'possession_status' => 'nullable|in:possessionable,non_lop_possessionable,under_development_possessionable,not_possessionable',
+        ]);
+
+        // update area variation
+        $av->update([
+            'measured_area' => $data['measured_area'],
+            'measured_date' => $data['measured_date'] ?? $av->measured_date,
+            'measured_by' => $data['measured_by'] ?? $av->measured_by,
+            'remarks' => $data['remarks'] ?? $av->remarks,
+        ]);
+
+        $plotId = $av->plot_id;
+
+        // If development fields provided, updateOrCreate development_statuses
+        if (isset($data['sewer_manholes']) || isset($data['asphalt_tst']) || isset($data['overall_status'])) {
+            DevelopmentStatus::updateOrCreate(
+                ['plot_id' => $plotId],
+                [
+                    'sewer_manholes' => $data['sewer_manholes'] ?? DevelopmentStatus::where('plot_id',$plotId)->value('sewer_manholes'),
+                    'asphalt_tst' => $data['asphalt_tst'] ?? DevelopmentStatus::where('plot_id',$plotId)->value('asphalt_tst'),
+                    'overall_status' => $data['overall_status'] ?? DevelopmentStatus::where('plot_id',$plotId)->value('overall_status'),
+                ]
+            );
+        }
+
+        // LOP
+        if (isset($data['lop_status'])) {
+            LopStatus::updateOrCreate(
+                ['plot_id' => $plotId],
+                ['lop_status' => $data['lop_status']]
+            );
+        }
+
+        // Mortgage
+        if (isset($data['is_mortgaged'])) {
+            MortgageStatus::updateOrCreate(
+                ['plot_id' => $plotId],
+                ['is_mortgaged' => $data['is_mortgaged']]
+            );
+        }
+
+        // Possession
+        if (isset($data['possession_status'])) {
+            PossessionStatus::updateOrCreate(
+                ['plot_id' => $plotId],
+                ['possession_status' => $data['possession_status']]
+            );
+        }
+        // option-1
+        // return back()->with('success', 'Area variation and related statuses updated.');
+        // option-2
+        return redirect()
+            ->route('area_variations.index')
+            ->with('success', 'Area variation updated successfully.');
+        // option - 3
+        // return redirect()
+        //     ->route('plots.show', $av->plot_id)
+        //     ->with('success', 'Area variation updated successfully.');
+    }
+
+    // delete
+    public function destroy($id)
+    {
+        $av = AreaVariation::findOrFail($id);
+        $av->delete();
+        return back()->with('success', 'Area variation deleted.');
+    }
+
+    // print single area variation (or print report)
+    public function print($id)
+    {
+        $av = AreaVariation::with([
+            'plot.project',
+            'plot.block',
+            'plot.street',
+            'plot.developmentStatus',
+            'plot.lopStatus',
+            'plot.mortgageStatus',
+            'plot.possessionStatus'
+        ])->findOrFail($id);
+
+        // render a print-friendly view
+        return view('plots.area_variations.print_single', compact('av'));
+    }
+    // ---- old functins  ----
+
+    // public function store(Request $request)
+    // {
+    //     $request->validate([
+    //         'plot_id' => 'required',
+    //         // 'measured_area' => 'required|numeric',
+    //         // 'measured_date' => 'required|date',
+    //         // 'measured_by' => 'nullable|string',
+    //         // 'remarks' => 'nullable|string'
+    //     ]);
+
+    //     AreaVariation::create([
+    //         'plot_id' => $request->plot_id,
+    //         'measured_area' => 0,
+    //         // 'measured_area' => $request->measured_area,
+    //         // 'measured_by' => $request->measured_by,
+    //         // 'measured_date' => $request->measured_date,
+    //         // 'remarks' => $request->remarks,
+    //     ]);
+
+    //     return back()->with('success', 'Area variation added successfully!');
+    // }
+    // public function print(Plot $plot)
+    // {
+    //     $variations = $plot->areaVariations()->latest()->get();
+    //     return view('plots.area_variations.print', compact('plot', 'variations'));
+    // }
+    // public function show()
+    // {
+    //     $areaVariations = AreaVariation::with([
+    //             'plot.project',
+    //             'plot.block',
+    //             'plot.street',
+    //             'plot.developmentStatus',
+    //             'plot.lopStatus',
+    //             'plot.mortgageStatus',
+    //             'plot.possessionStatus'
+    //         ])
+    //         ->get();
+                
+    //         // return $areaVariations;
+    //     return view('plots.area_variations.index', compact('areaVariations'));
+    // }
+}
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Project;
+use App\Models\Block;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+// for exports into excel
+use App\Exports\ProjectBlocksExport;
+use Maatwebsite\Excel\Facades\Excel;
+
+
+class BlockController extends Controller
+{
+    public function exportProjectBlocksExcel(Project $project)
+    {
+        return Excel::download(
+            new ProjectBlocksExport($project->id),
+            'project_'.$project->id.'_blocks.xlsx'
+        );
+    }
+    
+    public function projectBlocks(Request $request, Project $project)
+    {
+        // 🔍 Project ke blocks query
+        $query = Block::with('project')
+            ->where('project_id', $project->id);
+
+        // (optional future filters yahin add honge)
+
+        $blocks = $query->latest()->paginate(10);
+
+        // 🔹 filter dropdown ke liye projects
+        $projects = Project::orderBy('project_name')->get();
+
+        return view('blocks.project_blocks', [
+            'blocks'     => $blocks,
+            'projects'   => $projects,
+            'project'    => $project,
+            'project_id' => $project->id,
+        ]);
+    }
+    /**
+     * Display a listing of the resource.
+     */
+
+    public function index(Request $request)
+    {
+        $project_id = $request->project_id;
+
+        $query = Block::with('project');
+
+        // 🔎 Apply filter (optional)
+        if ($project_id) {
+            $query->where('project_id', $project_id);
+        }
+
+        // 📌 Order by: First Project Name, then Block Name
+        $query->join('projects', 'projects.id', '=', 'blocks.project_id')
+            ->orderBy('projects.project_name', 'ASC')
+            ->orderBy('blocks.block_name', 'ASC')
+            ->select('blocks.*'); // important to avoid issues in pagination
+
+        $blocks = $query->paginate(10);
+        $blocks->appends($request->all());
+
+        $projects = Project::all();
+
+        return view('blocks.index', compact('blocks', 'projects', 'project_id'));
+    }
+
+    // public function index(Request $request)
+    // {
+    //     $project_id = $request->project_id; // filter value
+
+    //     // Base Query
+    //     $query = Block::with('project')->latest();
+
+    //     // If filter applied
+    //     if ($project_id) {
+    //         $query->where('project_id', $project_id);
+    //     }
+
+    //     $blocks = $query->paginate(10);
+
+    //     // For filter dropdown
+    //     $projects = Project::all();
+
+    //     // Preserve filter in pagination
+    //     $blocks->appends($request->all());
+
+    //     return view('blocks.index', compact('blocks', 'projects', 'project_id'));
+    // }
+
+    // old index method -- start --
+    // public function index()
+    // {
+    //     $blocks = Block::with('project')->latest()->paginate(10);
+    //     $projects = Project::all();
+
+    //     // return $blocks;
+
+    //     return view('blocks.index', compact(['blocks', 'projects']));
+
+    // }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+
+    public function createpsproject(Request $request, $project_id = null)
+{
+        $projects = DB::table('projects')->get();
+
+        return view('blocks.createpsproject', [
+            'projects' => $projects,
+            'selected_project_id' => $project_id
+        ]);
+    }
+
+
+    public function create()
+    {
+        $projects = DB::table('projects')
+                    ->get();
+            // return $projects;
+
+        return view('blocks.create', compact('projects'));
+    }
+
+    // for preselect project name ---
+    //     public function createpsproject(string $pname)
+    // {
+    //     $projects = DB::table('projects')
+    //                 ->get();
+    //         // return $projects;
+    //     $projectname = $pname;
+
+    //     return view('blocks.create', compact('projects', 'projectname'));
+    // }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+
+    public function store(Request $request)
+    {
+        try {
+            // Validate
+            $validatedData = $request->validate([
+                'project_id' => 'required|exists:projects,id',
+                'block_name' => [
+                    'required',
+                    'string',
+                    Rule::unique('blocks')->where(function ($query) use ($request) {
+                        return $query->where('project_id', $request->project_id);
+                    }),
+                ],
+                'remarks' => 'nullable|string|max:255',
+            ], [
+                // 👇 Custom error message
+                'block_name.unique' => 'This Block already exists for the selected Project.',
+            ]);
+
+            // Create record
+            Block::create($validatedData);
+
+            return redirect()->route('blocks.index')
+                ->with('success', 'Block created successfully!');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Validation errors automatically redirect back with errors and old input
+            throw $e;
+        } catch (\Exception $e) {
+            // Agar koi aur duplicate DB level se aaye
+            return back()
+                ->withErrors(['error' => 'Block already exists for this project (duplicate entry).'])
+                ->withInput();
+        }
+    }
+
+
+    // public function store(Request $request)
+    // {
+    //     // Validation
+    //     $validatedData = $request->validate([
+    //         'project_id' => 'required|exists:projects,id',
+    //         'block_name' => [
+    //             'required',
+    //             'string',
+    //             // custom rule to ensure unique combination
+    //             Rule::unique('blocks')->where(function ($query) use ($request) {
+    //                 return $query->where('project_id', $request->project_id);
+    //             }),
+    //         ],
+    //         'remarks' => 'nullable|string|max:255',
+    //     ], [
+    //         // 👇 Custom error message
+    //         'block_name.unique' => 'This Block already exists for the selected Project.',
+    //     ]);
+
+    //     // Create record
+    //     $block = new Block();
+    //     $block->project_id = $validatedData['project_id'];
+    //     $block->block_name = $validatedData['block_name'];
+    //     $block->remarks = $validatedData['remarks'] ?? null;
+    //     $block->save();
+
+    //     // Redirect with success message
+    //     return redirect()->route('blocks.index')->with('success', 'Block created successfully.');
+    // }
+
+
+    // old store method with only block unique
+    // public function store(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'project_id' => 'required|exists:projects,id',
+    //         'block_name' => 'required|string|max:255|unique:blocks,block_name',
+    //         'remarks' => 'nullable|string',
+    //     ]);
+
+    //     $block = Block::create($validated);
+
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'message' => 'Block added successfully!',
+    //         'data' => $block
+    //     ]);
+    // }
+
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Block $block)
+    {
+        $projects = Project::orderBy('project_name')->get();
+
+        return view('blocks.edit', compact('block', 'projects'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Block $block)
+    {
+        $request->validate([
+            'project_id' => 'required|exists:projects,id',
+            'block_name' => 'required|string|max:255',
+            'remarks'    => 'nullable|string',
+        ]);
+
+        $block->update([
+            'project_id' => $request->project_id,
+            'block_name' => $request->block_name,
+            'remarks'    => $request->remarks,
+        ]);
+
+        return redirect()
+            ->route('blocks.index')
+            ->with('success', 'Block updated successfully');
+    }
+
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        try {
+            $block = Block::findOrFail($id);
+            $block->delete();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Block deleted successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unable to delete block. It might have related streets or plots.'
+            ], 500);
+        }
+    }
+    // new function manual
+    Public function addBlock()
+    {
+        $projects = Project::all();
+        return view('addblock',compact('projects'));
+    }
+    
+    public function saveBlock(Request $request)
+    {
+        $request->validate([
+            'postproject' => 'required|exists:projects,id',
+            'postblock' => 'required|unique:ggblocks,block_name',
+            'postremarks' => 'nullable|string',
+        ]);
+
+        Block::create([
+            'project_id' => $request->postproject,
+            'block_name' => $request->postblock,
+            'remarks' => $request->postremarks,
+        ]);
+        //  return response()->json([
+        //     'status' => 'success',
+        //     'message' => 'Block added successfully!',
+        //     'data' => $block
+        // ]);
+
+        // return redirect()->back()->with('success', 'Block added successfully!');
+    }
+
+    public function showBlocks(){
+        $blocks = DB::table('blocks')
+                    ->join('projects','blocks.project_id','=','projects.id')
+                    ->select('blocks.*','projects.project_name')
+                    ->get();
+        return view('pages.ghome', compact('blocks'));
+        // return view('test',compact('grblock'));
+    }
+
+    public function projectwise($id)
+    {
+        $project = Project::findOrFail($id);
+
+        $blocks = Block::where('project_id', $id)
+                    ->orderBy('block_name', 'ASC')
+                    ->get();
+
+        return view('blocks.block', [
+            'blocks' => $blocks,
+            'project_name' => $project->project_name,
+            'project_id' => $id
+        ]);
+    }
+
+    public function getBlocksByProject($project_id)
+    {
+        $blocks = Block::where('project_id', $project_id)->get();
+
+        return response()->json($blocks);
+    }
+
+
+
+
+    // public function projectwise($id)
+    // {
+    //     $project = Project::findOrFail($id);
+
+    //     $blocks = Block::where('project_id', $id)
+    //                 ->orderBy('block_name', 'ASC')
+    //                 ->get();
+
+    //     return view('blocks.block', [
+    //         'blocks' => $blocks,
+    //         'project_name' => $project->project_name,
+    //         'project_id' => $id   // ← ADD THIS
+    //     ]);
+    // }
+
+
+    // public function projectwise(string $proid){
+    //     $blocks = DB::table('blocks')
+    //                 ->where('project_id', $proid)
+    //                 // ->paginate(10)
+    //                 ->get();
+    //     // $projects = Project::all();
+    //     $project = DB::table('projects')
+    //                 ->where('id', $proid)
+    //                 ->first();
+
+    //     $project_name = $project->project_name ?? 'Unknown Project';
+
+    //     return view('blocks.block', compact('blocks','project_name','proid'));
+    // }
+}
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Project;
+use App\Models\Block;
+use App\Models\Street;
+use App\Models\Plot;
+
+class DashboardController extends Controller
+{
+    public function index()
+    {
+        $totalProjects = Project::count();
+        $totalBlocks = Block::count();
+        $totalStreets = Street::count();
+        $totalPlots = Plot::count();
+
+        // Chart Data
+        $plotsPerProject = Project::withCount('plots')->get(['project_name', 'plots_count']);
+
+        return view('dashboard', compact('totalProjects', 'totalBlocks', 'totalStreets', 'totalPlots', 'plotsPerProject'));
+    }
+    // public function app()
+    // {
+    //     $totalProjects = Project::count();
+    //     $totalBlocks = Block::count();
+    //     $totalStreets = Street::count();
+    //     $totalPlots = Plot::count();
+
+    //     // Chart Data
+    //     $plotsPerProject = Project::withCount('plots')->get(['project_name', 'plots_count']);
+
+    //     return view('app', compact('totalProjects', 'totalBlocks', 'totalStreets', 'totalPlots', 'plotsPerProject'));
+    // }
+}
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\DevelopmentStatus;
+use Illuminate\Http\Request;
+
+class DevelopmentStatusController extends Controller
+{
+    public function storeOrUpdate(Request $request)
+    {
+        $request->validate([
+            'plot_id' => 'required',
+            'sewer_manholes' => 'required',
+            'asphalt_tst' => 'required',
+            'overall_status' => 'required',
+            'remarks' => 'nullable'
+        ]);
+
+        DevelopmentStatus::updateOrCreate(
+            ['plot_id' => $request->plot_id],
+            [
+                'sewer_manholes' => $request->sewer_manholes,
+                'asphalt_tst' => $request->asphalt_tst,
+                'overall_status' => $request->overall_status,
+                'remarks' => $request->remarks
+            ]
+        );
+
+        return back()->with('success', 'Development status saved!');
+    }
+}
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\LopStatus;
+use Illuminate\Http\Request;
+
+class LopStatusController extends Controller
+{
+    public function storeOrUpdate(Request $request)
+    {
+        $request->validate([
+            'plot_id' => 'required',
+            'lop_status' => 'required',
+            'remarks' => 'nullable'
+        ]);
+
+        LopStatus::updateOrCreate(
+            ['plot_id' => $request->plot_id],
+            [
+                'lop_status' => $request->lop_status,
+                'remarks' => $request->remarks
+            ]
+        );
+
+        return back()->with('success', 'LOP status saved!');
+    }
+}
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\MortgageStatus;
+use Illuminate\Http\Request;
+
+class MortgageStatusController extends Controller
+{
+    public function storeOrUpdate(Request $request)
+    {
+        $request->validate([
+            'plot_id' => 'required',
+            'is_mortgaged' => 'required',
+            'remarks' => 'nullable'
+        ]);
+
+        MortgageStatus::updateOrCreate(
+            ['plot_id' => $request->plot_id],
+            [
+                'is_mortgaged' => $request->is_mortgaged,
+                'remarks' => $request->remarks
+            ]
+        );
+
+        return back()->with('success', 'Mortgage status saved!');
+    }
+}
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\PlotCategoryType;
+use Illuminate\Http\Request;
+use App\Models\Project;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+
+class PlotCategoryTypeController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+        public function index(Request $request)
+    {
+        
+        $categories = PlotCategoryType::latest()->paginate(10);
+        // $categories->appends($request->all());
+
+        return view('categories.index', compact('categories'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        $projects = DB::table('projects')
+                ->get();
+        // return $projects;
+
+        return view('categories.create', compact('projects'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        try {
+            // Validate
+            $validatedData = $request->validate([
+                // 'project_id' => 'required|exists:projects,id',
+                // 'size_area' => 'required',
+                'category_title' => 'required|unique:projects,project_name',
+                // 'category_title' => [
+                //     'required',
+                //     'string',
+                //     Rule::unique('categorytype')->where(function ($query) use ($request) {
+                //         return $query->where('project_id', $request->project_id);
+                //     }),
+                // ],
+                'remarks' => 'nullable|string|max:255',
+            ], [
+                // 👇 Custom error message
+                'category_title.unique' => 'This Size already exists.',
+            ]);
+            // return $validatedData;
+
+            // Create record
+            PlotCategoryType::create($validatedData);
+
+            return redirect()->route('categories.index')
+                ->with('success', 'Plot Category created successfully!');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Validation errors automatically redirect back with errors and old input
+            throw $e;
+        } catch (\Exception $e) {
+            // return $e;
+            // Agar koi aur duplicate DB level se aaye
+            return back()
+                ->withErrors(['error' => 'Category already exists for this project (duplicate entry).'])
+                ->withInput();
+        }      
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    // EDIT FORM
+    public function edit($id)
+    {
+        $category = PlotCategoryType::findOrFail($id);
+        return view('categories.edit', compact('category'));
+    }
+
+    // UPDATE DATA
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'category_title' => 'required|string|max:255|unique:plot_category_types,category_title,' . $id,
+            'remarks'        => 'nullable|string',
+        ]);
+
+        $category = PlotCategoryType::findOrFail($id);
+
+        $category->update([
+            'category_title' => $request->category_title,
+            'remarks'        => $request->remarks,
+        ]);
+
+        return redirect()
+            ->route('categories.index')
+            ->with('success', 'Category updated successfully.');
+    }
+
+   
+    public function destroy($id)
+    {
+    //     $id->delete();
+    //     return back()->with('success', 'Category deleted successfully!');
+
+            try {
+            $plotcategory = PlotCategoryType::findOrFail($id);
+
+            $plotcategory->delete();
+
+            return redirect()->back()->with('success', 'Category deleted successfully!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Unable to delete size.It might have related plots.');
+        }
+    }
+}
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Plot;
+use App\Models\Project;
+use App\Models\Block;
+use App\Models\Street;
+use App\Models\DevelopmentStatus;
+use App\Models\LopStatus;
+use App\Models\MortgageStatus;
+use App\Models\PossessionStatus;
+use App\Models\AreaVariation;
+use App\Models\PlotSize;
+use App\Models\PlotCategoryType;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+// for excel exports
+use App\Exports\BlockPlotsExport;
+use Maatwebsite\Excel\Facades\Excel;
+ 
+
+class PlotController extends Controller
+{
+    // for export excel 
+    public function exportBlockPlots(Request $request, Block $block)
+    {
+        return Excel::download(
+            new BlockPlotsExport($block, $request),
+            'block_' . $block->block_name . '_plots.xlsx'
+        );
+    }
+ 
+    public function show($id)
+    {
+        $plot = Plot::with([
+            'project',
+            'block',
+            'street',
+            'size',
+            'category',
+            'lopStatus',
+            'developmentStatus',
+            'mortgageStatus',
+            'coordinates',
+        ])->findOrFail($id);
+
+        // Area variation history (latest first)
+        $areaVariations = AreaVariation::where('plot_id', $id)
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return view('plots.show', compact('plot', 'areaVariations'));
+    }
+    // plot detail print 
+    public function print($id)
+    {
+        $plot = Plot::with([
+            'project',
+            'block',
+            'street',
+            'size',
+            'category',
+            'lopStatus',
+            'developmentStatus',
+            'areaVariations' // full history
+        ])->findOrFail($id);
+
+        return view('plots.print', compact('plot'));
+    }
+
+    // new method from chatgpt -- start --
+    /**
+     * --- GET LOP STATUS ---
+     */
+    public function getLop(Plot $plot)
+    {
+        return response()->json([
+            'lop_status' => $plot->lopStatus->lop_status ?? null,
+            'remarks'    => $plot->lopStatus->remarks ?? null,
+        ]);
+    }
+
+
+    /**
+     * --- UPDATE / CREATE LOP STATUS ---
+     */
+    public function updateLop(Request $r, Plot $plot)
+    {
+        $r->validate([
+            'lop_status' => 'required|in:lop,non_lop,mortgaged',
+            'remarks'    => 'nullable|string',
+        ]);
+
+        $saved = LopStatus::updateOrCreate(
+            ['plot_id' => $plot->id],
+            [
+                'lop_status' => $r->lop_status,
+                'remarks'    => $r->remarks,
+            ]
+        );
+
+        return response()->json(['lop_status' => $saved->lop_status]);
+    }
+
+
+    /**
+     * --- GET DEVELOPMENT STATUS ---
+     */
+    public function getDevelopment(Plot $plot)
+    {
+        return response()->json([
+            'asphalt_tst'    => $plot->developmentStatus->asphalt_tst ?? null,
+            'sewer_manholes' => $plot->developmentStatus->sewer_manholes ?? null,
+            'remarks'        => $plot->developmentStatus->remarks ?? null,
+        ]);
+    }
+
+
+    /**
+     * --- UPDATE DEVELOPMENT STATUS ---
+     */
+    public function updateDevelopment(Request $r, Plot $plot)
+    {
+        // return $r;
+        $r->validate([
+            // 'asphalt_tst'    => 'required|in:complete,not_complete',
+            // 'sewer_manholes' => 'required|in:complete,not_complete',
+            'asphalt_tst'    => 'required|in:complete,not_complete',
+            'sewer_manholes' => 'required|in:complete,not_complete',
+            'remarks'        => 'nullable|string',
+        ]);
+
+        // Frontend → Database Mapping
+        // Example: complete → yes, not_complete → no
+        // old maping
+        // Road mapping (frontend → DB)
+        // new mapping
+        $roadMap = [
+            'complete'      => 'yes',
+            'not_complete'  => 'no'
+        ];
+
+        // Sewer mapping (frontend → DB)
+        $sewerMap = [
+            'complete'      => 'constructed',
+            'not_complete'  => 'not_constructed'
+        ];
+
+       
+        // $sewerMap = [
+        //     'constructed'      => 'constructed',
+        //     'not_constructed'  => 'not_constructed'
+        // ];
+
+
+        // $map = [
+        //     'complete' => 'yes',
+        //     'not_complete' => 'no'
+        // ];
+
+        $saved = DevelopmentStatus::updateOrCreate(
+            ['plot_id' => $plot->id],
+            [
+                'asphalt_tst'    => $roadMap[$r->asphalt_tst],
+                'sewer_manholes' => $sewerMap[$r->sewer_manholes],
+                // 'asphalt_tst'    => $map[$r->asphalt_tst],
+                // 'sewer_manholes' => $map[$r->sewer_manholes],
+                'remarks'        => $r->remarks,
+            ]
+        );
+        // return $saved;
+        
+        return response()->json([
+            'asphalt_tst'    => $saved->asphalt_tst,
+            'sewer_manholes' => $saved->sewer_manholes,
+            'remarks'        => $saved->remarks,
+        ]);
+    }
+
+    // new method from chatgpt -- END --
+
+    // 🔹 Index (List + Filters)
+    // new filter index with plot, street and other ---
+    public function index(Request $request)
+    {
+        $query = Plot::with([
+            'project',
+            'block',
+            'street',
+            'plotSize',
+            'category',
+            'lopStatus',
+            'developmentStatus',
+            'latestAreavariation'
+        ]);
+
+        // 🔹 Project
+        if ($request->project_id) {
+            $query->where('project_id', $request->project_id);
+        }
+
+        // 🔹 Block
+        if ($request->block_id) {
+            $query->where('block_id', $request->block_id);
+        }
+
+        // 🔹 Street
+        if ($request->street_id) {
+            $query->where('street_id', $request->street_id);
+        }
+
+        // 🔹 Size
+        if ($request->size_id) {
+            $query->where('size_id', $request->size_id);
+        }
+
+        // 🔹 Plot No
+        if ($request->plot_no) {
+            $query->where('plot_number', 'LIKE', '%' . $request->plot_no . '%');
+        }
+
+        // 🔹 Universal Search
+        if ($request->search) {
+            $search = $request->search;
+
+            $query->where(function ($q) use ($search) {
+                $q->where('plot_number', 'LIKE', "%$search%")
+                ->orWhereHas('block', fn($b) => $b->where('block_name', 'LIKE', "%$search%"))
+                ->orWhereHas('street', fn($s) => $s->where('street_name', 'LIKE', "%$search%"))
+                ->orWhereHas('plotSize', fn($ps) => $ps->where('title', 'LIKE', "%$search%"))
+                ->orWhereHas('category', fn($c) => $c->where('category_title', 'LIKE', "%$search%"));
+            });
+        }
+
+        $plots = $query->orderBy('id', 'desc')->paginate(5)->withQueryString();
+
+        return view('plots.index', [
+            'plots' => $plots,
+            'projects' => Project::all(),
+            'blocks' => Block::all(),
+            'streets' => Street::all(),
+            'sizes' => PlotSize::all(),
+        ]);
+    }
+
+    // filter controller function
+    public function filter(Request $request)
+    {
+        $query = Plot::with(['project', 'block', 'street', 'size']);
+
+        if ($request->project_id) {
+            $query->where('project_id', $request->project_id);
+        }
+
+        if ($request->block_id) {
+            $query->where('block_id', $request->block_id);
+        }
+
+        if ($request->street_id) {
+            $query->where('street_id', $request->street_id);
+        }
+
+        if ($request->size_id) {
+            $query->where('size_id', $request->size_id);
+        }
+
+        if ($request->lop_status) {
+            $query->where('lop_status', $request->lop_status);
+        }
+
+        if ($request->development_status) {
+            $query->where('development_status', $request->development_status);
+        }
+
+        $plots = $query->get();
+
+        return view('plots.partials.table-data', compact('plots'))->render();
+    }
+
+    // ➕ Create Form
+    public function create()
+    {
+        $projects = Project::all();
+        $blocks = Block::all();
+        $streets = Street::all();
+        $sizes = Plotsize::all();
+        $categories = PlotCategoryType::all();
+
+        return view('plots.create', compact('projects', 'blocks', 'streets','sizes','categories'));
+    }
+
+    // ✅ Store New Plot -- NEW TRY START
+    public function store(Request $request)
+    {
+        
+        // Common validation rules
+        $rules = [
+            'numbering_type' => 'required|in:blockwise,streetwise',
+            'project_id' => 'required|integer|exists:projects,id',
+            'block_id' => 'required|integer|exists:blocks,id',
+            'plot_number' => 'required|string',
+            'street_id' => 'nullable|exists:streets,id',
+            'size_id' => 'required',
+            'category_id' => 'required|integer|exists:plot_category_types,id',
+            'remarks' => 'nullable|string',
+            ];
+
+        // Conditional validation
+        if ($request->numbering_type === 'blockwise') {
+            $rules['block_id'] = 'required|integer';
+            // 3 columns unique check
+            $rules['plot_number'] .= '|unique:plots,plot_number,NULL,id,project_id,' . $request->project_id . ',block_id,' . $request->block_id;
+        }
+
+        if ($request->numbering_type === 'streetwise') {
+            $rules['street_id'] = 'required|integer';
+            // 4 columns unique check
+            $rules['plot_number'] .= '|unique:plots,plot_number,NULL,id,project_id,' . $request->project_id . ',block_id,' . $request->block_id . ',street_id,' . $request->street_id;
+        }
+
+        $validatedData = $request->validate($rules);
+
+        // return $validatedData;
+
+        // save data
+        $plot = Plot::create($validatedData);
+
+        // return redirect()->back()->with('success', 'Plot saved successfully!');
+        return redirect()->route('plots.index')->with('success', 'Plot saved successfully!');
+
+    }
+
+    public function edit($id)
+    {
+        $plot = Plot::with(['project', 'block', 'street', 'size'])->findOrFail($id);
+
+        $projects = Project::orderBy('project_name')->get();
+        $blocks   = Block::where('project_id', $plot->project_id)->orderBy('block_name')->get();
+        $streets  = Street::where('project_id', $plot->project_id)->orderBy('street_name')->get();
+        $sizes    = PlotSize::where('project_id', $plot->project_id)->orderBy('title')->get();
+        $categories    = PlotCategoryType::orderBy('category_title')->get();
+
+        return view('plots.edit', compact(
+            'plot',
+            'projects',
+            'blocks',
+            'streets',
+            'sizes',
+            'categories'
+        ));
+    }
+    public function update(Request $request, Plot $plot)
+    {
+        $rules = [
+            'numbering_type' => 'required|in:blockwise,streetwise',
+            'project_id'     => 'required|exists:projects,id',
+            'block_id'       => 'required|exists:blocks,id',
+            'street_id'      => 'required|exists:streets,id', // ALWAYS REQUIRED
+            'plot_number'    => 'required|string',
+            'size_id'        => 'required|exists:plotsizes,id',
+            'category_id'    => 'required|exists:plot_category_types,id',
+            'remarks'        => 'nullable|string',
+        ];
+
+        // UNIQUE LOGIC (same as store but IGNORE current plot)
+        if ($request->numbering_type === 'blockwise') {
+
+            $rules['plot_number'] .= '|unique:plots,plot_number,' . $plot->id .
+                ',id,project_id,' . $request->project_id .
+                ',block_id,' . $request->block_id;
+
+        } else { // streetwise
+
+            $rules['plot_number'] .= '|unique:plots,plot_number,' . $plot->id .
+                ',id,project_id,' . $request->project_id .
+                ',block_id,' . $request->block_id .
+                ',street_id,' . $request->street_id;
+        }
+
+        $validated = $request->validate($rules);
+
+        $plot->update($validated);
+
+        return redirect()->route('plots.index')
+            ->with('success', 'Plot updated successfully!');
+    }
+
+
+    // 🗑️ Delete plot
+    public function destroy(Plot $plot)
+    {
+        $plot->delete();
+        return back()->with('success', 'Plot deleted successfully!');
+    }
+
+    // 🔹 AJAX: Get blocks by project
+    public function getBlocks($project_id)
+    {
+        $blocks = Block::where('project_id', $project_id)->get(['id', 'block_name']);
+        return response()->json($blocks);
+    }
+
+    // 🔹 AJAX: Get sizes by project
+    public function getSizes($project_id)
+    {
+        $sizes = PlotSize::where('project_id', $project_id)->get(['id', 'title']);
+        return response()->json($sizes);
+    }
+
+    // 🔹 AJAX: Get streets by block
+    public function getStreets($block_id)
+    {
+        $streets = Street::where('block_id', $block_id)->get(['id', 'street_name']);
+        return response()->json($streets);
+    }
+
+    public function indexByBlock(Request $request, Block $block)
+    {
+        $plots = Plot::with(['street', 'plotsize'])
+            ->where('block_id', $block->id)
+            ->when($request->street_id, fn($q) =>
+                $q->where('street_id', $request->street_id)
+            )
+            ->when($request->plot_number, fn($q) =>
+                $q->where('plot_number', 'like', '%' . $request->plot_number . '%')
+            )
+            ->orderBy('plot_number')
+            ->paginate(15);
+
+        return view('plots.block_plots', compact('block', 'plots'));
+    }
+    // street wise plot list
+    public function indexByStreet(Request $request, Street $street)
+    {
+        $plots = Plot::with(['plotsize', 'block'])
+            ->where('street_id', $street->id)
+            ->when($request->plot_number, fn ($q) =>
+                $q->where('plot_number', 'like', '%' . $request->plot_number . '%')
+            )
+            ->when($request->block_id, fn ($q) =>
+                $q->where('block_id', $request->block_id)
+            )
+            ->orderBy('plot_number')
+            ->paginate(15);
+
+        return view('plots.street_plots', compact('street', 'plots'));
+    }
+
+
+    public function blockwise(string $bid){
+        $query = Plot::with([
+            'project',
+            'block',
+            'street',
+            'plotSize',
+            'category',
+            'lopStatus',
+            'developmentStatus',
+            'latestAreavariation'
+        ]);
+
+            $query->where('project_id', $bid);
+        
+            $query->where('block_id', $bid);
+            $plots = $query->get();
+        return view('plots.plot', compact('plots'));
+        
+    }
+}
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Plotsize;
+use App\Models\Project;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+
+class PlotsizeController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+        
+        $project_id = $request->project_id;
+
+        $query = Plotsize::with('project');
+
+        // 🔎 Apply filter (optional)
+        if ($project_id) {
+            $query->where('project_id', $project_id);
+        }
+ 
+        // 📌 Order by: First Project Name, then Block Name
+        // $query->join('projects', 'projects.id', '=', 'plotsizes.project_id')
+        //     ->orderBy('projects.project_name', 'ASC')
+        //     ->orderBy('sizes.title', 'ASC')
+        //     ->select('sizes.*'); // important to avoid issues in pagination
+
+        $sizes = $query->paginate(10);
+        $sizes->appends($request->all());
+
+        $projects = Project::all();
+
+        return view('sizes.index', compact('sizes', 'projects', 'project_id'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        $projects = DB::table('projects')
+                ->get();
+        // return $projects;
+
+        return view('sizes.create', compact('projects'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        // dd($request->all());
+        try {
+            // Validate
+            $validatedData = $request->validate([
+                'project_id' => 'required|exists:projects,id',
+                'size_area' => 'required',
+                'title' => [
+                    'required',
+                    'string',
+                    Rule::unique('plotsizes')->where(function ($query) use ($request) {
+                        return $query->where('project_id', $request->project_id);
+                    }),
+                ],
+                'remarks' => 'nullable|string|max:255',
+            ], [
+                // 👇 Custom error message
+                'title.unique' => 'This Size already exists for the selected Project.',
+            ]);
+            // return $validatedData;
+
+            // Create record
+            Plotsize::create($validatedData);
+
+            return redirect()->route('sizes.index')
+                ->with('success', 'Plot Size created successfully!');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Validation errors automatically redirect back with errors and old input
+            throw $e;
+        } catch (\Exception $e) {
+            // return $e;
+            // Agar koi aur duplicate DB level se aaye
+            return back()
+                ->withErrors(['error' => 'Size already exists for this project (duplicate entry).'])
+                ->withInput();
+        }        
+
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(Plotsize $plotsize)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Plotsize $size)
+    {
+        return view('sizes.edit', compact('size'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Plotsize $size)
+    {
+        $validatedData = $request->validate([
+            'title' => [
+                'required',
+                'string',
+                Rule::unique('plotsizes')
+                    ->where(function ($query) use ($size) {
+                        return $query->where('project_id', $size->project_id);
+                    })
+                    ->ignore($size->id),
+            ],
+            'size_area' => 'required|numeric',
+            'remarks' => 'nullable|string|max:255',
+        ], [
+            'title.unique' => 'This Size already exists for the selected Project.',
+        ]);
+
+        $size->update($validatedData);
+
+        return redirect()
+            ->route('sizes.index')
+            ->with('success', 'Plot Size updated successfully!');
+    }
+
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($plotsize)
+    {
+        // $plotsize->delete();
+        // return $plotsize;
+        try {
+            $size = Plotsize::findOrFail($plotsize);
+            // return $size;
+            $size->delete();
+
+            // return redirect()->route('sizes.index')->with('success', 'Size deleted successfully!');
+            return redirect()->back()->with('success', 'Size deleted successfully!');
+            // return response()->json([
+            //     'status' => 'success',
+            //     'message' => 'Size deleted successfully!'
+            // ]);
+        } catch (\Exception $e) {
+            // return redirect()->route('sizes.index')->with('error', 'Unable to delete size.It might have related plots.');
+            return redirect()->back()->with('error', 'Unable to delete size.It might have related plots.');
+
+            // return response()->json([
+            //     'status' => 'error',
+            //     'message' => 'Unable to delete size. It might have related plots.'
+            // ], 500);
+        }
+        // try {
+        
+        //     $size = Plotsize::findOrFail($plotsize);
+        //     $size->delete();
+
+        //     return response()->json([
+        //         'status'=> 'success',
+        //         'message' => 'Size deleted successfully',
+        //     ]);
+
+        // }catch (\Exception $e) {
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'message' => 'Unable to delete size. It might have related plots.'
+        //     ], 500);
+        // }
+
+    }
+}
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\PossessionStatus;
+use Illuminate\Http\Request;
+
+class PossessionStatusController extends Controller
+{
+    public function storeOrUpdate(Request $request)
+    {
+        $request->validate([
+            'plot_id' => 'required',
+            'possession_status' => 'required',
+            'remarks' => 'nullable'
+        ]);
+
+        PossessionStatus::updateOrCreate(
+            ['plot_id' => $request->plot_id],
+            [
+                'possession_status' => $request->possession_status,
+                'remarks' => $request->remarks
+            ]
+        );
+
+        return back()->with('success', 'Possession status saved!');
+    }
+}
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\ProfileUpdateRequest;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\View\View;
+
+class ProfileController extends Controller
+{
+    /**
+     * Display the user's profile form.
+     */
+    public function edit(Request $request): View
+    {
+        return view('profile.edit', [
+            'user' => $request->user(),
+        ]);
+    }
+
+    /**
+     * Update the user's profile information.
+     */
+    public function update(ProfileUpdateRequest $request): RedirectResponse
+    {
+        $request->user()->fill($request->validated());
+
+        if ($request->user()->isDirty('email')) {
+            $request->user()->email_verified_at = null;
+        }
+
+        $request->user()->save();
+
+        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+    }
+
+    /**
+     * Delete the user's account.
+     */
+    public function destroy(Request $request): RedirectResponse
+    {
+        $request->validateWithBag('userDeletion', [
+            'password' => ['required', 'current_password'],
+        ]);
+
+        $user = $request->user();
+
+        Auth::logout();
+
+        $user->delete();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return Redirect::to('/');
+    }
+}
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Project;
+use Illuminate\Support\Facades\Validator;
+ 
+class ProjectController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        $projects = Project::latest()->paginate(10);
+        return view('projects.index', compact('projects'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        return view('projects.create');
+    }
+ 
+    /**
+     * Store a newly created resource in storage.
+     */
+    // new sotre method without ajax
+    public function store(Request $request)
+    {
+        $request->validate([
+            'project_name' => 'required|unique:projects,project_name',
+            'project_remarks' => 'nullable|string',
+        ]);
+
+        Project::create([
+            'project_name' => $request->project_name,
+            'project_remarks' => $request->project_remarks,
+        ]);
+
+        return redirect()->route('projects.index')->with('success', 'Project created successfully!');
+       
+    }
+
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Project $project)
+    {
+        // $project = Project::All()->findOrFail($id); // chatGPT says not good prictice 
+        // $project = Project::findOrFail($id);
+
+        return view('projects.edit', compact('project')); 
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    // public function update(Request $request, string $id)
+    // {
+    //     //
+    // }
+    public function update(Request $request, Project $project)
+    {
+        $request->validate([
+            'project_name' => 'required|string|max:255',
+            // 'code' => 'nullable|string|max:100',
+            // 'location' => 'nullable|string|max:255',
+            'project_remarks' => 'nullable|string',
+            // 'status' => 'required|in:active,inactive',
+        ]);
+
+        $project->update($request->all());
+
+        return redirect()
+            ->route('projects.index')
+            ->with('success', 'Project updated successfully.');
+    }
+
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        $project = Project::findOrFail($id);
+        $project->delete();
+        return back()->with('success', 'Project deleted successfully!');
+        
+    }
+}
+
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Street;
+use App\Models\Project;
+use App\Models\Block;
+// use App\Http\Controllers\Rule;
+use Illuminate\Validation\Rule;
+
+class StreetController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+
+    public function index(Request $request)
+    {
+        $project_id = $request->project_id;
+        $block_id   = $request->block_id;
+
+        $streets = Street::with(['project','block'])
+            ->when($project_id, function($q) use ($project_id){
+                $q->where('project_id', $project_id);
+            })
+            ->when($block_id, function($q) use ($block_id){
+                $q->where('block_id', $block_id);
+            })
+            ->latest()
+            ->get();
+
+        $projects = Project::all();
+        $blocks   = Block::all();
+
+        return view('streets.index', compact(
+            'streets', 
+            'projects', 
+            'blocks',
+            'project_id',
+            'block_id',
+        ));
+    }
+
+    public function create()
+    {
+        $projects = Project::all();
+        $blocks = Block::all();
+        // $streets = Street::all();
+        return view('streets.create', compact('projects', 'blocks'));
+
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+
+
+
+    public function store(Request $request)
+    
+    {
+        
+        $rules = [
+            'project_id' => 'required|integer|exists:projects,id',
+            'block_id'   => 'required|integer|exists:blocks,id',
+            'street_name' => [
+                'required',
+                Rule::unique('streets')->where(function ($query) use ($request) {
+                    return $query
+                        ->where('project_id', $request->project_id)
+                        ->where('block_id', $request->block_id);
+                }),
+            ],
+            // 'numbering_type' => 'required|in:blockwise,streetwise',
+            'remarks' => 'nullable|string',
+        ];
+
+        // ✔ Validation only once
+        $validatedData = $request->validate($rules);
+
+        // ✔ Save data
+        Street::create($validatedData);
+
+        return redirect()
+            ->route('streets.index')
+            ->with('success', 'Street saved successfully!');
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Street $street)
+    {
+        $projects = Project::orderBy('project_name')->get();
+
+        // Sirf us project ke blocks jahan ye street hai
+        $blocks = Block::where('project_id', $street->project_id)
+                        ->orderBy('block_name')
+                        ->get();
+
+        return view('streets.edit', compact('street', 'projects', 'blocks'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Street $street)
+    {
+        $request->validate([
+            'project_id' => 'required|exists:projects,id',
+            'block_id'   => 'required|exists:blocks,id',
+            'street_name' => 'required|string|max:255',
+            'remarks'    => 'nullable|string',
+        ]);
+
+        $street->update([
+            'project_id' => $request->project_id,
+            'block_id'   => $request->block_id,
+            'street_name' => $request->street_name,
+            'remarks'    => $request->remarks,
+        ]);
+
+        return redirect()
+            ->route('streets.index')
+            ->with('success', 'Street updated successfully');
+    }
+
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    // public function destroy(string $id)
+    // {
+    //     //
+    // }
+        public function destroy(Street $street)
+    {
+        $street->delete();
+        return back()->with('success', 'Street deleted successfully!');
+    }
+
+}
