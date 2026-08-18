@@ -27,8 +27,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Spatie\Activitylog\Models\Activity;
 
 
-
-
 class AreaVariationController extends Controller
 {
     public function activityLogs()
@@ -361,17 +359,17 @@ class AreaVariationController extends Controller
 
         $areaVariations = $query->latest()->paginate(5)->withQueryString();
 
-        if(request('page') == 3 ){
-            // dd($areaVariations->items());
-            foreach($areaVariations as $variation){
-                dump([
-                    'variation_id' => $variation->id,
-                    'plot_id' => $variation->plot_id,
-                    'plot_relation' => $variation->plot,
-                ]);
-            }
-            dd('check completed');
-        }
+        // if(request('page') == 3 ){
+        //     // dd($areaVariations->items());
+        //     foreach($areaVariations as $variation){
+        //         dump([
+        //             'variation_id' => $variation->id,
+        //             'plot_id' => $variation->plot_id,
+        //             'plot_relation' => $variation->plot,
+        //         ]);
+        //     }
+        //     dd('check completed');
+        // }
 
         return view('plots.area_variations.index', [
             'areaVariations' => $areaVariations,

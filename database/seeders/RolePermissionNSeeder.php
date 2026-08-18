@@ -44,6 +44,15 @@ class RolePermissionNSeeder extends Seeder
             'guard_name' => 'web',
         ]);
 
+        $draftsmanrana = Role::firstOrCreate([
+            'name' => 'rananisar',
+            'guard_name' => 'web',
+        ]);
+
+        $draftsmanali = Role::firstOrCreate([
+            'name' => 'aliraza',
+            'guard_name' => 'web',
+        ]);
         /**
          * PERMISSIONS
          */
@@ -275,5 +284,6 @@ class RolePermissionNSeeder extends Seeder
             'password' => Hash::make('password'),
         ]);
         $guestUser->assignRole('guest');
+
     }
 }
