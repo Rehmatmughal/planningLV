@@ -32,9 +32,15 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware('auth')
+    ->name('dashboard');
+
+// Route::get('/dashboard', function () {
+//     return view('dashboard');
+// })->middleware(['auth', 'verified'])->name('dashboard');
+
+// Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -84,12 +90,15 @@ Route::middleware(['auth','permission:user.view'])->prefix('admin')->name('admin
 });
 
 //  for passwrod change
-    Route::get('/change-password', function () {
-        return view('auth.change-password');
-    })->middleware('auth')->name('password.form');
-    Route::post('/change-password', [UserController::class, 'changePassword'])
-        ->middleware('auth')
-        ->name('password.change');
+// ye change password remove kr dia ha ku k ye function already Auth.php mn ha
+    // Route::get('/change-password', function () {
+    //     return view('auth.change-password');
+    // })->middleware('auth')->name('password.form');
+    // Route::post('/change-password', [UserController::class, 'changePassword'])
+    //     ->middleware('auth')
+    //     ->name('password.change');
+
+
 // Route::middleware(['auth','role:admin|super-admin'])->prefix('admin')->name('admin.')->group(function () {
 Route::middleware(['auth','permission:role.view'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
@@ -119,50 +128,6 @@ Route::middleware(['auth','permission:role.view'])->prefix('admin')->name('admin
     // Route::resource('permissions', PermissionController::class);
 
 });
-
-// Route::middleware(['auth','permission:permission.view'])->prefix('admin')->name('admin.')->group(function () {
-//     // Route::resource('roles', RoleController::class);
-//     Route::resource('permissions', PermissionController::class);
-
-// });
-
-// duplicate route comments -- start --
-// Route::middleware(['auth','permission:permission.view'])->prefix('admin')->name('admin.')->group(function () {
-
-//     Route::get('/permissions', [PermissionController::class, 'index'])
-//         ->middleware('permission:permission.view')
-//         ->name('permissions.index');
-
-//     Route::get('/permissions/create', [PermissionController::class, 'create'])
-//         ->middleware('permission:permission.create')
-//         ->name('permissions.create');
-
-//     Route::post('/permissions', [PermissionController::class, 'store'])
-//         ->middleware('permission:permission.create')
-//         ->name('permissions.store');
-
-//     Route::get('/permissions/{permission}/edit', [PermissionController::class, 'edit'])
-//         ->middleware('permission:permission.edit')
-//         ->name('permissions.edit');
-
-//     Route::put('/permissions/{permission}', [PermissionController::class, 'update'])
-//         ->middleware('permission:permission.edit')
-//         ->name('permissions.update');
-
-//     Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])
-//         ->middleware('permission:permission.delete')
-//         ->name('permissions.destroy');
-// });
-// duplicate route -- end --
-
-// Route::resource('roles', RoleController::class);
-
-// old routes copy from old project
-// Route::middleware(['auth','permission:permission.view'])->prefix('admin')->name('admin.')->group(function () {
-
-
-
-
 
 
 
@@ -399,7 +364,8 @@ Route::middleware(['auth'])->group(function () {
     //     return redirect()->route('dashboard');
     // })->name('home');
 
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    // Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
 
     // Route::get('/app', [DashboardController::class, 'app'])->name('app');
 
@@ -442,7 +408,6 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/area-variations/{id}', [AreaVariationController::class, 'destroy'])->name('area_variations.destroy');
     Route::get('/area-variations/{id}/print', [AreaVariationController::class, 'print'])->name('area_variations.print');
 
-
     // Existing storeOrUpdate routes for statuses (kept)
     Route::post('/development/store', [DevelopmentStatusController::class, 'storeOrUpdate'])->name('development.store');
     Route::post('/lop/store', [LopStatusController::class, 'storeOrUpdate'])->name('lop.store');
@@ -466,7 +431,7 @@ Route::middleware(['auth'])->group(function () {
     // areavarition filter section depanded dropdown 
     Route::get('/ajax/blocks-by-project/{project}', function ($projectId) {
         return \App\Models\Block::where('project_id', $projectId)
-            ->orderBy('block_name')
+            ->orderBy('block_name') 
             ->get(['id', 'block_name']);
     })->name('ajax.blocks.by.project');
     // route for excel exports
@@ -475,37 +440,39 @@ Route::middleware(['auth'])->group(function () {
 
 });
 // auth system routes copy from other project
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
+// Route::middleware('auth')->group(function () {
+//     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+//     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+//     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+// });
 
+// Route::middleware(['auth','permission:user.view'])->prefix('admin')->name('admin.')->group(function () {
 
+//     Route::get('/users', [UserController::class, 'index'])->name('users.index');
+//     Route::get('/users/create', [UserController::class, 'create'])
+//         ->middleware('permission:user.create')
+//         ->name('users.create');
 
-Route::middleware(['auth','permission:user.view'])->prefix('admin')->name('admin.')->group(function () {
+//     Route::post('/users', [UserController::class, 'store'])
+//         ->middleware('permission:user.create')
+//         ->name('users.store');
 
-    Route::get('/users', [UserController::class, 'index'])->name('users.index');
-    Route::get('/users/create', [UserController::class, 'create'])
-        ->middleware('permission:user.create')
-        ->name('users.create');
+//     Route::get('/users/{user}/edit', [UserController::class, 'edit'])
+//         ->middleware('permission:user.edit')
+//         ->name('users.edit');
 
-    Route::post('/users', [UserController::class, 'store'])
-        ->middleware('permission:user.create')
-        ->name('users.store');
+//     Route::put('/users/{user}', [UserController::class, 'update'])
+//         ->middleware('permission:user.edit')
+//         ->name('users.update');
 
-    Route::get('/users/{user}/edit', [UserController::class, 'edit'])
-        ->middleware('permission:user.edit')
-        ->name('users.edit');
+//     Route::delete('/users/{user}', [UserController::class, 'destroy'])
+//         ->middleware('permission:user.delete')
+//         ->name('users.destroy');
 
-    Route::put('/users/{user}', [UserController::class, 'update'])
-        ->middleware('permission:user.edit')
-        ->name('users.update');
-
-    // Route::post('/change-password', [UserController::class, 'changePassword'])
-    //     ->name('password.change');
+//     // Route::post('/change-password', [UserController::class, 'changePassword'])
+//     //     ->name('password.change');
     
-});
+// });
 
 // Route::middleware(['auth','role:admin|super-admin'])->prefix('admin')->name('admin.')->group(function () {
 Route::middleware(['auth','permission:role.view'])->prefix('admin')->name('admin.')->group(function () {

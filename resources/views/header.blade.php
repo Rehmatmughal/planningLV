@@ -22,7 +22,7 @@
                 </a>
 
                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="headerProfileDropdown">
-                    <li><a class="dropdown-item px-3 py-2 text-sm text-secondary" href="#"><i class="bi bi-person me-2"></i> Profile Settings</a></li>
+                    <li><a class="dropdown-item px-3 py-2 text-sm text-secondary" href="{{ route('profile.edit') }}"><i class="bi bi-person me-2"></i> Profile Settings</a></li>
                     <li><hr class="dropdown-divider mx-2"></li>
                     <li>
                         <form method="POST" action="{{ route('logout') }}">

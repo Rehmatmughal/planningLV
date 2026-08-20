@@ -50,13 +50,19 @@ class UserController extends Controller implements HasMiddleware
         $roles = Role::all();
         return view('admin.users.create', compact('roles'));
     }
-
     public function store(Request $request)
     {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+            'role' => 'required|exists:roles,name',
+        ]);
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => bcrypt('12345678'),
+            'password' => Hash::make($request->password),
         ]);
 
         $user->assignRole($request->role);
@@ -64,6 +70,21 @@ class UserController extends Controller implements HasMiddleware
         return redirect()->route('admin.users.index')
             ->with('success', 'User Created');
     }
+    
+// old store method
+    // public function store(Request $request)
+    // {
+    //     $user = User::create([
+    //         'name' => $request->name,
+    //         'email' => $request->email,
+    //         'password' => bcrypt('12345678'),
+    //     ]);
+
+    //     $user->assignRole($request->role);
+
+    //     return redirect()->route('admin.users.index')
+    //         ->with('success', 'User Created');
+    // }
 
     public function edit(User $user)
     {

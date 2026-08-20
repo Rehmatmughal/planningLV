@@ -1,6 +1,13 @@
 @extends('layouts.app')
 
 @section('content')
+    @if (session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+ 
+    @if (session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+    @endif
 
 <h2 class="text-xl font-bold mb-3">Users</h2>
 @can('user.create')
@@ -27,14 +34,29 @@
             <td class="p-2">
                 {{ $user->getRoleNames()->first() }}
             </td>
+            
             <td class="p-2">
                 <a href="{{ route('admin.users.edit',$user) }}"
                    class="text-blue-600">Edit</a>
+                   @can('user.delete')
+                   <form action="{{ route('admin.users.destroy', $user) }}"
+                        method="POST"
+                        class="inline"
+                        onsubmit="return confirm('Are you sure you want to delete this user?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="text-red-600">
+                            Delete
+                        </button>
+                    </form>
+                    @endcan 
+
             </td>
-        </tr>
+
+        </tr> 
     @endforeach
     </tbody>
-    
+
 </table>
 <h2 class="text-xl font-bold mt-8 mb-3">My Permissions</h2>
 
@@ -71,6 +93,5 @@
         @endforeach
     </tbody>
 </table>
-
 
 @endsection

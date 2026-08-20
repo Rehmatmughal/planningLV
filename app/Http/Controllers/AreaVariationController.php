@@ -126,96 +126,6 @@ class AreaVariationController extends Controller
         }
     }
 
-//     // for excel file export from laravel
-//     public function exportExcel($id)
-//     {
-//         $variation = AreaVariation::with([
-//             'plot.project',
-//             'plot.block',
-//             'plot.street',
-//             'plot.size',
-//             'plot.lopStatus',
-//             'plot.mortgageStatus',
-//             'plot.developmentStatus'
-//         ])->findOrFail($id);
-
-//         $plot = $variation->plot;
-
-//         $filename =
-//             $plot->project->project_name."_".
-//             $plot->block->block_name."_".
-//             $plot->street->street_name."_".
-//             $plot->plot_number."_".
-//             $variation->measured_date.".xlsx";
-
-//         return Excel::download(
-//             new PlotVariationExport($plot,$variation),
-//             $filename
-//         );
-// // 2nd time
-//         // return Excel::download(
-//         //     new PlotVariationExporttemplate($plot, $variation),
-//         //     $filename
-//         // )->withWriterType(\Maatwebsite\Excel\Excel::XLSX);
-//         // return Excel::download(
-//         //     new PlotVariationExporttemplate($plot, $variation),
-//         //     $filename,
-//         //     \Maatwebsite\Excel\Excel::XLSX,
-//         //     [
-//         //         'template' => storage_path('app/templates/template.xlsx')
-//         //     ]
-//         // );
-//     }
-
-    // old method
-    // public function exportExcel($id)
-    // {
-    //     $variation = AreaVariation::with('plot.project','plot.block','plot.street','plot.size','plot.lopStatus','plot.mortgageStatus','plot.developmentStatus')
-    //         ->findOrFail($id);
-
-    //     $plot = $variation->plot;
-
-    //     $filename =
-    //         $plot->project->project_name.'_'
-    //         .$plot->block->block_name.'_'
-    //         .$plot->street->street_name.'_'
-    //         .$plot->plot_number.'_'
-    //         .$variation->measured_date.'.xlsx';
-
-    //     return Excel::download(
-    //         new PlotAreaVariationExport($plot,$variation),
-    //         $filename
-    //     );
-    // }
-
-    // new way to export data in excel areavariation
-    // public function exportExcel($id)
-    // {
-    //     $variation = AreaVariation::with([
-    //         'plot.project',
-    //         'plot.block',
-    //         'plot.street',
-    //         'plot.size',
-    //         'plot.lopStatus',
-    //         'plot.mortgageStatus',
-    //         'plot.developmentStatus'
-    //     ])->findOrFail($id);
-
-    //     $plot = $variation->plot;
-
-    //         $filename =
-    //         $plot->project->project_name."_".
-    //         $plot->block->block_name."_".
-    //         $plot->street->street_name."_".
-    //         $plot->plot_number."_".
-    //         $variation->measured_date.".xlsx";
-
-    //     return Excel::download(
-    //         new PlotVariationTemplateExport($plot,$variation),
-    //         $filename
-    //     );
-    // }
-    
 // for import data
     public function importAreaVariations()
     {
@@ -377,38 +287,6 @@ class AreaVariationController extends Controller
             'blocks' => Block::orderBy('block_name')->get(),
         ]);
     }
-
-    // public function index()
-    // {
-    //     $areaVariations = AreaVariation::with([
-    //         'plot.project',
-    //         'plot.block',
-    //         'plot.street',
-    //         // 'plot.plotsize', 
-    //         'plot.developmentStatus',
-    //         'plot.lopStatus',
-    //         'plot.mortgageStatus',
-    //         'plot.possessionStatus'
-    //     // ])->latest()->get();
-    //     ])->latest()->paginate(7);
-
-    //     return view('plots.area_variations.index', compact('areaVariations'));
-    // }
-    //   <button class="btn btn-sm btn-warning mb-1 edit-av-btn"
-    //                     data-id="{{ $av->id }}"
-    //                     data-plot-id="{{ $av->plot->id }}"
-    //                     data-plot-size="{{ $av->plot->size }}"
-    //                     data-measured-area="{{ $av->measured_area }}"
-    //                     data-measured-by="{{ $av->measured_by }}"
-    //                     data-measured-date="{{ $av->measured_date }}"
-    //                     data-remarks="{{ $av->remarks }}"
-    //                     data-sewer="{{ $av->plot->developmentStatus->sewer_manholes ?? '' }}"
-    //                     data-road="{{ $av->plot->developmentStatus->asphalt_tst ?? '' }}"
-    //                     data-overall="{{ $av->plot->developmentStatus->overall_status ?? '' }}"
-    //                     data-lop="{{ $av->plot->lopStatus->lop_status ?? '' }}"
-    //                     data-mortgage="{{ $av->plot->mortgageStatus->is_mortgaged ?? '' }}"
-    //                     data-possession="{{ $av->plot->possessionStatus->possession_status ?? '' }}"
-    //                 >Edit</button>
 
     public function edit($id)
     {
