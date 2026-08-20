@@ -221,7 +221,8 @@ class PlotController extends Controller
 
         // 🔹 Plot No
         if ($request->plot_no) {
-            $query->where('plot_number', 'LIKE', '%' . $request->plot_no . '%');
+            // $query->where('plot_number', 'LIKE', '%' . $request->plot_no . '%');
+            $query->where('plot_number', $request->plot_no);
         }
 
         // 🔹 Universal Search
