@@ -127,6 +127,7 @@ class AreaVariationController extends Controller
     }
 
 // for import data
+
     public function importAreaVariations()
     {
         // for remove time limits
@@ -175,13 +176,33 @@ class AreaVariationController extends Controller
                     ->latest('measured_date')
                     ->value('measured_area') ?? 0;
 
+                    // maping of possession_status
+                    // $possessionStatusMap = [
+                $possessionStatusMap = [
+                    'not available' => 'not_possessionable',
+                    '(non lop) possessionable' => 'non_lop_possessionable',
+                    'under development (possessionable)' => 'under_development_possessionable',
+                    'available' => 'possessionable',
+                ];
+
+                $csvPossessionStatus = trim($data['possession_status'] ?? '');
+
+                $possessionStatus = $csvPossessionStatus !== ''
+                    ? ($possessionStatusMap[strtolower($csvPossessionStatus)] ?? null)
+                    : null;
+
                 // 🔹 Save Area Variation
                 AreaVariation::create([
                     'plot_id'            => $plot->id,
                     'previous_area'      => $previousArea,
                     'measured_area'      => (float) $data['measured_area'],
                     'measured_date'   => $this->parseDate($data['created_at']),
-                    'remarks'            => $data['Remarks'] ?? null,
+                    'possession_status' => $possessionStatus,
+                    // 'possession_status'            => $data['possession_status'] ?? null,
+                    'remarks'            => $data['remarks'] ?? null,
+                    'source'            => $data['source'],
+                    'workflow_status'   =>  $data['workflow_status'],
+
 
                     // 🧊 SNAPSHOT FIELDS
                     'lop_status_at_time' =>
@@ -220,9 +241,132 @@ class AreaVariationController extends Controller
 
         return 'Area Variation Import Completed';
     }
+// before add maping of possesstion_status
+    // public function importAreaVariations()
+    // {
+    //     // for remove time limits
+    //     set_time_limit(0); // unlimited execution time
+    //     ini_set('memory_limit', '-1');
+        
+    //     $file = storage_path('app/Area-variations.csv');
+
+    //     if (!file_exists($file)) {
+    //         return 'CSV file not found';
+    //     }
+
+    //     $rows = array_map('str_getcsv', file($file));
+    //     $header = array_shift($rows);
+
+    //     foreach ($rows as $index => $row) {
+    //         try {
+    //             $data = array_combine($header, $row);
+
+    //             // 🔹 Project
+    //             $project = Project::where('project_name', trim($data['Project']))->first();
+    //             if (!$project) {
+    //                 throw new \Exception('Project not found');
+    //             }
+
+    //             // 🔹 Block
+    //             $block = Block::where('block_name', trim($data['Block']))
+    //                 ->where('project_id', $project->id)
+    //                 ->first();
+
+    //             if (!$block) {
+    //                 throw new \Exception('Block not found');
+    //             }
+
+    //             // 🔹 Plot
+    //             $plot = Plot::where('plot_number', trim($data['Plot']))
+    //                 ->where('block_id', $block->id)
+    //                 ->first();
+
+    //             if (!$plot) {
+    //                 throw new \Exception('Plot not found');
+    //             }
+
+    //             // 🔹 Previous Area
+    //             $previousArea = AreaVariation::where('plot_id', $plot->id)
+    //                 ->latest('measured_date')
+    //                 ->value('measured_area') ?? 0;
+
+    //             // 🔹 Save Area Variation
+    //             AreaVariation::create([
+    //                 'plot_id'            => $plot->id,
+    //                 'previous_area'      => $previousArea,
+    //                 'measured_area'      => (float) $data['measured_area'],
+    //                 'measured_date'   => $this->parseDate($data['created_at']),
+    //                 'remarks'            => $data['Remarks'] ?? null,
+
+    //                 // 🧊 SNAPSHOT FIELDS
+    //                 'lop_status_at_time' =>
+    //                     strtolower($data['LOP_status']) == 'lop'
+    //                         ? 'lop'
+    //                         : 'non_lop',
+ 
+    //                 'road_status_at_time' =>
+    //                     strtolower($data['asphalttstroad_status']) == 'completed'
+    //                         ? 'complete'
+    //                         : 'not_complete',
+
+    //                 // 'sewer_status_at_time' =>
+    //                 //     str_contains(strtolower($data['sewer_status']), 'constructed')
+    //                 //         ? 'constructed'
+    //                 //         : 'not_constructed',
+    //                                     // 'sewer_status_at_time' =>
+    //                     'sewer_status_at_time' =>
+    //                         strtolower($data['sewer_status']) === 'mh not constructed'
+    //                             ? 'not_constructed'
+    //                             : (strtolower($data['sewer_status']) === 'constructed'
+    //                                 ? 'constructed'
+    //                                 : 'not_constructed'),
+
+
+    //             ]);
+
+    //         } catch (\Throwable $e) {
+    //             Log::error('AreaVariation Import Failed', [
+    //                 'row'    => $index + 2,
+    //                 'reason' => $e->getMessage(),
+    //                 'data'   => $row,
+    //             ]);
+    //         }
+    //     }
+
+    //     return 'Area Variation Import Completed';
+    // }
 
     // end imports area variations 
+    public function verify($id)
+    {
+        $av = AreaVariation::findOrFail($id);
 
+        // Sirf pending record verify ho sakta hai
+        if ($av->workflow_status !== 'pending') {
+            return back()->with('error', 'This area variation is not pending.');
+        }
+
+        $av->update([
+            'workflow_status' => 'ready_for_print',
+        ]);
+
+        return back()->with('success', 'Area variation verified and ready for print.');
+    }
+    public function markAsPrinted($id)
+    {
+        $av = AreaVariation::findOrFail($id);
+
+        // Sirf Ready for Print record printed ho sakta hai
+        if ($av->workflow_status !== 'ready_for_print') {
+            return back()->with('error', 'This area variation is not ready for print.');
+        }
+
+        $av->update([
+            'workflow_status' => 'printed',
+        ]);
+
+        return back()->with('success', 'Area variation marked as printed.');
+    }
     public function index(Request $request)
     {
         $query = AreaVariation::with([
@@ -302,6 +446,7 @@ class AreaVariationController extends Controller
 
         return view('plots.area_variations.edit', compact('av'));
     }
+    
     public function create(Plot $plot)
     {
         $latestArea = $plot->latestAreavariation?->measured_area ?? $plot->size;
@@ -463,6 +608,7 @@ class AreaVariationController extends Controller
             'sewer_status_at_time' => $request->sewer_manholes === 'constructed' ? 'constructed' : 'not_constructed',
             'overall_status_at_time' => $request->overall_status,
             'lop_status_at_time'   => $request->lop_status,
+            'workflow_status' => 'pending',
         ]);
 
         $plotId = $plot->id;
@@ -598,6 +744,7 @@ class AreaVariationController extends Controller
     // }
 
     // update an area variation and optionally update statuses
+
     public function update(Request $request, $id)
     {
         $av = AreaVariation::findOrFail($id);
