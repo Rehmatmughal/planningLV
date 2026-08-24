@@ -407,6 +407,10 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/area-variations/{id}', [AreaVariationController::class, 'update'])->name('area_variations.update');
     Route::delete('/area-variations/{id}', [AreaVariationController::class, 'destroy'])->name('area_variations.destroy');
     Route::get('/area-variations/{id}/print', [AreaVariationController::class, 'print'])->name('area_variations.print');
+    Route::post('/area-variations/{id}/verify', [AreaVariationController::class, 'verify'])
+        ->name('area_variations.verify');
+    Route::post('/area-variations/{id}/mark-printed', [AreaVariationController::class, 'markAsPrinted'])
+        ->name('area_variations.markPrinted');
 
     // Existing storeOrUpdate routes for statuses (kept)
     Route::post('/development/store', [DevelopmentStatusController::class, 'storeOrUpdate'])->name('development.store');

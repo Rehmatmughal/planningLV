@@ -342,12 +342,14 @@ class AreaVariationController extends Controller
         $av = AreaVariation::findOrFail($id);
 
         // Sirf pending record verify ho sakta hai
-        if ($av->workflow_status !== 'pending') {
+        // if ($av->workflow_status !== 'pending') {
+        if ($av->workflow_status !== 1) {
             return back()->with('error', 'This area variation is not pending.');
         }
 
         $av->update([
-            'workflow_status' => 'ready_for_print',
+            // 'workflow_status' => 'ready_for_print',
+            'workflow_status' => 2,
         ]);
 
         return back()->with('success', 'Area variation verified and ready for print.');
@@ -357,12 +359,14 @@ class AreaVariationController extends Controller
         $av = AreaVariation::findOrFail($id);
 
         // Sirf Ready for Print record printed ho sakta hai
-        if ($av->workflow_status !== 'ready_for_print') {
+        // if ($av->workflow_status !== 'ready_for_print') {
+        if ($av->workflow_status !== 2) {        
             return back()->with('error', 'This area variation is not ready for print.');
         }
 
         $av->update([
-            'workflow_status' => 'printed',
+            // 'workflow_status' => 'printed',
+            'workflow_status' => 3,
         ]);
 
         return back()->with('success', 'Area variation marked as printed.');
@@ -608,7 +612,8 @@ class AreaVariationController extends Controller
             'sewer_status_at_time' => $request->sewer_manholes === 'constructed' ? 'constructed' : 'not_constructed',
             'overall_status_at_time' => $request->overall_status,
             'lop_status_at_time'   => $request->lop_status,
-            'workflow_status' => 'pending',
+            // 'workflow_status' => 'pending',
+            'workflow_status' => 1,
         ]);
 
         $plotId = $plot->id;
@@ -654,6 +659,7 @@ class AreaVariationController extends Controller
             ->route('plots.show', $plot->id)
             ->with('success', 'Area variation added successfully + statuses updated');
     }
+
         // new after filter eleminate -- start --
     // public function store(Request $r)
     // {

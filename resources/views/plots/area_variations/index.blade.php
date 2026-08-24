@@ -132,6 +132,7 @@
                             <th width="5%" >LOP</th>
                             <th width="5%" >Mortgage</th>
                             <th width="5%" >Possession</th>
+                            <th width="8%">Workflow</th>
                             <th width="5%" >Measured Area</th>
                             <th width="5%" >Measured Date</th>
                             <th width="18%" >Actions</th>
@@ -155,8 +156,31 @@
                             {{-- <td>{{ $av->plot->lopStatus->lop_status ?? '-' }}</td> --}}
                             <td>{{ $av->plot->mortgageStatus->is_mortgaged ?? '-' }}</td>
                             <td>{{ $av->plot->possessionStatus->possession_status ?? '-' }}</td>
+                            <td class="text-center">
+                                {{-- @if($av->workflow_status === 'pending') --}}
+                                @if($av->workflow_status === 1)
+                                    <span class="badge bg-warning text-dark">
+                                        Pending
+                                    </span>
+                                {{-- @elseif($av->workflow_status === 'ready_for_print') --}}
+                                @elseif($av->workflow_status === 2)                                
+                                    <span class="badge bg-info text-dark">
+                                        Ready for Print
+                                    </span>
+                                {{-- @elseif($av->workflow_status === 'printed') --}}
+                                @elseif($av->workflow_status === 3)
+                                    <span class="badge bg-success">
+                                        Printed
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary">
+                                        Not Set
+                                    </span>
+                                @endif
+                            </td>
                             <td>{{ $av->measured_area }}</td>
                             <td>{{ $av->measured_date ?? $av->created_at->format('d-M-Y') }}</td>
+                           
                             <td style="white-space:nowrap;">
                                 <a href="{{ route('plots.show', $av->plot->id) }}" class="btn btn-sm btn-info mb-1">View Plot</a>
 
