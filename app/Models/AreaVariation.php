@@ -13,19 +13,23 @@ class AreaVariation extends Model
 {
     use HasFactory, LogsActivity, SoftDeletes;
 
-    protected $guarded = [];
-    // protected $fillable = [
-    //     'plot_id',
-    //     'measured_area',
-    //     'measured_by',
-    //     'measured_date',
-    //     'remarks',
-    //     'source',
-    //     // snapshot fields
-    //     'road_status_at_time',
-    //     'sewer_status_at_time',
-    //     'lop_status_at_time',
-    // ];
+    // protected $guarded = [];
+    protected $fillable = [
+        'plot_id',
+        'previous_area',
+        'measured_area',
+        'measured_by',
+        'measured_date',
+        'remarks',
+        'source',
+        // snapshot fields
+        'road_status_at_time',
+        'sewer_status_at_time',
+        'lop_status_at_time',
+        'overall_status_at_time',
+        'possession_status',
+        'workflow_status',
+    ];
 
     protected $casts = [
         'measured_date' => 'date',

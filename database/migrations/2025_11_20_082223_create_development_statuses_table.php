@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::create('development_statuses', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('plot_id');
-
+ 
 
             // Development fields
             // $table->boolean('is_in_possession')->default(false);
