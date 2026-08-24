@@ -155,17 +155,20 @@
                     <label>Overall Status</label>
                     <select name="overall_status" class="form-select">
                         <option value="developed"
-                            @selected(optional($av->plot->developmentStatus)->overall_status == 'developed')>
-                            Developed
-                        </option>
+                            {{-- @selected(optional($av->plot->developmentStatus)->overall_status == 'developed')> --}}
+                            <option value="developed" @selected($av->overall_status_at_time == 'developed')
+                            Developed 
+                            </option>
 
                         <option value="under_development"
-                            @selected(optional($av->plot->developmentStatus)->overall_status == 'under_development')>
+                            {{-- @selected(optional($av->plot->developmentStatus)->overall_status == 'under_development')> --}}
+                            @selected($av->overall_status_at_time == 'under_development')
                             Under Development
                         </option>
 
                         <option value="not_developed"
-                            @selected(optional($av->plot->developmentStatus)->overall_status == 'not_developed')>
+                            {{-- @selected(optional($av->plot->developmentStatus)->overall_status == 'not_developed')> --}}
+                            @selected($av->overall_status_at_time == 'not_developed')
                             Not Developed
                         </option>
 
@@ -176,8 +179,10 @@
                     <label>LOP Status</label>
                     <select name="lop_status" class="form-select">
                         <option value="">-- keep unchanged --</option>
-                        <option value="lop" @selected(optional($av->plot->lopStatus)->lop_status == 'lop')>LOP</option>
-                        <option value="non_lop" @selected(optional($av->plot->lopStatus)->lop_status == 'non_lop')>Non-LOP</option>
+                        {{-- <option value="lop" @selected(optional($av->plot->lopStatus)->lop_status == 'lop')>LOP</option> --}}
+                        <option value="lop" @selected($av->lop_status_at_time == 'lop')
+                        {{-- <option value="non_lop" @selected(optional($av->plot->lopStatus)->lop_status == 'non_lop')>Non-LOP</option> --}}
+                        <option value="non_lop" @selected($av->lop_status_at_time == 'non_lop')
                     </select>
                 </div>
 
