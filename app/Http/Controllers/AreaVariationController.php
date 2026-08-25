@@ -575,6 +575,7 @@ class AreaVariationController extends Controller
 
     public function store(Request $request)
     {
+            dd($request());
         $request->validate([
             'plot_id'           => 'required|exists:plots,id',
             // 'previous_area'     => 'required|numeric',

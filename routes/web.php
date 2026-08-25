@@ -450,7 +450,7 @@ Route::middleware(['auth'])->group(function () {
 //     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 // });
 
-// Route::middleware(['auth','permission:user.view'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth','permission:user.view'])->prefix('admin')->name('admin.')->group(function () {
 
 //     Route::get('/users', [UserController::class, 'index'])->name('users.index');
 //     Route::get('/users/create', [UserController::class, 'create'])
@@ -469,14 +469,14 @@ Route::middleware(['auth'])->group(function () {
 //         ->middleware('permission:user.edit')
 //         ->name('users.update');
 
-//     Route::delete('/users/{user}', [UserController::class, 'destroy'])
-//         ->middleware('permission:user.delete')
-//         ->name('users.destroy');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])
+        ->middleware('permission:user.delete')
+        ->name('users.destroy');
 
 //     // Route::post('/change-password', [UserController::class, 'changePassword'])
 //     //     ->name('password.change');
     
-// });
+});
 
 // Route::middleware(['auth','role:admin|super-admin'])->prefix('admin')->name('admin.')->group(function () {
 Route::middleware(['auth','permission:role.view'])->prefix('admin')->name('admin.')->group(function () {
