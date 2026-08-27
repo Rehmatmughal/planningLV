@@ -27,6 +27,7 @@ class AreaVariation extends Model
         'sewer_status_at_time',
         'lop_status_at_time',
         'overall_status_at_time',
+        'mortgage_status_at_time',
         'possession_status',
         'workflow_status',
     ];

@@ -155,10 +155,10 @@
                     <label>Overall Status</label>
                     <select name="overall_status" class="form-select">
                         <option value="developed"
-                            {{-- @selected(optional($av->plot->developmentStatus)->overall_status == 'developed')> --}}
-                            <option value="developed" @selected($av->overall_status_at_time == 'developed')
+                            {{-- @selected(optional($av->plot->developmentStatus)->overall_status == 'developed')> --}}                            
+                            @selected($av->overall_status_at_time == 'developed')
                             Developed 
-                            </option>
+                        </option>
 
                         <option value="under_development"
                             {{-- @selected(optional($av->plot->developmentStatus)->overall_status == 'under_development')> --}}
@@ -180,20 +180,42 @@
                     <select name="lop_status" class="form-select">
                         <option value="">-- keep unchanged --</option>
                         {{-- <option value="lop" @selected(optional($av->plot->lopStatus)->lop_status == 'lop')>LOP</option> --}}
-                        <option value="lop" @selected($av->lop_status_at_time == 'lop')
+                        <option value="lop" 
+                            @selected($av->lop_status_at_time == 'lop')>
+                            LOP
+                        </option>
                         {{-- <option value="non_lop" @selected(optional($av->plot->lopStatus)->lop_status == 'non_lop')>Non-LOP</option> --}}
-                        <option value="non_lop" @selected($av->lop_status_at_time == 'non_lop')
+                        <option value="non_lop" 
+                            @selected($av->lop_status_at_time == 'non_lop')>
+                            Non-LOP
+                        </option>    
                     </select>
                 </div>
 
-                <div class="col-md-4">
-                    <label>Mortgage</label>
+                {{-- <div class="col-md-4">
+                    <label>Mortgage-from plot</label>
                     <select name="is_mortgaged" class="form-select">
                         <option value="">-- keep unchanged --</option>
                         <option value="yes" @selected(optional($av->plot->mortgageStatus)->is_mortgaged == 'yes')>Yes</option>
                         <option value="no" @selected(optional($av->plot->mortgageStatus)->is_mortgaged == 'no')>No</option>
                     </select>
+                </div> --}}
+
+                <div class="col-md-4">
+                    <label>Mortgage - Snapshot</label>
+                    <select name="is_mortgaged" class="form-select">
+                        <option value="">-- Not Set --</option>
+                        <option value="yes"
+                            @selected($av->mortgage_status_at_time === 'yes')>
+                            Yes
+                        </option>
+                        <option value="no"
+                            @selected($av->mortgage_status_at_time === 'no')>
+                            No
+                        </option>
+                    </select>
                 </div>
+
 
                 {{-- <div class="col-md-4">
                     <label>Possession</label>
@@ -205,7 +227,7 @@
                         <option value="not_possessionable">Not Possessionable</option>
                     </select>
                 </div> --}}
-                <div class="col-md-4">
+                {{-- <div class="col-md-4">
                     <label>Possession</label>
                     <select name="possession_status" class="form-select">
                         <option value="possessionable"
@@ -229,6 +251,42 @@
                         </option>
 
                     </select>
+                </div> --}}
+                <div class="col-md-4">
+                    <label>Possession</label>
+
+                    <select name="possession_status" class="form-select">
+
+                        <option value="">
+                            -- Not Set --
+                        </option>
+
+                        <option value="possessionable"
+                            @selected($av->possession_status === 'possessionable')>
+                            Possessionable
+                        </option>
+
+                        <option value="non_lop_possessionable"
+                            @selected($av->possession_status === 'non_lop_possessionable')>
+                            Non-LOP Possessionable
+                        </option>
+
+                        <option value="under_development_possessionable"
+                            @selected($av->possession_status === 'under_development_possessionable')>
+                            Under Development Possessionable
+                        </option>
+
+                        <option value="not_possessionable"
+                            @selected($av->possession_status === 'not_possessionable')>
+                            Not Possessionable
+                        </option>
+
+                    </select>
+
+                    <small class="text-muted">
+                        Current snapshot:
+                        {{ $av->possession_status ?? 'NULL' }}
+                    </small>
                 </div>
 
             </div>

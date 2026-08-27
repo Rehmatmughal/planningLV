@@ -119,7 +119,7 @@
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-bordered table-sm align-middle mb-0">
-                    <thead class="table-light]">
+                    <thead class="table-light">
                         <tr class="text-center">
                             <th width="5%" >#</th>
                             <th width="5%" >Project</th>
@@ -154,33 +154,174 @@
                             {{-- <td>{{ $av->plot->developmentStatus->asphalt_tst ?? '-' }}</td> --}}
                             <td>{{ strtoupper($av->lop_status_at_time) }}</td>
                             {{-- <td>{{ $av->plot->lopStatus->lop_status ?? '-' }}</td> --}}
-                            <td>{{ $av->plot->mortgageStatus->is_mortgaged ?? '-' }}</td>
-                            <td>{{ $av->plot->possessionStatus->possession_status ?? '-' }}</td>
-                            <td class="text-center">
+                            {{-- <td>{{ $av->plot->mortgageStatus->is_mortgaged ?? '-' }} - not final</td> --}}
+                            <td>{{ $av->mortgage_status_at_time ?? '-' }}</td>
+                            {{-- <td>{{ $av->plot->possessionStatus->possession_status ?? '-' }}</td> --}}
+                            <td>{{ $av->possession_status ?? '-' }}</td>
+                            {{-- <td class="text-center"> --}}
                                 {{-- @if($av->workflow_status === 'pending') --}}
-                                @if($av->workflow_status === 1)
+                                {{-- @if($av->workflow_status === 1)
                                     <span class="badge bg-warning text-dark">
                                         Pending
-                                    </span>
+                                    </span> --}}
                                 {{-- @elseif($av->workflow_status === 'ready_for_print') --}}
-                                @elseif($av->workflow_status === 2)                                
+                                {{-- @elseif($av->workflow_status === 2)                                
                                     <span class="badge bg-info text-dark">
                                         Ready for Print
-                                    </span>
+                                    </span> --}}
                                 {{-- @elseif($av->workflow_status === 'printed') --}}
-                                @elseif($av->workflow_status === 3)
+                                {{-- @elseif($av->workflow_status === 3)
                                     <span class="badge bg-success">
                                         Printed
-                                    </span>
-                                @else
+                                    </span> --}}
+                                {{-- @else
                                     <span class="badge bg-secondary">
                                         Not Set
                                     </span>
+                                @endif --}}
+                            {{-- </td> --}}
+                            <td class="text-center">
+
+                                {{-- 1 = Pending --}}
+                                @if($av->workflow_status === 1)
+
+                                    <span class="badge bg-warning text-dark">
+                                        Pending
+                                    </span>
+
+                                    <form action="{{ route('area_variations.verify', $av->id) }}"
+                                        method="POST"
+                                        class="d-inline">
+                                        @csrf
+
+                                        <button type="submit"
+                                                class="btn btn-sm btn-success mt-1"
+                                                onclick="return confirm('Are you sure you want to verify this area variation?')">
+                                            Verify
+                                        </button>
+                                    </form>
+
+
+                                {{-- 2 = Ready for Print --}}
+                                @elseif($av->workflow_status === 2)
+
+                                    <span class="badge bg-info text-dark">
+                                        Ready for Print
+                                    </span>
+
+                                    <br>
+
+                                    <a href="{{ route('area_variations.print', $av->id) }}"
+                                    class="btn btn-sm btn-primary mt-1">
+                                        Print
+                                    </a>
+
+                                    <form action="{{ route('area_variations.markPrinted', $av->id) }}"
+                                        method="POST"
+                                        class="d-inline">
+                                        @csrf
+
+                                        <button type="submit"
+                                                class="btn btn-sm btn-success mt-1"
+                                                onclick="return confirm('Mark this area variation as Printed?')">
+                                            Mark Printed
+                                        </button>
+                                    </form>
+
+
+                                {{-- 3 = Printed --}}
+                                @elseif($av->workflow_status === 3)
+
+                                    <span class="badge bg-success">
+                                        Printed
+                                    </span>
+
+
+                                {{-- Unknown --}}
+                                @else
+
+                                    <span class="badge bg-secondary">
+                                        Not Set
+                                    </span>
+
                                 @endif
+
                             </td>
                             <td>{{ $av->measured_area }}</td>
                             <td>{{ $av->measured_date ?? $av->created_at->format('d-M-Y') }}</td>
-                           
+                            <td style="white-space:nowrap;">
+
+                                {{-- View Plot --}}
+                                <a href="{{ route('plots.show', $av->plot->id) }}"
+                                class="btn btn-sm btn-info mb-1">
+                                    View Plot
+                                </a>
+
+                                {{-- Edit --}}
+                                <a href="{{ route('area_variations.edit', $av->id) }}"
+                                class="btn btn-sm btn-warning mb-1">
+                                    Edit
+                                </a>
+
+
+                                {{-- ========================= --}}
+                                {{-- WORKFLOW ACTIONS --}}
+                                {{-- ========================= --}}
+
+                                @if($av->workflow_status === 1)
+
+                                    {{-- Pending → Verify --}}
+                                    <form action="{{ route('area_variations.verify', $av->id) }}"
+                                        method="POST"
+                                        style="display:inline-block;">
+                                        @csrf
+
+                                        <button type="submit"
+                                                class="btn btn-sm btn-success mb-1"
+                                                onclick="return confirm('Verify this area variation?')">
+                                            Verify
+                                        </button>
+                                    </form>
+
+                                @elseif($av->workflow_status === 2)
+
+                                    {{-- Ready for Print → Print --}}
+                                    <a href="{{ route('area_variations.print', $av->id) }}"
+                                    class="btn btn-sm btn-primary mb-1">
+                                        Print
+                                    </a>
+
+                                @elseif($av->workflow_status === 3)
+
+                                    {{-- Already Printed --}}
+                                    <a href="{{ route('area_variations.print', $av->id) }}"
+                                    class="btn btn-sm btn-secondary mb-1">
+                                        Re-Print
+                                    </a>
+
+                                @endif
+
+
+                                {{-- ========================= --}}
+                                {{-- DELETE --}}
+                                {{-- ========================= --}}
+
+                                <form action="{{ route('area_variations.destroy', $av->id) }}"
+                                    method="POST"
+                                    style="display:inline-block;">
+
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button type="submit"
+                                            class="btn btn-sm btn-danger mb-1"
+                                            onclick="return confirm('Delete this measurement?')">
+                                        Delete
+                                    </button>
+
+                                </form>
+
+                            </td>
                             <td style="white-space:nowrap;">
                                 <a href="{{ route('plots.show', $av->plot->id) }}" class="btn btn-sm btn-info mb-1">View Plot</a>
 

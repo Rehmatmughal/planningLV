@@ -35,6 +35,8 @@ return new class extends Migration {
             $table->enum('overall_status_at_time', ['developed', 'under_development', 'not_developed'])  
                 ->nullable();
 
+            $table->enum('mortgage_status_at_time', ['yes', 'no'])
+                ->nullable();
             /*
              * Possession status at the time of this area variation.
              * Values:
