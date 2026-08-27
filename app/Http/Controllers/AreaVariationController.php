@@ -444,19 +444,19 @@ class AreaVariationController extends Controller
             'plot.street',
             'plot.developmentStatus',
             'plot.lopStatus',
-            'plot.mortgageStatus',
-            'plot.possessionStatus'
+            'plot.mortgageStatus'
+            // 'plot.possessionStatus'
         ])->findOrFail($id);
 
         return view('plots.area_variations.edit', compact('av'));
     }
     
-    public function create(Plot $plot)
-    {
-        $latestArea = $plot->latestAreavariation?->measured_area ?? $plot->size;
+    // public function create(Plot $plot)
+    // {
+    //     $latestArea = $plot->latestAreavariation?->measured_area ?? $plot->size;
 
-        return view('plots.area_variations.create', compact('plot', 'latestArea'));
-    }
+    //     return view('plots.area_variations.create', compact('plot', 'latestArea'));
+    // }
     public function createnew($plot_id)
     {
         $plot = Plot::with([
@@ -575,7 +575,7 @@ class AreaVariationController extends Controller
 
     public function store(Request $request)
     {
-            dd($request());
+            // dd($request());
         $request->validate([
             'plot_id'           => 'required|exists:plots,id',
             // 'previous_area'     => 'required|numeric',
@@ -587,6 +587,7 @@ class AreaVariationController extends Controller
             'sewer_manholes' => 'nullable|in:constructed,not_constructed',
             'asphalt_tst' => 'nullable|in:yes,no',
             'overall_status' => 'nullable|in:developed,under_development,not_developed',
+            // 'mortgage_status_at_time' => 'nullable|in:yes,no',
 
             'lop_status' => 'nullable|in:lop,non_lop',
             'is_mortgaged' => 'nullable|in:yes,no',
@@ -598,7 +599,9 @@ class AreaVariationController extends Controller
             'measured_by' => auth()->user()->name
         ]);
 
-        $plot = Plot::with(['developmentStatus', 'lopStatus'])->findOrFail($request->plot_id);
+        // $plot = Plot::with(['developmentStatus', 'lopStatus'])->findOrFail($request->plot_id);
+        $plot = Plot::findOrFail($request->plot_id);
+        
 
         // ✅ Step 1: AreaVariation save
         $av = AreaVariation::create([
@@ -612,6 +615,8 @@ class AreaVariationController extends Controller
             'road_status_at_time'  => $request->asphalt_tst === 'yes' ? 'complete' : 'not_complete',
             'sewer_status_at_time' => $request->sewer_manholes === 'constructed' ? 'constructed' : 'not_constructed',
             'overall_status_at_time' => $request->overall_status,
+            'mortgage_status_at_time' => $request->is_mortgaged,
+            'possession_status' => $request->possession_status,
             'lop_status_at_time'   => $request->lop_status,
             // 'workflow_status' => 'pending',
             'workflow_status' => 1,
@@ -779,12 +784,20 @@ class AreaVariationController extends Controller
             'measured_by' => $data['measured_by'] ?? $av->measured_by,
             'remarks' => $data['remarks'] ?? $av->remarks,
             // save status in areavariation table
-            'sewer_status_at_time' => $data['sewer_manholes'] ?? $av->sewer_manholes,
+            // 'sewer_status_at_time' => $data['sewer_manholes'] ?? $av->sewer_manholes,
+            'sewer_status_at_time' => $data['sewer_manholes'] ?? $av->sewer_status_at_time,
             // 'road_status_at_time' => $data['asphalt_tst'] ?? $av->asphalt_tst,
             'road_status_at_time' => isset($data['asphalt_tst'])
             ? ($data['asphalt_tst'] === 'yes' ? 'complete' : 'not_complete')
             : $av->road_status_at_time,
-            'lop_status_at_time' => $data['lop_status'] ?? $av->lop_status,
+            'overall_status_at_time' => $data['overall_status']
+                ?? $av->overall_status_at_time,
+            'mortgage_status_at_time' =>$data['is_mortgaged'] ?? $av->mortgage_status_at_time,
+            // 'lop_status_at_time' => $data['lop_status'] ?? $av->lop_status,
+            'lop_status_at_time' => $data['lop_status'] ?? $av->lop_status_at_time,
+            
+            'possession_status' => $data['possession_status']
+                ?? $av->possession_status,
         ]);
 
         $plotId = $av->plot_id;
