@@ -123,6 +123,9 @@ class RolePermissionNSeeder extends Seeder
 
             'areavariation.create',
             'areavariation.view',
+            'areavariation.edit',
+            'areavariation.verify',
+            'areavariation.markprinted',
 
             'lop.view',
             'lop.create',
@@ -198,7 +201,6 @@ class RolePermissionNSeeder extends Seeder
             'size.force-delete',
             'size.restore',
 
-
             'category.view',
             'category.create',
             'category.edit',
@@ -211,11 +213,16 @@ class RolePermissionNSeeder extends Seeder
             'plot.delete',
             'plot.excel',
             'plot.trashview',
+            'plot.restore',
+            'plot.force-delete',
 
             'role.store',
 
             'areavariation.create',
             'areavariation.view',
+            'areavariation.edit',
+            'areavariation.verify',
+            'areavariation.markprinted',
 
             'lop.view',
             'lop.create',
@@ -228,6 +235,8 @@ class RolePermissionNSeeder extends Seeder
             'development.update',
 
             'area.view',
+
+            'activity.view',
 
             // 'dashboard.view',
             // 'user.view',

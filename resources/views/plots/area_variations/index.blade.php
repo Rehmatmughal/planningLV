@@ -4,9 +4,62 @@
 {{-- {{ dd($areaVariations) }} --}}
 
 <div class="container mt-4">
+
     {{-- Page Header --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="fw-bold mb-0">📐 Area Variations</h4>
+
+        {{-- <h4 class="fw-bold mb-0">
+            📐 Area Variations
+        </h4> --}}
+        <a href="{{ route('area_variations.index') }}"
+        class="text-decoration-none text-dark">
+            <h4 class="fw-bold mb-0">
+                📐 Area Variations
+            </h4>
+        </a>
+
+        {{-- Workflow Summary --}}
+        <div class="d-flex gap-2">
+
+            {{-- Pending Verification --}}
+            <a href="{{ route('area_variations.index', ['workflow_status' => 1]) }}"
+            class="text-decoration-none">
+
+                <div class="card border-warning shadow-sm">
+                    <div class="card-body py-2 px-3 text-center">
+                        <div class="small text-muted">
+                            Pending Verification
+                        </div>
+
+                        <div class="fw-bold fs-5 text-warning">
+                            {{ $pendingCount }}
+                        </div>
+                    </div>
+                </div>
+
+            </a>
+
+
+            {{-- Ready for Print --}}
+            <a href="{{ route('area_variations.index', ['workflow_status' => 2]) }}"
+            class="text-decoration-none">
+
+                <div class="card border-info shadow-sm">
+                    <div class="card-body py-2 px-3 text-center">
+                        <div class="small text-muted">
+                            Ready for Print
+                        </div>
+
+                        <div class="fw-bold fs-5 text-info">
+                            {{ $readyForPrintCount }}
+                        </div>
+                    </div>
+                </div>
+
+            </a>
+
+        </div>
+
     </div>
 
     {{-- Success Alert --}}
@@ -188,7 +241,8 @@
                                     <span class="badge bg-warning text-dark">
                                         Pending
                                     </span>
-
+                                    @can('areavariation.verify')
+                                    {{-- @if(auth()->user()->can('areavariation.edit') || auth()->user()->can('areavariation.verify')) --}}
                                     <form action="{{ route('area_variations.verify', $av->id) }}"
                                         method="POST"
                                         class="d-inline">
@@ -200,6 +254,8 @@
                                             Verify
                                         </button>
                                     </form>
+                                    @endcan 
+                                    {{-- @endif --}}
 
 
                                 {{-- 2 = Ready for Print --}}
@@ -211,11 +267,11 @@
 
                                     <br>
 
-                                    <a href="{{ route('area_variations.print', $av->id) }}"
+                                    {{-- <a href="{{ route('area_variations.print', $av->id) }}"
                                     class="btn btn-sm btn-primary mt-1">
                                         Print
-                                    </a>
-
+                                    </a> --}}
+                                    @can('areavariation.markprinted')
                                     <form action="{{ route('area_variations.markPrinted', $av->id) }}"
                                         method="POST"
                                         class="d-inline">
@@ -227,7 +283,7 @@
                                             Mark Printed
                                         </button>
                                     </form>
-
+                                    @endcan
 
                                 {{-- 3 = Printed --}}
                                 @elseif($av->workflow_status === 3)
@@ -235,7 +291,10 @@
                                     <span class="badge bg-success">
                                         Printed
                                     </span>
-
+                                    <a href="{{ route('area_variations.excel',$av->id) }}"
+                                    class="btn btn-success btn-sm">
+                                    Download
+                                    </a>
 
                                 {{-- Unknown --}}
                                 @else
@@ -271,6 +330,7 @@
                                 @if($av->workflow_status === 1)
 
                                     {{-- Pending → Verify --}}
+                                    @can('areavariation.verify')
                                     <form action="{{ route('area_variations.verify', $av->id) }}"
                                         method="POST"
                                         style="display:inline-block;">
@@ -282,6 +342,8 @@
                                             Verify
                                         </button>
                                     </form>
+                                    @endcan
+                                    
 
                                 @elseif($av->workflow_status === 2)
 
@@ -322,8 +384,8 @@
                                 </form>
 
                             </td>
-                            <td style="white-space:nowrap;">
-                                <a href="{{ route('plots.show', $av->plot->id) }}" class="btn btn-sm btn-info mb-1">View Plot</a>
+                            {{-- <td style="white-space:nowrap;">
+                                <a href="{{ route('plots.show', $av->plot->id) }}" class="btn btn-sm btn-info mb-1">View Plot</a> --}}
 
                                 <!-- Edit button opens modal and passes data-* -->
                                 {{-- <button class="btn btn-sm btn-warning mb-1 edit-av-btn"
@@ -342,14 +404,14 @@
                                     data-possession="{{ $av->plot->possessionStatus->possession_status ?? '' }}"
                                 >Edit</button> --}}
 
-                                <a href="{{ route('area_variations.edit', $av->id) }}" class="btn btn-sm btn-warning mb-1">Edit2</a>
+                                {{-- <a href="{{ route('area_variations.edit', $av->id) }}" class="btn btn-sm btn-warning mb-1">Edit2</a>
                                 <a href="{{ route('area_variations.print', $av->id) }}" class="btn btn-sm btn-primary mb-1">Print</a>
 
                                 <form action="{{ route('area_variations.destroy', $av->id) }}" method="POST" style="display:inline-block;">
                                     @csrf @method('DELETE')
                                     <button class="btn btn-sm btn-danger" onclick="return confirm('Delete this measurement?')">Delete</button>
                                 </form>
-                            </td>
+                            </td> --}}
                         </tr>
                         @endforeach
                     </tbody>

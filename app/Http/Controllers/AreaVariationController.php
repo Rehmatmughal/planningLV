@@ -415,7 +415,15 @@ class AreaVariationController extends Controller
             });
         }
 
+        // Workflow Status
+        if ($request->filled('workflow_status')) {
+            $query->where('workflow_status', $request->workflow_status);
+        }
+
         $areaVariations = $query->latest()->paginate(5)->withQueryString();
+        // count for summary card
+        $pendingCount = AreaVariation::where('workflow_status', 1)->count();
+        $readyForPrintCount = AreaVariation::where('workflow_status', 2)->count();
 
         // if(request('page') == 3 ){
         //     // dd($areaVariations->items());
@@ -433,6 +441,10 @@ class AreaVariationController extends Controller
             'areaVariations' => $areaVariations,
             'projects' => Project::orderBy('project_name')->get(),
             'blocks' => Block::orderBy('block_name')->get(),
+
+            'pendingCount' => $pendingCount,
+            'readyForPrintCount' => $readyForPrintCount,
+
         ]);
     }
 
