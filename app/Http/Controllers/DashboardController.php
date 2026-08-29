@@ -86,7 +86,19 @@ class DashboardController extends Controller
             ->orderByDesc('total')
             ->with('causer')
             ->first();
+
         $topUserName = \App\Models\User::find($topUser?->causer_id)?->name ?? 'N/A';
+
+        $todayTopUser = Activity::whereNotNull('causer_id')
+            ->whereNotNull('causer_type')
+            ->whereDate('created_at', today())
+            ->select('causer_id', 'causer_type')
+            ->selectRaw('count(*) as total')
+            ->groupBy('causer_id', 'causer_type')
+            ->orderByDesc('total')
+            ->with('causer')
+            ->first();
+
         //     // for working summary view end
 
         $totalProjects = Project::count();
@@ -122,7 +134,8 @@ class DashboardController extends Controller
             'totalActivities',
             'todayActivities',
             'topUser',
-            'topUserName'
+            'topUserName',
+            'todayTopUser'
         ));
         
     }

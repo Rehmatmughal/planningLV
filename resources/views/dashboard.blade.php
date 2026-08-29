@@ -115,9 +115,24 @@
         <div class="col-md-4">
             <div class="card bg-dark text-white p-3">
                 <h5>Most Active User</h5>
-                <h3>{{ $topUserName }}</h3>
+                {{-- <h3>{{ $topUserName }}</h3> --}}
+                <h3>{{ $topUser?->causer?->name ?? 'N/A' }}</h3>
                 {{-- <h3>{{ optional($topUser->causer)->name ?? 'N/A' }}</h3> --}}
                 {{-- <h3>{{ $topUser ? optional($topUser->causer)->name : 'N/A' }}</h3> --}}
+            </div>
+        </div>
+        <div class="row mt-4">
+
+        <div class="col-md-4">
+            <div class="card bg-info text-white p-3">
+                <h5>Today's Top User</h5>
+
+                <h3>
+                    {{ $todayTopUser?->causer?->name ?? 'N/A' }}
+                    @if($todayTopUser)
+                        ({{ $todayTopUser->total }} activities)
+                    @endif
+                </h3>
             </div>
         </div>
 
