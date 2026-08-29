@@ -45,6 +45,7 @@
                 </div>
             </div>
         </div> --}}
+
 {{-- new way of cards --}}
         <div class="col-md-4">
             <a href="{{ route('projects.index') }}" class="text-decoration-none">
@@ -55,6 +56,7 @@
                 </div>
             </a> 
         </div>
+
         <div class="col-md-4">
             <a href="{{ route('blocks.index') }}" class="text-decoration-none">
                 <div class="card dashboard-card p-4 text-center h-100">
@@ -64,6 +66,7 @@
                 </div>
             </a>
         </div>
+
         <div class="col-md-4">
             <a href="{{ route('streets.index') }}" class="text-decoration-none">
                 <div class="card dashboard-card p-4 text-center h-100">
@@ -74,6 +77,7 @@
             </a>
         </div>
     </div>
+
     <div class="col-md-4">
         <a href="{{ route('plots.index') }}" class="text-decoration-none">
             <div class="card dashboard-card p-4 text-center h-100">
@@ -83,7 +87,6 @@
             </div>
         </a>
     </div>
-
 
     <!-- Chart -->
     {{-- <div class="card shadow-sm border-0">
@@ -112,8 +115,9 @@
         <div class="col-md-4">
             <div class="card bg-dark text-white p-3">
                 <h5>Most Active User</h5>
+                <h3>{{ $topUserName }}</h3>
                 {{-- <h3>{{ optional($topUser->causer)->name ?? 'N/A' }}</h3> --}}
-                <h3>{{ $topUser ? optional($topUser->causer)->name : 'N/A' }}</h3>
+                {{-- <h3>{{ $topUser ? optional($topUser->causer)->name : 'N/A' }}</h3> --}}
             </div>
         </div>
 
