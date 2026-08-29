@@ -74,7 +74,7 @@
         </li>
 
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="{{ route('plots.index') }}" class="nav-link">
                 <i class="fa fa-map"></i>
                 Plot Management
                 {{-- Plot Management ({{ $stats['total_plots'] }}) --}}
@@ -128,6 +128,7 @@
                 Settings
             </a>
         </li> --}}
+
     </ul>
 </div>
 

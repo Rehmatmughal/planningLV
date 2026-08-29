@@ -16,7 +16,7 @@
     Create User
 </a>
 @endcan
-
+ 
 <table class="w-full mt-4 bg-white shadow rounded">
     <thead>
         <tr class="border-b">
