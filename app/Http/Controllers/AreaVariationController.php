@@ -147,7 +147,7 @@ class AreaVariationController extends Controller
             try {
                 $data = array_combine($header, $row);
 
-                // 🔹 Project
+                // 🔹 Project ok 
                 $project = Project::where('project_name', trim($data['Project']))->first();
                 if (!$project) {
                     throw new \Exception('Project not found');
