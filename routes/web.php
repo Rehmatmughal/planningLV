@@ -22,6 +22,7 @@ use App\Http\Controllers\StreetController;
 use App\Http\Controllers\PlotsizeController;
 use App\Http\Controllers\PlotCategoryTypeController;
 use App\Http\Controllers\ActivityLogController;
+use App\http\Controllers\PossessionCaseController;
 
 
 // use App\Models\PlotCategoryType;
@@ -508,3 +509,10 @@ Route::middleware(['auth','permission:permission.view'])->prefix('admin')->name(
     Route::resource('permissions', PermissionController::class);
 
 });
+
+Route::resource('possession-cases', PossessionCaseController::class);
+
+Route::patch(
+    'possession-cases/{possessionCase}/status',
+    [PossessionCaseController::class, 'updateStatus']
+)->name('possession-cases.update-status');
