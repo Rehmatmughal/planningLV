@@ -67,7 +67,8 @@ class PossessionCaseController extends Controller
             'project',
             'block',
             'street',
-            'plotSize',
+            // 'plotSize',
+            'size',
         ])->orderBy('plot_number')->get();
 
         $selectedPlot = null;
@@ -272,13 +273,14 @@ class PossessionCaseController extends Controller
             'plot.project',
             'plot.block',
             'plot.street',
-            'plot.plotSize',
+            // 'plot.plotSize',
+            'plot.size',
             'owners',
             'histories.user',
             'creator',
             'updater',
         ]);
-
+ 
         return view(
             'possession_cases.show',
             compact('possessionCase')
@@ -297,7 +299,8 @@ class PossessionCaseController extends Controller
             'project',
             'block',
             'street',
-            'plotSize',
+            // 'plotSize',
+            'size',
         ])->orderBy('plot_number')->get();
 
         return view(

@@ -24,8 +24,8 @@ class ImportPlotsFromCsv extends Command
 
     public function handle()
     {
-        // $path = storage_path('app/V-1&2_List_of_plots-all.csv');
-        $path = storage_path('app/V-2_List_of_plots-temp.csv');
+        $path = storage_path('app/V-1&2_List_of_plots-all.csv');
+        // $path = storage_path('app/V-2_List_of_plots-temp.csv');
         if (!File::exists($path)) {
             $this->error("CSV file not found");
             return;
