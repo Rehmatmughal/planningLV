@@ -9,30 +9,39 @@ class PossessionCaseOwner extends Model
 {
     use HasFactory;
 
-    protected $table = 'possession_case_owners';
-
     protected $fillable = [
         'possession_case_id',
-        'owner_name',
-        'cnic',
-        'address',
-        'contact_no',
+        'owner_id',
         'ownership_percentage',
     ];
 
-    protected $casts = [
-        'ownership_percentage' => 'decimal:2',
-    ];
 
     /*
     |--------------------------------------------------------------------------
-    | Relationships
+    | Possession Case
     |--------------------------------------------------------------------------
     */
 
-    // Owner belongs to a possession case
     public function possessionCase()
     {
-        return $this->belongsTo(PossessionCase::class);
+        return $this->belongsTo(
+            PossessionCase::class,
+            'possession_case_id'
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Owner
+    |--------------------------------------------------------------------------
+    */
+
+    public function owner()
+    {
+        return $this->belongsTo(
+            Owner::class,
+            'owner_id'
+        );
     }
 }
