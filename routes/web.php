@@ -23,6 +23,7 @@ use App\Http\Controllers\PlotsizeController;
 use App\Http\Controllers\PlotCategoryTypeController;
 use App\Http\Controllers\ActivityLogController;
 use App\http\Controllers\PossessionCaseController;
+use App\http\Controllers\OwnerController;
 
 
 // use App\Models\PlotCategoryType;
@@ -509,10 +510,13 @@ Route::middleware(['auth','permission:permission.view'])->prefix('admin')->name(
     Route::resource('permissions', PermissionController::class);
 
 });
-
+// routs jo auth system k baghir han awr theek krny han
 Route::resource('possession-cases', PossessionCaseController::class);
 
 Route::patch(
     'possession-cases/{possessionCase}/status',
     [PossessionCaseController::class, 'updateStatus']
 )->name('possession-cases.update-status');
+
+Route::resource('owners', OwnerController::class)
+    ->except(['show']);

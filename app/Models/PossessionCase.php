@@ -60,10 +60,10 @@ class PossessionCase extends Model
     }
 
     // A possession case can have multiple owners
-    public function owners()
-    {
-        return $this->hasMany(PossessionCaseOwner::class);
-    }
+    // public function owners()
+    // {
+    //     return $this->hasMany(PossessionCaseOwner::class);
+    // }
 
     // A possession case has multiple history records
     public function histories()
@@ -82,4 +82,14 @@ class PossessionCase extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
+    public function owners()
+    {
+        return $this->belongsToMany(
+            Owner::class,
+            'possession_case_owners'
+        )
+        ->withPivot('ownership_percentage')
+        ->withTimestamps();
+    }
+
 }
