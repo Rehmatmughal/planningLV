@@ -166,4 +166,36 @@ class OwnerController extends Controller
             ->route('owners.index')
             ->with('success', 'Owner deleted successfully.');
     }
+
+    public function findByCnic(Request $request)
+    {
+        $request->validate([
+            'cnic' => [
+                'required',
+                'string',
+                'max:30',
+            ],
+        ]);
+
+        $owner = \App\Models\Owner::where('cnic', $request->cnic)
+            ->first();
+
+        if (!$owner) {
+            return response()->json([
+                'found' => false,
+                'message' => 'Owner not found. You can enter new owner details.',
+            ]);
+        }
+
+        return response()->json([
+            'found' => true,
+            'owner' => [
+                'id' => $owner->id,
+                'owner_name' => $owner->owner_name,
+                'cnic' => $owner->cnic,
+                'address' => $owner->address,
+                'contact_no' => $owner->contact_no,
+            ],
+        ]);
+    }
 }
