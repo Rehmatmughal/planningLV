@@ -22,8 +22,9 @@ use App\Http\Controllers\StreetController;
 use App\Http\Controllers\PlotsizeController;
 use App\Http\Controllers\PlotCategoryTypeController;
 use App\Http\Controllers\ActivityLogController;
-use App\http\Controllers\PossessionCaseController;
-use App\http\Controllers\OwnerController;
+use App\Http\Controllers\PossessionCaseController;
+use App\Http\Controllers\OwnerController;
+
 
 
 // use App\Models\PlotCategoryType;
@@ -517,6 +518,10 @@ Route::patch(
     'possession-cases/{possessionCase}/status',
     [PossessionCaseController::class, 'updateStatus']
 )->name('possession-cases.update-status');
+Route::get(
+    '/owners/find-by-cnic',
+    [OwnerController::class, 'findByCnic']
+)->name('owners.findByCnic');
 
 Route::resource('owners', OwnerController::class)
     ->except(['show']);

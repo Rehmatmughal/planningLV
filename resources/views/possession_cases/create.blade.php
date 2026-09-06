@@ -327,6 +327,7 @@
                                     </div>
 
 
+                                
                                     <div class="col-md-4">
 
                                         <label class="form-label">
@@ -428,8 +429,31 @@
 
                                 </div>
 
-
                                 <div class="col-md-4">
+
+                                    <label class="form-label">
+                                        CNIC
+                                    </label>
+
+                                    <div class="input-group">
+
+                                        <input type="text"
+                                            name="owners[0][cnic]"
+                                            class="form-control owner-cnic"
+                                            placeholder="xxxxx-xxxxxxx-x">
+
+                                        <button type="button"
+                                                class="btn btn-outline-primary check-cnic">
+                                            Check
+                                        </button>
+
+                                    </div>
+
+                                    <small class="cnic-message mt-1 d-block"></small>
+
+                                </div>
+
+                                {{-- <div class="col-md-4">
 
                                     <label class="form-label">
                                         CNIC
@@ -440,7 +464,7 @@
                                            class="form-control"
                                            placeholder="xxxxx-xxxxxxx-x">
 
-                                </div>
+                                </div> --}}
 
 
                                 <div class="col-md-4">
@@ -596,20 +620,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     </div>
 
-
                     <div class="col-md-4">
-
                         <label class="form-label">
                             CNIC
                         </label>
 
-                        <input type="text"
-                               name="owners[${ownerIndex}][cnic]"
-                               class="form-control"
-                               placeholder="xxxxx-xxxxxxx-x">
+                        <div class="input-group">
+
+                            <input type="text"
+                                name="owners[${ownerIndex}][cnic]"
+                                class="form-control owner-cnic"
+                                placeholder="xxxxx-xxxxxxx-x">
+
+                            <button type="button"
+                                    class="btn btn-outline-primary check-cnic">
+                                Check
+                            </button>
+
+                        </div>
+
+                        <small class="cnic-message mt-1 d-block"></small>
 
                     </div>
-
 
                     <div class="col-md-4">
 
@@ -691,6 +723,131 @@ document.addEventListener('DOMContentLoaded', function () {
             event.target.closest('.owner-row').remove();
 
         }
+
+    });
+    // new owner check from chatgpt
+    // Check CNIC
+    container.addEventListener('click', function (event) {
+
+        if (!event.target.classList.contains('check-cnic')) {
+            return;
+        }
+
+        const button = event.target;
+        const row = button.closest('.owner-row');
+
+        const cnicInput = row.querySelector('.owner-cnic');
+        const message = row.querySelector('.cnic-message');
+
+        const cnic = cnicInput.value.trim();
+
+        if (!cnic) {
+
+            message.className = 'cnic-message text-danger mt-1 d-block';
+            message.textContent = 'Please enter CNIC first.';
+
+            return;
+        }
+
+
+        button.disabled = true;
+        button.textContent = 'Checking...';
+
+        message.className = 'cnic-message text-muted mt-1 d-block';
+        message.textContent = 'Checking owner database...';
+
+
+        fetch('{{ route("owners.findByCnic") }}?cnic=' + encodeURIComponent(cnic))
+            .then(response => response.json())
+
+            .then(data => {
+
+                if (data.found) {
+
+                    const owner = data.owner;
+
+
+                    // Fill existing owner data
+                    row.querySelector('[name$="[owner_name]"]').value =
+                        owner.owner_name ?? '';
+
+                    row.querySelector('[name$="[cnic]"]').value =
+                        owner.cnic ?? '';
+
+                    row.querySelector('[name$="[address]"]').value =
+                        owner.address ?? '';
+
+                    row.querySelector('[name$="[contact_no]"]').value =
+                        owner.contact_no ?? '';
+
+
+                    // Store owner ID in this row
+                    let ownerIdInput =
+                        row.querySelector('.owner-id');
+
+                    if (!ownerIdInput) {
+
+                        ownerIdInput = document.createElement('input');
+
+                        ownerIdInput.type = 'hidden';
+                        ownerIdInput.name =
+                            row.querySelector('.owner-cnic')
+                                .name
+                                .replace('[cnic]', '[owner_id]');
+
+                        ownerIdInput.className = 'owner-id';
+
+                        row.appendChild(ownerIdInput);
+                    }
+
+                    ownerIdInput.value = owner.id;
+
+
+                    message.className =
+                        'cnic-message text-success mt-1 d-block';
+
+                    message.innerHTML =
+                        '✓ Owner found. Existing owner details loaded.';
+
+                } else {
+
+                    // New owner
+                    const ownerIdInput =
+                        row.querySelector('.owner-id');
+
+                    if (ownerIdInput) {
+                        ownerIdInput.remove();
+                    }
+
+
+                    message.className =
+                        'cnic-message text-warning mt-1 d-block';
+
+                    message.textContent =
+                        'Owner not found. You can enter new owner details.';
+
+                }
+
+            })
+
+            .catch(error => {
+
+                console.error(error);
+
+                message.className =
+                    'cnic-message text-danger mt-1 d-block';
+
+                message.textContent =
+                    'Unable to check CNIC. Please try again.';
+
+            })
+
+            .finally(() => {
+
+                button.disabled = false;
+                button.textContent = 'Check';
+
+            });
 
     });
 
