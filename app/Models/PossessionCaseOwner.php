@@ -9,11 +9,19 @@ class PossessionCaseOwner extends Model
 {
     use HasFactory;
 
+    // protected $fillable = [
+    //     'possession_case_id',
+    //     'owner_id',
+    //     'ownership_percentage',
+    // ];
+
     protected $fillable = [
         'possession_case_id',
         'owner_id',
         'ownership_percentage',
+        'address_snapshot',
     ];
+
 
 
     /*

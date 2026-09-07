@@ -9,6 +9,8 @@ use App\Models\Plot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Models\Owner;
+
 
 class PossessionCaseController extends Controller
 {
@@ -87,6 +89,8 @@ class PossessionCaseController extends Controller
     /**
      * Store a new possession case.
      */
+    // new store
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -139,6 +143,12 @@ class PossessionCaseController extends Controller
                 'min:1',
             ],
 
+            'owners.*.owner_id' => [
+                'nullable',
+                'integer',
+                'exists:owners,id',
+            ],
+
             'owners.*.owner_name' => [
                 'required',
                 'string',
@@ -170,28 +180,44 @@ class PossessionCaseController extends Controller
             ],
         ]);
 
-        // Make sure same case number is not already used for this plot
+
+        // Same case number for same plot should not exist
         $exists = PossessionCase::where('plot_id', $validated['plot_id'])
             ->where('case_no', $validated['case_no'])
             ->exists();
 
         if ($exists) {
+
             return back()
                 ->withInput()
                 ->withErrors([
-                    'case_no' => 'This case number already exists for the selected plot.',
+                    'case_no' =>
+                        'This case number already exists for the selected plot.',
                 ]);
         }
 
+
         DB::transaction(function () use ($validated) {
 
+            /*
+            |--------------------------------------------------------------------------
+            | Create Possession Case
+            |--------------------------------------------------------------------------
+            */
+
             $case = PossessionCase::create([
-                'plot_id' => $validated['plot_id'],
-                'case_no' => $validated['case_no'],
 
-                'need_approval' => $validated['need_approval'] ?? false,
+                'plot_id' =>
+                    $validated['plot_id'],
 
-                'current_status' => 'received',
+                'case_no' =>
+                    $validated['case_no'],
+
+                'need_approval' =>
+                    $validated['need_approval'] ?? false,
+
+                'current_status' =>
+                    'received',
 
                 'current_holder_type' =>
                     $validated['current_holder_type'] ?? null,
@@ -203,65 +229,335 @@ class PossessionCaseController extends Controller
                     $validated['current_holder_name'] ?? null,
 
                 'received_at' =>
-                    $validated['received_at'] ?? now()->toDateString(),
+                    $validated['received_at']
+                        ?? now()->toDateString(),
 
                 'remarks' =>
                     $validated['remarks'] ?? null,
 
-                'is_active' => true,
+                'is_active' =>
+                    true,
 
-                'created_by' => Auth::id(),
+                'created_by' =>
+                    Auth::id(),
             ]);
 
-            // Save owners
-            foreach ($validated['owners'] as $owner) {
 
-                $case->owners()->create([
-                    'owner_name' =>
-                        $owner['owner_name'],
+            /*
+            |--------------------------------------------------------------------------
+            | Save Owners
+            |--------------------------------------------------------------------------
+            */
 
-                    'cnic' =>
-                        $owner['cnic'] ?? null,
+            foreach ($validated['owners'] as $ownerData) {
 
-                    'address' =>
-                        $owner['address'] ?? null,
+                /*
+                |--------------------------------------------------------------------------
+                | Existing Owner
+                |--------------------------------------------------------------------------
+                */
 
-                    'contact_no' =>
-                        $owner['contact_no'] ?? null,
+                if (!empty($ownerData['owner_id'])) {
 
-                    'ownership_percentage' =>
-                        $owner['ownership_percentage'] ?? null,
-                ]);
+                    $owner = \App\Models\Owner::find(
+                        $ownerData['owner_id']
+                    );
+
+                    /*
+                    |--------------------------------------------------------------
+                    | Update latest/current owner information
+                    |--------------------------------------------------------------
+                    */
+
+                    $owner->update([
+
+                        'owner_name' =>
+                            $ownerData['owner_name'],
+
+                        'cnic' =>
+                            $ownerData['cnic'] ?? null,
+
+                        'address' =>
+                            $ownerData['address'] ?? null,
+
+                        'contact_no' =>
+                            $ownerData['contact_no'] ?? null,
+                    ]);
+
+                } else {
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | New Owner
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $owner = \App\Models\Owner::create([
+
+                        'owner_name' =>
+                            $ownerData['owner_name'],
+
+                        'cnic' =>
+                            $ownerData['cnic'] ?? null,
+
+                        'address' =>
+                            $ownerData['address'] ?? null,
+
+                        'contact_no' =>
+                            $ownerData['contact_no'] ?? null,
+                    ]);
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Save Owner in Pivot Table
+                |--------------------------------------------------------------------------
+                |
+                | address_snapshot = address at the time this possession
+                | case was created.
+                |
+                */
+
+                $case->owners()->attach(
+
+                    $owner->id,
+
+                    [
+
+                        'address_snapshot' =>
+                            $ownerData['address'] ?? $owner->address,
+
+                        'ownership_percentage' =>
+                            $ownerData['ownership_percentage'] ?? null,
+                    ]
+
+                );
             }
 
-            // First history record
+
+            /*
+            |--------------------------------------------------------------------------
+            | First History Record
+            |--------------------------------------------------------------------------
+            */
+
             $case->histories()->create([
-                'plot_id' => $case->plot_id,
 
-                'action' => 'Case Received',
+                'plot_id' =>
+                    $case->plot_id,
 
-                'old_status' => null,
+                'action' =>
+                    'Case Received',
 
-                'new_status' => 'received',
+                'old_status' =>
+                    null,
 
-                'old_holder' => null,
+                'new_status' =>
+                    'received',
+
+                'old_holder' =>
+                    null,
 
                 'new_holder' =>
                     $case->current_holder_name,
 
-                'handed_over_to' => null,
+                'handed_over_to' =>
+                    null,
 
                 'remarks' =>
                     'Possession case created.',
 
-                'user_id' => Auth::id(),
+                'user_id' =>
+                    Auth::id(),
             ]);
         });
 
+
         return redirect()
             ->route('possession-cases.index')
-            ->with('success', 'Possession case created successfully.');
+            ->with(
+                'success',
+                'Possession case created successfully.'
+            );
     }
+
+    // old store
+    // public function store(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'plot_id' => [
+    //             'required',
+    //             'exists:plots,id',
+    //         ],
+
+    //         'case_no' => [
+    //             'required',
+    //             'integer',
+    //             'min:1',
+    //         ],
+
+    //         'need_approval' => [
+    //             'nullable',
+    //             'boolean',
+    //         ],
+
+    //         'current_holder_type' => [
+    //             'nullable',
+    //             'string',
+    //             'max:255',
+    //         ],
+
+    //         'current_holder_id' => [
+    //             'nullable',
+    //             'integer',
+    //         ],
+
+    //         'current_holder_name' => [
+    //             'nullable',
+    //             'string',
+    //             'max:255',
+    //         ],
+
+    //         'received_at' => [
+    //             'nullable',
+    //             'date',
+    //         ],
+
+    //         'remarks' => [
+    //             'nullable',
+    //             'string',
+    //         ],
+
+    //         'owners' => [
+    //             'required',
+    //             'array',
+    //             'min:1',
+    //         ],
+
+    //         'owners.*.owner_name' => [
+    //             'required',
+    //             'string',
+    //             'max:255',
+    //         ],
+
+    //         'owners.*.cnic' => [
+    //             'nullable',
+    //             'string',
+    //             'max:30',
+    //         ],
+
+    //         'owners.*.address' => [
+    //             'nullable',
+    //             'string',
+    //         ],
+
+    //         'owners.*.contact_no' => [
+    //             'nullable',
+    //             'string',
+    //             'max:50',
+    //         ],
+
+    //         'owners.*.ownership_percentage' => [
+    //             'nullable',
+    //             'numeric',
+    //             'min:0',
+    //             'max:100',
+    //         ],
+    //     ]);
+
+    //     // Make sure same case number is not already used for this plot
+    //     $exists = PossessionCase::where('plot_id', $validated['plot_id'])
+    //         ->where('case_no', $validated['case_no'])
+    //         ->exists();
+
+    //     if ($exists) {
+    //         return back()
+    //             ->withInput()
+    //             ->withErrors([
+    //                 'case_no' => 'This case number already exists for the selected plot.',
+    //             ]);
+    //     }
+
+    //     DB::transaction(function () use ($validated) {
+
+    //         $case = PossessionCase::create([
+    //             'plot_id' => $validated['plot_id'],
+    //             'case_no' => $validated['case_no'],
+
+    //             'need_approval' => $validated['need_approval'] ?? false,
+
+    //             'current_status' => 'received',
+
+    //             'current_holder_type' =>
+    //                 $validated['current_holder_type'] ?? null,
+
+    //             'current_holder_id' =>
+    //                 $validated['current_holder_id'] ?? null,
+
+    //             'current_holder_name' =>
+    //                 $validated['current_holder_name'] ?? null,
+
+    //             'received_at' =>
+    //                 $validated['received_at'] ?? now()->toDateString(),
+
+    //             'remarks' =>
+    //                 $validated['remarks'] ?? null,
+
+    //             'is_active' => true,
+
+    //             'created_by' => Auth::id(),
+    //         ]);
+
+    //         // Save owners
+    //         foreach ($validated['owners'] as $owner) {
+
+    //             $case->owners()->create([
+    //                 'owner_name' =>
+    //                     $owner['owner_name'],
+
+    //                 'cnic' =>
+    //                     $owner['cnic'] ?? null,
+
+    //                 'address' =>
+    //                     $owner['address'] ?? null,
+
+    //                 'contact_no' =>
+    //                     $owner['contact_no'] ?? null,
+
+    //                 'ownership_percentage' =>
+    //                     $owner['ownership_percentage'] ?? null,
+    //             ]);
+    //         }
+
+    //         // First history record
+    //         $case->histories()->create([
+    //             'plot_id' => $case->plot_id,
+
+    //             'action' => 'Case Received',
+
+    //             'old_status' => null,
+
+    //             'new_status' => 'received',
+
+    //             'old_holder' => null,
+
+    //             'new_holder' =>
+    //                 $case->current_holder_name,
+
+    //             'handed_over_to' => null,
+
+    //             'remarks' =>
+    //                 'Possession case created.',
+
+    //             'user_id' => Auth::id(),
+    //         ]);
+    //     });
+
+    //     return redirect()
+    //         ->route('possession-cases.index')
+    //         ->with('success', 'Possession case created successfully.');
+    // }
 
 
     /**
@@ -292,6 +588,7 @@ class PossessionCaseController extends Controller
      * Show form for editing a possession case.
      */
     public function edit(PossessionCase $possessionCase)
+
     {
         $possessionCase->load('owners');
 
@@ -311,7 +608,6 @@ class PossessionCaseController extends Controller
             )
         );
     }
-
 
     /**
      * Update possession case.
