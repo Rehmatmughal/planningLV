@@ -612,11 +612,17 @@ class PossessionCaseController extends Controller
     /**
      * Update possession case.
      */
+
+    /**
+     * Update possession case.
+     */
+
     public function update(
         Request $request,
         PossessionCase $possessionCase
     ) {
         $validated = $request->validate([
+
             'plot_id' => [
                 'required',
                 'exists:plots,id',
@@ -671,6 +677,12 @@ class PossessionCaseController extends Controller
                 'integer',
             ],
 
+            'owners.*.owner_id' => [
+                'nullable',
+                'integer',
+                'exists:owners,id',
+            ],
+
             'owners.*.owner_name' => [
                 'required',
                 'string',
@@ -702,27 +714,47 @@ class PossessionCaseController extends Controller
             ],
         ]);
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check duplicate case number
+        |--------------------------------------------------------------------------
+        */
+
         $exists = PossessionCase::where('plot_id', $validated['plot_id'])
             ->where('case_no', $validated['case_no'])
             ->where('id', '!=', $possessionCase->id)
             ->exists();
 
         if ($exists) {
+
             return back()
                 ->withInput()
                 ->withErrors([
-                    'case_no' => 'This case number already exists for the selected plot.',
+                    'case_no' =>
+                        'This case number already exists for the selected plot.',
                 ]);
         }
+
 
         DB::transaction(function () use (
             $validated,
             $possessionCase
         ) {
 
+            /*
+            |--------------------------------------------------------------------------
+            | Update Possession Case
+            |--------------------------------------------------------------------------
+            */
+
             $possessionCase->update([
-                'plot_id' => $validated['plot_id'],
-                'case_no' => $validated['case_no'],
+
+                'plot_id' =>
+                    $validated['plot_id'],
+
+                'case_no' =>
+                    $validated['case_no'],
 
                 'need_approval' =>
                     $validated['need_approval'] ?? false,
@@ -742,28 +774,64 @@ class PossessionCaseController extends Controller
                 'remarks' =>
                     $validated['remarks'] ?? null,
 
-                'updated_by' => Auth::id(),
+                'updated_by' =>
+                    Auth::id(),
             ]);
+
 
             /*
             |--------------------------------------------------------------------------
-            | Update Owners
+            | Existing owners attached to this case
+            |--------------------------------------------------------------------------
+            |
+            | IDs ko pehle save kar rahe hain taake baad mein pata ho
+            | kaun se owners case ke saath rehne hain.
+            |
+            */
+
+            $oldOwnerIds = $possessionCase->owners()
+                ->pluck('owners.id')
+                ->toArray();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Owners which are still attached
             |--------------------------------------------------------------------------
             */
 
             $existingOwnerIds = [];
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Process Owners
+            |--------------------------------------------------------------------------
+            */
+
             foreach ($validated['owners'] as $ownerData) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Existing Owner
+                |--------------------------------------------------------------------------
+                */
 
                 if (!empty($ownerData['id'])) {
 
-                    $owner = $possessionCase->owners()
-                        ->where('id', $ownerData['id'])
-                        ->first();
+                    $owner = \App\Models\Owner::find($ownerData['id']);
+
 
                     if ($owner) {
 
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Update latest/current owner information
+                        |--------------------------------------------------------------------------
+                        */
+
                         $owner->update([
+
                             'owner_name' =>
                                 $ownerData['owner_name'],
 
@@ -775,17 +843,48 @@ class PossessionCaseController extends Controller
 
                             'contact_no' =>
                                 $ownerData['contact_no'] ?? null,
-
-                            'ownership_percentage' =>
-                                $ownerData['ownership_percentage'] ?? null,
                         ]);
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Make sure owner is attached to this case
+                        |--------------------------------------------------------------------------
+                        */
+
+                        $possessionCase->owners()->syncWithoutDetaching([
+
+                            $owner->id => [
+
+                                'address_snapshot' =>
+                                    $ownerData['address'] ?? null,
+
+                                'ownership_percentage' =>
+                                    $ownerData['ownership_percentage'] ?? null,
+                            ],
+
+                        ]);
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Remember this owner
+                        |--------------------------------------------------------------------------
+                        */
 
                         $existingOwnerIds[] = $owner->id;
                     }
 
                 } else {
 
-                    $newOwner = $possessionCase->owners()->create([
+                    /*
+                    |--------------------------------------------------------------------------
+                    | New Owner
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $owner = \App\Models\Owner::create([
+
                         'owner_name' =>
                             $ownerData['owner_name'],
 
@@ -797,28 +896,70 @@ class PossessionCaseController extends Controller
 
                         'contact_no' =>
                             $ownerData['contact_no'] ?? null,
-
-                        'ownership_percentage' =>
-                            $ownerData['ownership_percentage'] ?? null,
                     ]);
 
-                    $existingOwnerIds[] = $newOwner->id;
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Attach new owner to possession case
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $possessionCase->owners()->attach(
+
+                        $owner->id,
+
+                        [
+
+                            'address_snapshot' =>
+                                $ownerData['address'] ?? null,
+
+                            'ownership_percentage' =>
+                                $ownerData['ownership_percentage'] ?? null,
+
+                        ]
+
+                    );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Remember this owner
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $existingOwnerIds[] = $owner->id;
                 }
             }
+
 
             /*
             |--------------------------------------------------------------------------
             | Remove owners deleted from edit form
             |--------------------------------------------------------------------------
+            |
+            | IMPORTANT:
+            | Sirf possession_case_owners se detach hoga.
+            |
+            | owners table ka record delete NAHI hoga.
+            |
             */
 
-            $possessionCase->owners()
-                ->whereNotIn('id', $existingOwnerIds)
-                ->delete();
+            $ownersToDetach = array_diff(
+                $oldOwnerIds,
+                $existingOwnerIds
+            );
+
+
+            if (!empty($ownersToDetach)) {
+
+                $possessionCase->owners()->detach($ownersToDetach);
+
+            }
+
 
             /*
             |--------------------------------------------------------------------------
-            | Update timestamp/user
+            | Update updater
             |--------------------------------------------------------------------------
             */
 
@@ -826,6 +967,7 @@ class PossessionCaseController extends Controller
                 'updated_by' => Auth::id(),
             ]);
         });
+
 
         return redirect()
             ->route(
@@ -837,6 +979,234 @@ class PossessionCaseController extends Controller
                 'Possession case updated successfully.'
             );
     }
+
+
+    // old update
+    // public function update(
+    //     Request $request,
+    //     PossessionCase $possessionCase
+    // ) {
+    //     $validated = $request->validate([
+    //         'plot_id' => [
+    //             'required',
+    //             'exists:plots,id',
+    //         ],
+
+    //         'case_no' => [
+    //             'required',
+    //             'integer',
+    //             'min:1',
+    //         ],
+
+    //         'need_approval' => [
+    //             'nullable',
+    //             'boolean',
+    //         ],
+
+    //         'current_holder_type' => [
+    //             'nullable',
+    //             'string',
+    //             'max:255',
+    //         ],
+
+    //         'current_holder_id' => [
+    //             'nullable',
+    //             'integer',
+    //         ],
+
+    //         'current_holder_name' => [
+    //             'nullable',
+    //             'string',
+    //             'max:255',
+    //         ],
+
+    //         'received_at' => [
+    //             'nullable',
+    //             'date',
+    //         ],
+
+    //         'remarks' => [
+    //             'nullable',
+    //             'string',
+    //         ],
+
+    //         'owners' => [
+    //             'required',
+    //             'array',
+    //             'min:1',
+    //         ],
+
+    //         'owners.*.id' => [
+    //             'nullable',
+    //             'integer',
+    //         ],
+
+    //         'owners.*.owner_name' => [
+    //             'required',
+    //             'string',
+    //             'max:255',
+    //         ],
+
+    //         'owners.*.cnic' => [
+    //             'nullable',
+    //             'string',
+    //             'max:30',
+    //         ],
+
+    //         'owners.*.address' => [
+    //             'nullable',
+    //             'string',
+    //         ],
+
+    //         'owners.*.contact_no' => [
+    //             'nullable',
+    //             'string',
+    //             'max:50',
+    //         ],
+
+    //         'owners.*.ownership_percentage' => [
+    //             'nullable',
+    //             'numeric',
+    //             'min:0',
+    //             'max:100',
+    //         ],
+    //     ]);
+
+    //     $exists = PossessionCase::where('plot_id', $validated['plot_id'])
+    //         ->where('case_no', $validated['case_no'])
+    //         ->where('id', '!=', $possessionCase->id)
+    //         ->exists();
+
+    //     if ($exists) {
+    //         return back()
+    //             ->withInput()
+    //             ->withErrors([
+    //                 'case_no' => 'This case number already exists for the selected plot.',
+    //             ]);
+    //     }
+
+    //     DB::transaction(function () use (
+    //         $validated,
+    //         $possessionCase
+    //     ) {
+
+    //         $possessionCase->update([
+    //             'plot_id' => $validated['plot_id'],
+    //             'case_no' => $validated['case_no'],
+
+    //             'need_approval' =>
+    //                 $validated['need_approval'] ?? false,
+
+    //             'current_holder_type' =>
+    //                 $validated['current_holder_type'] ?? null,
+
+    //             'current_holder_id' =>
+    //                 $validated['current_holder_id'] ?? null,
+
+    //             'current_holder_name' =>
+    //                 $validated['current_holder_name'] ?? null,
+
+    //             'received_at' =>
+    //                 $validated['received_at'] ?? null,
+
+    //             'remarks' =>
+    //                 $validated['remarks'] ?? null,
+
+    //             'updated_by' => Auth::id(),
+    //         ]);
+
+    //         /*
+    //         |--------------------------------------------------------------------------
+    //         | Update Owners
+    //         |--------------------------------------------------------------------------
+    //         */
+
+    //         $existingOwnerIds = [];
+
+    //         foreach ($validated['owners'] as $ownerData) {
+
+    //             if (!empty($ownerData['id'])) {
+
+    //                 $owner = $possessionCase->owners()
+    //                     ->where('id', $ownerData['id'])
+    //                     ->first();
+
+    //                 if ($owner) {
+
+    //                     $owner->update([
+    //                         'owner_name' =>
+    //                             $ownerData['owner_name'],
+
+    //                         'cnic' =>
+    //                             $ownerData['cnic'] ?? null,
+
+    //                         'address' =>
+    //                             $ownerData['address'] ?? null,
+
+    //                         'contact_no' =>
+    //                             $ownerData['contact_no'] ?? null,
+
+    //                         'ownership_percentage' =>
+    //                             $ownerData['ownership_percentage'] ?? null,
+    //                     ]);
+
+    //                     $existingOwnerIds[] = $owner->id;
+    //                 }
+
+    //             } else {
+
+    //                 $newOwner = $possessionCase->owners()->create([
+    //                     'owner_name' =>
+    //                         $ownerData['owner_name'],
+
+    //                     'cnic' =>
+    //                         $ownerData['cnic'] ?? null,
+
+    //                     'address' =>
+    //                         $ownerData['address'] ?? null,
+
+    //                     'contact_no' =>
+    //                         $ownerData['contact_no'] ?? null,
+
+    //                     'ownership_percentage' =>
+    //                         $ownerData['ownership_percentage'] ?? null,
+    //                 ]);
+
+    //                 $existingOwnerIds[] = $newOwner->id;
+    //             }
+    //         }
+
+    //         /*
+    //         |--------------------------------------------------------------------------
+    //         | Remove owners deleted from edit form
+    //         |--------------------------------------------------------------------------
+    //         */
+
+    //         $possessionCase->owners()
+    //             ->whereNotIn('id', $existingOwnerIds)
+    //             ->delete();
+
+    //         /*
+    //         |--------------------------------------------------------------------------
+    //         | Update timestamp/user
+    //         |--------------------------------------------------------------------------
+    //         */
+
+    //         $possessionCase->update([
+    //             'updated_by' => Auth::id(),
+    //         ]);
+    //     });
+
+    //     return redirect()
+    //         ->route(
+    //             'possession-cases.show',
+    //             $possessionCase
+    //         )
+    //         ->with(
+    //             'success',
+    //             'Possession case updated successfully.'
+    //         );
+    // }
 
 
     /**

@@ -312,7 +312,9 @@
                                     <input type="text"
                                            name="owners[{{ $index }}][owner_name]"
                                            class="form-control"
+
                                            value="{{ old('owners.' . $index . '.owner_name', $owner->owner_name) }}"
+                                           
                                            required>
 
                                 </div>
@@ -332,7 +334,6 @@
                                            placeholder="xxxxx-xxxxxxx-x">
 
                                 </div>
-
 
                                 {{-- Contact --}}
                                 <div class="col-md-6 mb-3">
@@ -376,7 +377,9 @@
 
                                     <textarea name="owners[{{ $index }}][address]"
                                               class="form-control"
-                                              rows="2">{{ old('owners.' . $index . '.address', $owner->address) }}</textarea>
+                                              {{-- rows="2">{{ old('owners.' . $index . '.address', $owner->address) }}</textarea> --}}                        
+                                              {{-- value="{{ old('owners.' . $index . '.address', $owner->pivot->address_snapshot) }}" --}}
+                                              rows="2">{{ old('owners.' . $index . '.address', $owner->pivot->address_snapshot) }}</textarea>
 
                                 </div>
 

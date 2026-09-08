@@ -545,7 +545,8 @@
                                         </td>
 
                                         <td>
-                                            {{ $owner->address ?? '-' }}
+                                            {{-- {{ $owner->address ?? '-' }} --}}
+                                            {{ $owner->pivot->address_snapshot ?? '-' }}
                                         </td>
 
                                     </tr>
@@ -691,10 +692,8 @@
                 </div>
 
             @endif
-
-
+            
         </div>
-
 
         {{-- =====================================================
              RIGHT SIDE
@@ -702,9 +701,156 @@
 
         <div class="col-lg-4">
 
-
             {{-- PLOT INFORMATION --}}
+            {{-- PLOT INFORMATION --}}
+
             <div class="card shadow-sm mb-4">
+            
+                <div class="card-header bg-light">
+
+                    <strong>
+                        🏠 Plot Information
+                    </strong>
+
+                </div>
+
+
+                <div class="card-body">
+
+                    @if($possessionCase->plot)
+
+                        <div class="row g-2">
+
+                            {{-- Project --}}
+                            <div class="col-12">
+
+                                <div class="d-flex">
+
+                                    <div class="text-muted fw-bold"
+                                        style="min-width: 110px;">
+                                        Project:
+                                    </div>
+
+                                    <div>
+                                        {{ $possessionCase->plot->project?->project_name ?? '-' }}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Block --}}
+                            <div class="col-12">
+
+                                <div class="d-flex">
+
+                                    <div class="text-muted fw-bold"
+                                        style="min-width: 110px;">
+                                        Block:
+                                    </div>
+
+                                    <div>
+                                        {{ $possessionCase->plot->block?->block_name ?? '-' }}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Street --}}
+                            <div class="col-12">
+
+                                <div class="d-flex">
+
+                                    <div class="text-muted fw-bold"
+                                        style="min-width: 110px;">
+                                        Street:
+                                    </div>
+
+                                    <div>
+                                        {{ $possessionCase->plot->street?->street_name ?? '-' }}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Plot Number --}}
+                            <div class="col-12">
+
+                                <div class="d-flex">
+
+                                    <div class="text-muted fw-bold"
+                                        style="min-width: 110px;">
+                                        Plot No:
+                                    </div>
+
+                                    <div class="fw-bold">
+                                        {{ $possessionCase->plot->plot_number ?? '-' }}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Plot Size --}}
+                            <div class="col-12">
+
+                                <div class="d-flex">
+
+                                    <div class="text-muted fw-bold"
+                                        style="min-width: 110px;">
+                                        Plot Size:
+                                    </div>
+
+                                    <div>
+                                        {{ $possessionCase->plot->size?->title ?? '-' }}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Measured Area --}}
+                            <div class="col-12">
+
+                                <div class="d-flex">
+
+                                    <div class="text-muted fw-bold"
+                                        style="min-width: 110px;">
+                                        Measured Area:
+                                    </div>
+
+                                    <div>
+                                        {{ $possessionCase->plot->measured_plotarea ?? '-' }}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    @else
+
+                        <div class="text-danger">
+                            Plot information not found.
+                        </div>
+
+                    @endif
+
+                </div>
+            
+
+            </div>
+
+            {{-- old plot information --}}
+            {{-- <div class="card shadow-sm mb-4">
 
                 <div class="card-header bg-light">
 
@@ -806,7 +952,7 @@
 
                 </div>
 
-            </div>
+            </div> --}}
 
 
             {{-- CURRENT HOLDER --}}
