@@ -60,7 +60,10 @@
     {{-- =========================================================
          CASE STATUS
     ========================================================== --}}
-{{-- $statusLabels = [
+
+    @php
+
+        $statusLabels = [
 
             'received' => 'Received',
             'prepared' => 'Prepared',
@@ -82,58 +85,7 @@
             'handed_over' => 'bg-success',
             'completed' => 'bg-success',
 
-        ]; --}}
-{{-- 2nd time copy --}}
-        {{-- $statusLabels = [
-
-            'received' => 'Received',
-            'prepared' => 'Prepared',
-            'surveyor_signed' => 'Surveyor Signed',
-            'approval' => 'Approval',
-            'town_planner_signed' => 'Town Planner Signed',
-            'completed' => 'Completed',
-
-        ]; --}}
-
-        {{-- $statusClasses = [
-
-            'received' => 'bg-primary',
-            'prepared' => 'bg-info',
-            'surveyor_signed' => 'bg-warning text-dark',
-            'approval' => 'bg-secondary',
-            'town_planner_signed' => 'bg-warning text-dark',
-            'completed' => 'bg-success',
-
-        ]; --}}
-
-
-    @php
-        
-        $statusLabels = [
-
-            'received' => 'Received',
-            'prepared' => 'Prepared',
-            'surveyor_signed' =>
-                $possessionCase->need_approval
-                    ? 'Surveyor Signed'
-                    : 'Surveyor & Town Planner Signed',
-            'approval' => 'Approval',
-            'town_planner_signed' => 'Town Planner Signed',
-            'completed' => 'Completed',
-
         ];
-
-        $statusClasses = [
-
-            'received' => 'bg-primary',
-            'prepared' => 'bg-info',
-            'surveyor_signed' => 'bg-warning text-dark',
-            'approval' => 'bg-secondary',
-            'town_planner_signed' => 'bg-warning text-dark',
-            'completed' => 'bg-success',
-
-        ];
-
 
         $currentStatus =
             $statusLabels[$possessionCase->current_status]
@@ -187,6 +139,264 @@
         </div>
 
     </div>
+
+
+    {{-- =========================================================
+         STATUS WORKFLOW
+    ========================================================== --}}
+
+    {{-- <div class="card shadow-sm mb-4">
+
+        <div class="card-header bg-light">
+
+            <strong>
+                🔄 Possession Workflow
+            </strong>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="row text-center g-2">
+
+                @php
+
+                    $workflow = [
+
+                        'received' => 'Received',
+                        'prepared' => 'Prepared',
+                        'signed' => 'Signed',
+                        'approval' => 'Approval',
+                        'receive_back' => 'Receive Back',
+                        'handed_over' => 'Handed Over',
+                        'completed' => 'Completed',
+
+                    ];
+
+                    $statuses = array_keys($workflow);
+
+                    $currentIndex =
+                        array_search(
+                            $possessionCase->current_status,
+                            $statuses
+                        );
+
+                @endphp
+
+
+                @foreach($workflow as $status => $label)
+
+                    @php
+
+                        $statusIndex =
+                            array_search($status, $statuses);
+
+                        if ($statusIndex < $currentIndex) {
+
+                            $stepClass = 'bg-success text-white';
+
+                        } elseif ($statusIndex == $currentIndex) {
+
+                            $stepClass = 'bg-primary text-white';
+
+                        } else {
+
+                            $stepClass = 'bg-light text-muted border';
+
+                        }
+
+                    @endphp
+
+
+                    <div class="col">
+
+                        <div class="rounded p-2 {{ $stepClass }}">
+
+                            <small class="fw-bold">
+                                {{ $label }}
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                @endforeach
+
+            </div>
+
+        </div>
+
+    </div> --}}
+    {{-- =========================================================
+    STATUS WORKFLOW
+    ========================================================== --}}
+
+    {{-- old work flow --}}
+    {{-- <div class="card shadow-sm mb-4">
+
+        <div class="card-header bg-light">
+
+            <strong>
+                🔄 Possession Workflow
+            </strong>
+
+        </div>
+
+
+        <div class="card-body">
+
+            @php --}}
+
+                {{-- /*
+                |--------------------------------------------------------------------------
+                | Workflow according to approval requirement
+                |--------------------------------------------------------------------------
+                */
+
+                if ($possessionCase->need_approval) {
+
+                    $workflow = [
+
+                        'received' =>
+                            'Received',
+
+                        'prepared' =>
+                            'Prepared',
+
+                        'surveyor_signed' =>
+                            'Surveyor Signed',
+
+                        'approval' =>
+                            'Approval',
+
+                        'town_planner_signed' =>
+                            'Town Planner Signed',
+
+                        'completed' =>
+                            'Completed',
+
+                    ];
+
+                } else {
+
+                    $workflow = [
+
+                        'received' =>
+                            'Received',
+
+                        'prepared' =>
+                            'Prepared',
+
+                        'surveyor_signed' =>
+                            'Surveyor & Town Planner Signed',
+
+                        'completed' =>
+                            'Completed',
+
+                    ];
+
+                }
+
+
+                $statuses =
+                    array_keys($workflow);
+
+
+                $currentIndex =
+                    array_search(
+                        $possessionCase->current_status,
+                        $statuses,
+                        true
+                    );
+
+            @endphp --}}
+
+
+            {{-- Approval Information --}}
+            {{-- <div class="mb-3">
+
+                @if($possessionCase->need_approval)
+
+                    <span class="badge bg-warning text-dark">
+
+                        Approval Required
+
+                    </span>
+
+                @else
+
+                    <span class="badge bg-secondary">
+
+                        No Approval Required
+
+                    </span>
+
+                @endif
+
+            </div> --}}
+
+
+            {{-- Workflow --}}
+            {{-- <div class="row text-center g-2">
+
+                @foreach($workflow as $status => $label)
+
+                    @php
+
+                        $statusIndex =
+                            array_search(
+                                $status,
+                                $statuses,
+                                true
+                            );
+
+
+                        if (
+                            $currentIndex !== false &&
+                            $statusIndex < $currentIndex
+                        ) {
+
+                            $stepClass =
+                                'bg-success text-white';
+
+                        } elseif (
+                            $statusIndex === $currentIndex
+                        ) {
+
+                            $stepClass =
+                                'bg-primary text-white';
+
+                        } else {
+
+                            $stepClass =
+                                'bg-light text-muted border';
+
+                        }
+
+                    @endphp
+
+
+                    <div class="col">
+
+                        <div class="rounded p-2 {{ $stepClass }}">
+
+                            <small class="fw-bold">
+
+                                {{ $label }}
+
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                @endforeach
+
+            </div>
+
+        </div>
+
+    </div> --}}
 
     {{-- =========================================================
         POSSESSION WORKFLOW
@@ -510,8 +720,7 @@
                             </small>
 
                             <div>
-                                {{-- {{ $possessionCase->handed_over_at?->format('d-m-Y') ?? '-' }} --}}
-                                {{ $possessionCase->completed_at?->format('d-m-Y') ?? '-' }}
+                                {{ $possessionCase->handed_over_at?->format('d-m-Y') ?? '-' }}
                             </div>
 
                         </div>
@@ -699,169 +908,7 @@
                  UPDATE STATUS
             ================================================== --}}
 
-            
             @if($possessionCase->is_active)
-
-                <div class="card shadow-sm mb-4">
-
-                    <div class="card-header bg-light">
-
-                        <strong>
-                            🔄 Update Case Status
-                        </strong>
-
-                    </div>
-
-
-                    <div class="card-body">
-
-                        @php
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Determine Next Status
-                            |--------------------------------------------------------------------------
-                            */
-
-                            if ($possessionCase->need_approval) {
-
-                                $nextStatuses = [
-
-                                    'received' => [
-                                        'status' => 'prepared',
-                                        'label' => 'Prepared',
-                                    ],
-
-                                    'prepared' => [
-                                        'status' => 'surveyor_signed',
-                                        'label' => 'Surveyor Signed',
-                                    ],
-
-                                    'surveyor_signed' => [
-                                        'status' => 'approval',
-                                        'label' => 'Approval',
-                                    ],
-
-                                    'approval' => [
-                                        'status' => 'town_planner_signed',
-                                        'label' => 'Town Planner Signed',
-                                    ],
-
-                                    'town_planner_signed' => [
-                                        'status' => 'completed',
-                                        'label' => 'Completed',
-                                    ],
-
-                                ];
-
-                            } else {
-
-                                $nextStatuses = [
-
-                                    'received' => [
-                                        'status' => 'prepared',
-                                        'label' => 'Prepared',
-                                    ],
-
-                                    'prepared' => [
-                                        'status' => 'surveyor_signed',
-                                        'label' => 'Surveyor & Town Planner Signed',
-                                    ],
-
-                                    'surveyor_signed' => [
-                                        'status' => 'completed',
-                                        'label' => 'Completed',
-                                    ],
-
-                                ];
-
-                            }
-                            $nextStatus =
-                                $nextStatuses[$possessionCase->current_status]
-                                ?? null;
-                        @endphp
-                        @if($nextStatus)
-                            <form method="POST"
-                                action="{{ route('possession-cases.update-status', $possessionCase) }}">
-                                @csrf
-                                @method('PATCH')
-                                <div class="row g-3">
-                                    {{-- Next Status --}}
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-bold">
-                                            Next Status
-                                        </label>
-
-                                        <input type="text"
-                                            class="form-control"
-                                            value="{{ $nextStatus['label'] }}"
-                                            readonly>
-
-                                        <input type="hidden"
-                                            name="status"
-                                            value="{{ $nextStatus['status'] }}">
-                                    </div>
-
-                                    {{-- Handed Over To --}}
-                                    <div class="col-md-4">
-
-                                        <label class="form-label">
-                                            Handed Over To
-                                        </label>
-
-                                        <input type="text"
-                                            name="handed_over_to"
-                                            id="handed_over_to"
-                                            class="form-control"
-                                            value="{{ old('handed_over_to', $possessionCase->handed_over_to) }}"
-                                            placeholder="Person / Department">
-
-                                    </div>
-
-                                    {{-- Remarks --}}
-                                    <div class="col-md-4">
-
-                                        <label class="form-label">
-                                            Remarks
-                                        </label>
-
-                                        <input type="text"
-                                            name="remarks"
-                                            class="form-control"
-                                            value="{{ old('remarks') }}"
-                                            placeholder="Optional remarks">
-                                    </div>
-
-                                    {{-- Button --}}
-                                    <div class="col-12">
-
-                                        <button type="submit"
-                                                class="btn btn-primary"
-                                                onclick="return confirm('Are you sure you want to move this case to the next stage?');">
-                                            🔄 Move to {{ $nextStatus['label'] }}
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        @else
-
-                            <div class="alert alert-success mb-0">
-
-                                <strong>
-                                    ✅ Case Completed
-                                </strong>
-                                <br>
-                                Final entry has been completed and the case has been sent to
-                                <strong>
-                                    Estate Department / Possession Desk
-                                </strong>.
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            @endif
-
-            {{-- @if($possessionCase->is_active)
 
                 <div class="card shadow-sm mb-4">
 
@@ -887,151 +934,115 @@
                             <div class="row g-3">
 
 
-                                
-                                @php
+                                {{-- Status --}}
+                                {{-- old status --}}
+                                {{-- <div class="col-md-4">
 
+                                    <label class="form-label fw-bold">
+                                        New Status
+                                    </label>
+
+                                    <select name="status"
+                                            id="status"
+                                            class="form-select"
+                                            required>
+
+                                        <option value="">
+                                            -- Select Status --
+                                        </option>
+
+                                        @foreach($workflow as $status => $label)
+
+                                            <option value="{{ $status }}"
+                                                {{ $possessionCase->current_status == $status ? 'selected' : '' }}>
+
+                                                {{ $label }}
+
+                                            </option>
+
+                                        @endforeach
+
+                                    </select>
+
+                                </div> --}}
+                                @php
                                 if ($possessionCase->need_approval) {
 
-                                    $nextStatuses = [
+                                    $availableStatuses = [
 
-                                        'received' => [
-                                            'status' => 'prepared',
-                                            'label' => 'Prepared',
-                                        ],
+                                        'received' =>
+                                            'Received',
 
-                                        'prepared' => [
-                                            'status' => 'surveyor_signed',
-                                            'label' => 'Surveyor Signed',
-                                        ],
+                                        'prepared' =>
+                                            'Prepared',
 
-                                        'surveyor_signed' => [
-                                            'status' => 'approval',
-                                            'label' => 'Approval',
-                                        ],
+                                        'surveyor_signed' =>
+                                            'Surveyor Signed',
 
-                                        'approval' => [
-                                            'status' => 'town_planner_signed',
-                                            'label' => 'Town Planner Signed',
-                                        ],
+                                        'approval' =>
+                                            'Approval',
 
-                                        'town_planner_signed' => [
-                                            'status' => 'completed',
-                                            'label' => 'Completed',
-                                        ],
+                                        'town_planner_signed' =>
+                                            'Town Planner Signed',
 
+                                        'completed' =>
+                                            'Completed',
                                     ];
 
                                 } else {
 
-                                    $nextStatuses = [
+                                    $availableStatuses = [
 
-                                        'received' => [
-                                            'status' => 'prepared',
-                                            'label' => 'Prepared',
-                                        ],
+                                        'received' =>
+                                            'Received',
 
-                                        'prepared' => [
-                                            'status' => 'surveyor_signed',
-                                            'label' => 'Surveyor & Town Planner Signed',
-                                        ],
+                                        'prepared' =>
+                                            'Prepared',
 
-                                        'surveyor_signed' => [
-                                            'status' => 'completed',
-                                            'label' => 'Completed',
-                                        ],
+                                        'surveyor_signed' =>
+                                            'Surveyor & Town Planner Signed',
+
+                                        'completed' =>
+                                            'Completed',
 
                                     ];
 
                                 }
-
-
-                                $nextStatus =
-                                    $nextStatuses[$possessionCase->current_status]
-                                    ?? null;
-
+                                
 
                                 @endphp
 
-                                @if($nextStatus)
+                                <div class="col-md-4">
 
+                                
+                                <label class="form-label fw-bold">
+                                    New Status
+                                </label>
 
-                                <form method="POST"
-                                    action="{{ route('possession-cases.update-status', $possessionCase) }}">
+                                <select name="status"
+                                        id="status"
+                                        class="form-select"
+                                        required>
 
-                                    @csrf
-                                    @method('PATCH')
+                                    <option value="">
+                                        -- Select Next Status --
+                                    </option>
 
+                                    @foreach($availableStatuses as $status => $label)
 
-                                    <div class="row g-3">
+                                        <option value="{{ $status }}">
 
-                                        <div class="col-md-4">
+                                            {{ $label }}
 
-                                            <label class="form-label fw-bold">
-                                                Next Status
-                                            </label>
+                                        </option>
 
-                                            <input type="text"
-                                                class="form-control"
-                                                value="{{ $nextStatus['label'] }}"
-                                                readonly>
+                                    @endforeach
 
-                                            <input type="hidden"
-                                                name="status"
-                                                value="{{ $nextStatus['status'] }}">
-
-                                        </div>
-
-
-                                        <div class="col-md-5">
-
-                                            <label class="form-label">
-                                                Remarks
-                                            </label>
-
-                                            <input type="text"
-                                                name="remarks"
-                                                class="form-control"
-                                                placeholder="Optional remarks">
-
-                                        </div>
-
-
-                                        <div class="col-md-3 d-flex align-items-end">
-
-                                            <button type="submit"
-                                                    class="btn btn-primary w-100"
-                                                    onclick="return confirm('Are you sure you want to move this case to the next stage?');">
-
-                                                🔄 Move to Next Stage
-
-                                            </button>
-
-                                        </div>
-
-                                    </div>
-
-                                </form>
-
-
-                                @else
-
-
-                                <div class="alert alert-success mb-0">
-
-                                    <strong>✅ Case Completed</strong>
-
-                                    <br>
-
-                                    Final entry has been completed and the case has been sent to
-                                    <strong>Estate Department / Possession Desk</strong>.
+                                </select>
 
                                 </div>
-
-
-                                @endif
-
                                 {{-- Handed Over To --}}
-                                {{-- <div class="col-md-4">
+                                <div class="col-md-4">
 
                                     <label class="form-label">
                                         Handed Over To
@@ -1046,15 +1057,43 @@
 
                                 </div>
 
+
+                                {{-- Remarks --}}
+                                <div class="col-md-4">
+
+                                    <label class="form-label">
+                                        Remarks
+                                    </label>
+
+                                    <input type="text"
+                                           name="remarks"
+                                           class="form-control"
+                                           placeholder="Status remarks">
+
+                                </div>
+
+
+                                <div class="col-12">
+
+                                    <button type="submit"
+                                            class="btn btn-primary"
+                                            onclick="return confirm('Are you sure you want to update the case status?');">
+
+                                        🔄 Update Status
+
+                                    </button>
+
+                                </div>
+
                             </div>
 
-                        </form> 
+                        </form>
 
                     </div>
 
                 </div>
 
-            @endif --}}
+            @endif
             
         </div>
 
@@ -1212,7 +1251,110 @@
 
             </div>
 
+            {{-- old plot information --}}
+            {{-- <div class="card shadow-sm mb-4">
 
+                <div class="card-header bg-light">
+
+                    <strong>
+                        🏠 Plot Information
+                    </strong>
+
+                </div>
+
+
+                <div class="card-body">
+
+                    @if($possessionCase->plot)
+
+                        <div class="mb-3">
+
+                            <small class="text-muted">
+                                Plot Number
+                            </small>
+
+                            <div class="fs-5 fw-bold">
+                                {{ $possessionCase->plot->plot_number }}
+                            </div>
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            <small class="text-muted">
+                                Project
+                            </small>
+
+                            <div>
+                                {{ $possessionCase->plot->project?->project_name ?? '-' }}
+                            </div>
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            <small class="text-muted">
+                                Block
+                            </small>
+
+                            <div>
+                                {{ $possessionCase->plot->block?->block_name ?? '-' }}
+                            </div>
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            <small class="text-muted">
+                                Street
+                            </small>
+
+                            <div>
+                                {{ $possessionCase->plot->street?->street_name ?? '-' }}
+                            </div>
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            <small class="text-muted">
+                                Plot Size
+                            </small>
+
+                            <div>
+                                {{ $possessionCase->plot->size?->title ?? '-' }}
+                            </div>
+
+                        </div>
+
+
+                        <div>
+
+                            <small class="text-muted">
+                                Measured Area
+                            </small>
+
+                            <div>
+                                {{ $possessionCase->plot->measured_plotarea ?? '-' }}
+                            </div>
+
+                        </div>
+
+                    @else
+
+                        <div class="text-danger">
+                            Plot information not found.
+                        </div>
+
+                    @endif
+
+                </div>
+
+            </div> --}}
 
 
             {{-- CURRENT HOLDER --}}

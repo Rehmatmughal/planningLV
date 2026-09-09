@@ -1208,22 +1208,567 @@ class PossessionCaseController extends Controller
     //         );
     // }
 
+    /**
+     * Update case status.
+     */
+
+    // public function updateStatus(
+    //     Request $request,
+    //     PossessionCase $possessionCase
+    // ) {
+    //     $validated = $request->validate([
+    //         'status' => [
+    //             'required',
+    //             'in:received,prepared,surveyor_signed,approval,town_planner_signed,completed',
+    //         ],
+
+    //         // 'status' => [
+    //         //     'required',
+    //         //     'in:received,prepared,signed,approval,receive_back,handed_over,completed',
+    //         // ],
+
+    //         'handed_over_to' => [
+    //             'nullable',
+    //             'string',
+    //             'max:255',
+    //         ],
+
+    //         'remarks' => [
+    //             'nullable',
+    //             'string',
+    //         ],
+    //     ]);
+
+    //     DB::transaction(function () use (
+    //         $validated,
+    //         $possessionCase
+    //     ) {
+
+    //         $oldStatus = $possessionCase->current_status;
+
+    //         $newStatus = $validated['status'];
+
+    //         // Do not create unnecessary history
+    //         if ($oldStatus === $newStatus) {
+    //             return;
+    //         }
+
+    //         /*
+    //         |--------------------------------------------------------------------------
+    //         | Date field according to status
+    //         |--------------------------------------------------------------------------
+    //         */
+
+    //         $dateField = match ($newStatus) {
+
+    //             'received' =>
+    //                 'received_at',
+
+    //             'prepared' =>
+    //                 'prepared_at',
+
+    //             'signed' =>
+    //                 'signed_at',
+
+    //             'approval' =>
+    //                 'approval_sent_at',
+
+    //             'receive_back' =>
+    //                 'received_back_at',
+
+    //             'handed_over' =>
+    //                 'handed_over_at',
+
+    //             'completed' =>
+    //                 'completed_at',
+
+    //             default => null,
+    //         };
+
+    //         $updateData = [
+    //             'current_status' => $newStatus,
+    //             'updated_by' => Auth::id(),
+    //         ];
+
+    //         if ($dateField) {
+    //             $updateData[$dateField] = now()->toDateString();
+    //         }
+
+    //         if (!empty($validated['handed_over_to'])) {
+
+    //             $updateData['handed_over_to'] =
+    //                 $validated['handed_over_to'];
+    //         }
+
+    //         if (!empty($validated['remarks'])) {
+
+    //             $updateData['remarks'] =
+    //                 $validated['remarks'];
+    //         }
+
+    //         /*
+    //         |--------------------------------------------------------------------------
+    //         | Mark completed case inactive
+    //         |--------------------------------------------------------------------------
+    //         */
+
+    //         if ($newStatus === 'completed') {
+    //             $updateData['is_active'] = false;
+    //         }
+
+    //         $possessionCase->update($updateData);
+
+    //         /*
+    //         |--------------------------------------------------------------------------
+    //         | History
+    //         |--------------------------------------------------------------------------
+    //         */
+
+    //         $possessionCase->histories()->create([
+    //             'plot_id' =>
+    //                 $possessionCase->plot_id,
+
+    //             'action' =>
+    //                 ucfirst(str_replace('_', ' ', $newStatus)),
+
+    //             'old_status' =>
+    //                 $oldStatus,
+
+    //             'new_status' =>
+    //                 $newStatus,
+
+    //             'old_holder' =>
+    //                 $possessionCase->current_holder_name,
+
+    //             'new_holder' =>
+    //                 $possessionCase->current_holder_name,
+
+    //             'handed_over_to' =>
+    //                 $validated['handed_over_to'] ?? null,
+
+    //             'remarks' =>
+    //                 $validated['remarks'] ?? null,
+
+    //             'user_id' =>
+    //                 Auth::id(),
+    //         ]);
+    //     });
+
+    //     return back()
+    //         ->with(
+    //             'success',
+    //             'Possession case status updated successfully.'
+    //         );
+    // }
+
+    
+    /**
+     * Update case status.
+     */
+    // update status 2nd time temp old
+    // public function updateStatus(
+    //     Request $request,
+    //     PossessionCase $possessionCase
+    // ) {
+    //     $validated = $request->validate([
+
+    //         'status' => [
+    //             'required',
+    //             'in:received,prepared,surveyor_signed,approval,town_planner_signed,completed',
+    //         ],
+
+    //         'handed_over_to' => [
+    //             'nullable',
+    //             'string',
+    //             'max:255',
+    //         ],
+
+    //         'remarks' => [
+    //             'nullable',
+    //             'string',
+    //         ],
+
+    //     ]);
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Case must be active
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     if (!$possessionCase->is_active) {
+
+    //         return back()->with(
+    //             'error',
+    //             'This possession case is already completed or inactive.'
+    //         );
+    //     }
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Current and New Status
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     $oldStatus = $possessionCase->current_status;
+
+    //     $newStatus = $validated['status'];
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Do not create unnecessary history
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     if ($oldStatus === $newStatus) {
+
+    //         return back()->with(
+    //             'error',
+    //             'The case is already at this status.'
+    //         );
+    //     }
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Allowed Workflow
+    //     |--------------------------------------------------------------------------
+    //     |
+    //     | Without Approval:
+    //     |
+    //     | received
+    //     |     ↓
+    //     | prepared
+    //     |     ↓
+    //     | surveyor_signed
+    //     |     ↓
+    //     | completed
+    //     |
+    //     | With Approval:
+    //     |
+    //     | received
+    //     |     ↓
+    //     | prepared
+    //     |     ↓
+    //     | surveyor_signed
+    //     |     ↓
+    //     | approval
+    //     |     ↓
+    //     | town_planner_signed
+    //     |     ↓
+    //     | completed
+    //     |
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     if ($possessionCase->need_approval) {
+
+    //         $workflow = [
+    //             'received',
+    //             'prepared',
+    //             'surveyor_signed',
+    //             'approval',
+    //             'town_planner_signed',
+    //             'completed',
+    //         ];
+
+    //     } else {
+
+    //         $workflow = [
+    //             'received',
+    //             'prepared',
+    //             'surveyor_signed',
+    //             'completed',
+    //         ];
+    //     }
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Find current and new status positions
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     $oldIndex = array_search(
+    //         $oldStatus,
+    //         $workflow,
+    //         true
+    //     );
+
+    //     $newIndex = array_search(
+    //         $newStatus,
+    //         $workflow,
+    //         true
+    //     );
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Invalid status for this workflow
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     if ($newIndex === false) {
+
+    //         return back()->with(
+    //             'error',
+    //             'This status is not available for this case workflow.'
+    //         );
+    //     }
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Status must move only one step forward
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     if ($oldIndex === false || $newIndex !== $oldIndex + 1) {
+
+    //         return back()->with(
+    //             'error',
+    //             'You cannot skip a workflow stage. Please complete the previous stage first.'
+    //         );
+    //     }
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Handed Over To is not required anymore
+    //     |--------------------------------------------------------------------------
+    //     |
+    //     | Completed means Draftsman has completed the final entry and sent
+    //     | the case to Estate Department / Possession Desk.
+    //     |
+    //     |--------------------------------------------------------------------------
+    //     */
+
+
+    //     DB::transaction(function () use (
+    //         $validated,
+    //         $possessionCase,
+    //         $oldStatus,
+    //         $newStatus
+    //     ) {
+
+    //         /*
+    //         |--------------------------------------------------------------------------
+    //         | Date field according to status
+    //         |--------------------------------------------------------------------------
+    //         */
+
+    //         $dateField = match ($newStatus) {
+
+    //             'received' =>
+    //                 'received_at',
+
+    //             'prepared' =>
+    //                 'prepared_at',
+
+    //             'surveyor_signed' =>
+    //                 'signed_at',
+
+    //             'approval' =>
+    //                 'approval_sent_at',
+
+    //             'town_planner_signed' =>
+    //                 'town_planner_signed_at',
+
+    //             'completed' =>
+    //                 'completed_at',
+
+    //             default =>
+    //                 null,
+    //         };
+
+
+    //         /*
+    //         |--------------------------------------------------------------------------
+    //         | Update Case
+    //         |--------------------------------------------------------------------------
+    //         */
+
+    //         $updateData = [
+
+    //             'current_status' =>
+    //                 $newStatus,
+
+    //             'updated_by' =>
+    //                 Auth::id(),
+
+    //         ];
+
+
+    //         /*
+    //         |--------------------------------------------------------------------------
+    //         | Save relevant date
+    //         |--------------------------------------------------------------------------
+    //         */
+
+    //         if ($dateField) {
+
+    //             $updateData[$dateField] =
+    //                 now()->toDateString();
+    //         }
+
+
+    //         /*
+    //         |--------------------------------------------------------------------------
+    //         | Save remarks if provided
+    //         |--------------------------------------------------------------------------
+    //         */
+
+    //         if (!empty($validated['remarks'])) {
+
+    //             $updateData['remarks'] =
+    //                 $validated['remarks'];
+    //         }
+
+
+    //         /*
+    //         |--------------------------------------------------------------------------
+    //         | Completed
+    //         |--------------------------------------------------------------------------
+    //         |
+    //         | Draftsman final entry complete karta hai aur case ko
+    //         | Estate Department / Possession Desk ko bhej deta hai.
+    //         |
+    //         |--------------------------------------------------------------------------
+    //         */
+
+    //         if ($newStatus === 'completed') {
+
+    //             $updateData['is_active'] = false;
+    //         }
+
+
+    //         $possessionCase->update($updateData);
+
+
+    //         /*
+    //         |--------------------------------------------------------------------------
+    //         | History
+    //         |--------------------------------------------------------------------------
+    //         */
+
+    //         $statusLabels = [
+
+    //             'received' =>
+    //                 'Case Received',
+
+    //             'prepared' =>
+    //                 'Possession Prepared',
+
+    //             'surveyor_signed' =>
+    //                 'Surveyor Signed',
+
+    //             'approval' =>
+    //                 'Sent for Approval',
+
+    //             'town_planner_signed' =>
+    //                 'Town Planner Signed',
+
+    //             'completed' =>
+    //                 'Case Completed',
+
+    //         ];
+
+
+    //         $historyRemarks =
+    //             $validated['remarks']
+    //             ?? null;
+
+
+    //         if ($newStatus === 'completed') {
+
+    //             $historyRemarks =
+    //                 $historyRemarks
+    //                 ?? 'Final entry completed and case sent to Estate Department / Possession Desk.';
+    //         }
+
+
+    //         if ($newStatus === 'approval') {
+
+    //             $historyRemarks =
+    //                 $historyRemarks
+    //                 ?? 'Case sent for Secretary-IBECHS approval.';
+    //         }
+
+
+    //         $possessionCase->histories()->create([
+
+    //             'plot_id' =>
+    //                 $possessionCase->plot_id,
+
+    //             'action' =>
+    //                 $statusLabels[$newStatus],
+
+    //             'old_status' =>
+    //                 $oldStatus,
+
+    //             'new_status' =>
+    //                 $newStatus,
+
+    //             'old_holder' =>
+    //                 $possessionCase->current_holder_name,
+
+    //             'new_holder' =>
+    //                 $possessionCase->current_holder_name,
+
+    //             'handed_over_to' =>
+    //                 null,
+
+    //             'remarks' =>
+    //                 $historyRemarks,
+
+    //             'user_id' =>
+    //                 Auth::id(),
+
+    //         ]);
+    //     });
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Success
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     return back()->with(
+    //         'success',
+    //         'Possession case status updated successfully.'
+    //     );
+    // }
 
     /**
      * Update case status.
      */
+
     public function updateStatus(
         Request $request,
         PossessionCase $possessionCase
     ) {
         $validated = $request->validate([
+
             'status' => [
                 'required',
-                'in:received,prepared,signed,approval,receive_back,handed_over,completed',
+                'in:received,prepared,surveyor_signed,approval,town_planner_signed,completed',
             ],
 
+            // 'handed_over_to' => [
+            //     'nullable',
+            //     'string',
+            //     'max:255',
+            // ],
+            
             'handed_over_to' => [
-                'nullable',
+                $request->status === 'completed'
+                    ? 'required'
+                    : 'nullable',
+
                 'string',
                 'max:255',
             ],
@@ -1234,19 +1779,127 @@ class PossessionCaseController extends Controller
             ],
         ]);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Allowed workflow
+        |--------------------------------------------------------------------------
+        |
+        | Without Approval:
+        | Received
+        |     ↓
+        | Prepared
+        |     ↓
+        | Surveyor Signed
+        |     ↓
+        | Town Planner Signed
+        |     ↓
+        | Completed
+        |
+        | With Approval:
+        | Received
+        |     ↓
+        | Prepared
+        |     ↓
+        | Surveyor Signed
+        |     ↓
+        | Approval
+        |     ↓
+        | Town Planner Signed
+        |     ↓
+        | Completed
+        |
+        */
+
+        $currentStatus = $possessionCase->current_status;
+        $newStatus = $validated['status'];
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Determine next allowed status
+        |--------------------------------------------------------------------------
+        */
+
+        if ($possessionCase->need_approval) {
+
+            $allowedNextStatuses = [
+
+                'received' => [
+                    'prepared',
+                ],
+
+                'prepared' => [
+                    'surveyor_signed',
+                ],
+
+                'surveyor_signed' => [
+                    'approval',
+                ],
+
+                'approval' => [
+                    'town_planner_signed',
+                ],
+
+                'town_planner_signed' => [
+                    'completed',
+                ],
+
+                'completed' => [],
+
+            ];
+
+        } else {
+
+            $allowedNextStatuses = [
+
+                'received' => [
+                    'prepared',
+                ],
+
+                'prepared' => [
+                    'surveyor_signed',
+                ],
+
+                // 'surveyor_signed' => [
+                //     'town_planner_signed',
+                // ],
+
+                'surveyor_signed' => [
+                    'completed',
+                ],
+
+                'completed' => [],
+
+            ];
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check whether selected status is actually allowed
+        |--------------------------------------------------------------------------
+        */
+
+        if (!in_array(
+            $newStatus,
+            $allowedNextStatuses[$currentStatus] ?? []
+        )) {
+
+            return back()
+                ->withErrors([
+                    'status' =>
+                        'Invalid status transition. Please follow the proper possession workflow.',
+                ])
+                ->withInput();
+        }
+
+
         DB::transaction(function () use (
             $validated,
-            $possessionCase
+            $possessionCase,
+            $currentStatus,
+            $newStatus
         ) {
-
-            $oldStatus = $possessionCase->current_status;
-
-            $newStatus = $validated['status'];
-
-            // Do not create unnecessary history
-            if ($oldStatus === $newStatus) {
-                return;
-            }
 
             /*
             |--------------------------------------------------------------------------
@@ -1262,32 +1915,58 @@ class PossessionCaseController extends Controller
                 'prepared' =>
                     'prepared_at',
 
-                'signed' =>
-                    'signed_at',
+                'surveyor_signed' =>
+                    'surveyor_signed_at',
 
                 'approval' =>
                     'approval_sent_at',
 
-                'receive_back' =>
-                    'received_back_at',
-
-                'handed_over' =>
-                    'handed_over_at',
+                'town_planner_signed' =>
+                    'town_planner_signed_at',
 
                 'completed' =>
                     'completed_at',
 
-                default => null,
+                default =>
+                    null,
             };
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Prepare update data
+            |--------------------------------------------------------------------------
+            */
+
             $updateData = [
-                'current_status' => $newStatus,
-                'updated_by' => Auth::id(),
+
+                'current_status' =>
+                    $newStatus,
+
+                'updated_by' =>
+                    Auth::id(),
+
             ];
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Save status date
+            |--------------------------------------------------------------------------
+            */
+
             if ($dateField) {
-                $updateData[$dateField] = now()->toDateString();
+
+                $updateData[$dateField] =
+                    now()->toDateString();
             }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Handed Over To
+            |--------------------------------------------------------------------------
+            */
 
             if (!empty($validated['handed_over_to'])) {
 
@@ -1295,39 +1974,84 @@ class PossessionCaseController extends Controller
                     $validated['handed_over_to'];
             }
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Remarks
+            |--------------------------------------------------------------------------
+            */
+
             if (!empty($validated['remarks'])) {
 
                 $updateData['remarks'] =
                     $validated['remarks'];
             }
 
+
             /*
             |--------------------------------------------------------------------------
-            | Mark completed case inactive
+            | Completed
             |--------------------------------------------------------------------------
+            |
+            | Jab case Completed ho jaye to case inactive ho jayega.
+            |
             */
 
             if ($newStatus === 'completed') {
+
                 $updateData['is_active'] = false;
             }
 
-            $possessionCase->update($updateData);
 
             /*
             |--------------------------------------------------------------------------
-            | History
+            | Update Possession Case
             |--------------------------------------------------------------------------
             */
 
+            $possessionCase->update($updateData);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Create History
+            |--------------------------------------------------------------------------
+            */
+
+            $actionLabels = [
+
+                'received' =>
+                    'Case Received',
+
+                'prepared' =>
+                    'Case Prepared',
+
+                'surveyor_signed' =>
+                    'Surveyor Signed',
+
+                'approval' =>
+                    'Approval Sent',
+
+                'town_planner_signed' =>
+                    'Town Planner Signed',
+
+                'completed' =>
+                    'Case Completed',
+
+            ];
+
+
             $possessionCase->histories()->create([
+
                 'plot_id' =>
                     $possessionCase->plot_id,
 
                 'action' =>
-                    ucfirst(str_replace('_', ' ', $newStatus)),
+                    $actionLabels[$newStatus]
+                    ?? ucfirst(str_replace('_', ' ', $newStatus)),
 
                 'old_status' =>
-                    $oldStatus,
+                    $currentStatus,
 
                 'new_status' =>
                     $newStatus,
@@ -1349,6 +2073,7 @@ class PossessionCaseController extends Controller
             ]);
         });
 
+
         return back()
             ->with(
                 'success',
@@ -1356,10 +2081,10 @@ class PossessionCaseController extends Controller
             );
     }
 
-
     /**
      * Soft delete possession case.
      */
+
     public function destroy(PossessionCase $possessionCase)
     {
         $possessionCase->update([
