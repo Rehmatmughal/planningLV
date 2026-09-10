@@ -510,7 +510,7 @@ Route::middleware(['auth','permission:permission.view'])->prefix('admin')->name(
     Route::resource('permissions', PermissionController::class);
 
 });
-// routs jo auth system k baghir han awr theek krny han
+// routs jo auth system k baghir han awr abi theek krny han
 Route::resource('possession-cases', PossessionCaseController::class);
 
 Route::patch(

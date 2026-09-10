@@ -15,14 +15,11 @@
 
         <li class="nav-item">
 
-            {{-- <a class="nav-link"
-               data-bs-toggle="collapse"
-               href="#masters"> --}}
             <a class="nav-link"
                 data-bs-toggle="collapse"
                 href="#masters"
                 role="button"
-                aria-expanded="false"
+                aria-expanded="{{ request()->routeIs('admin.*', 'projects.*', 'blocks.*', 'streets.*', 'plots.*', 'sizes.*', 'categories.*') ? 'true' : 'false' }}"
                 aria-controls="masters">
 
                 <i class="fa fa-database"></i>
@@ -30,48 +27,56 @@
 
             </a>
 
-            <div class="collapse" id="masters">
+            {{-- <div class="collapse {{ request()->routeIs('admin.*', 'projects.*', 'blocks.*', 'streets.*', 'plots.*', 'sizes.*', 'categories.*') ? 'show' : '' }}"
+                id="masters"> --}}
+            <div class="collapse {{ request()->routeIs('admin.*', 'projects.*', 'blocks.*', 'streets.*', 'plots.*', 'sizes.*', 'categories.*') ? 'show' : '' }}"
+                id="masters">
 
-                {{-- <a href="{{route('projects.index')}}" class="nav-link ps-5">Projects</a> --}}
                 <a href="{{ route('admin.admin.index') }}"
-                class="nav-link ps-5 {{ request()->routeIs('admin.*') ? 'active' : '' }}">
+                    class="nav-link ps-5 {{ request()->routeIs('admin.*') ? 'active' : '' }}">
                     Admin
                 </a>
-                <a href="{{ route('projects.index') }}"
-                class="nav-link ps-5 {{ request()->routeIs('projects.*') ? 'active' : '' }}">
+
+                {{-- <a href="{{ route('projects.index') }}"
+                    class="nav-link ps-5 {{ request()->routeIs('projects.*') ? 'active' : '' }}">
                     Projects
                 </a>
+
                 <a href="{{ route('blocks.index') }}"
-                class="nav-link ps-5 {{ request()->routeIs('blocks.*') ? 'active' : '' }}">
+                    class="nav-link ps-5 {{ request()->routeIs('blocks.*') ? 'active' : '' }}">
                     Blocks
                 </a>
+
                 <a href="{{ route('streets.index') }}"
-                class="nav-link ps-5 {{ request()->routeIs('streets.*') ? 'active' : '' }}">
+                    class="nav-link ps-5 {{ request()->routeIs('streets.*') ? 'active' : '' }}">
                     Streets
                 </a>
+
                 <a href="{{ route('plots.index') }}"
-                class="nav-link ps-5 {{ request()->routeIs('plots.*') ? 'active' : '' }}">
+                    class="nav-link ps-5 {{ request()->routeIs('plots.*') ? 'active' : '' }}">
                     Plots
-                </a>
+                </a> --}}
+
                 <a href="{{ route('sizes.index') }}"
-                class="nav-link ps-5 {{ request()->routeIs('sizes.*') ? 'active' : '' }}">
+                    class="nav-link ps-5 {{ request()->routeIs('sizes.*') ? 'active' : '' }}">
                     Plot Sizes
                 </a>
+
                 <a href="{{ route('categories.index') }}"
-                class="nav-link ps-5 {{ request()->routeIs('categories.*') ? 'active' : '' }}">
+                    class="nav-link ps-5 {{ request()->routeIs('categories.*') ? 'active' : '' }}">
                     Plot Categories
                 </a>
-                {{-- <a href="#" class="nav-link ps-5">Blocks</a>
-                <a href="#" class="nav-link ps-5">Streets</a>
-                <a href="#" class="nav-link ps-5">Plot Sizes</a>
-                <a href="#" class="nav-link ps-5">Plot Categories</a>
-                <a href="#" class="nav-link ps-5">Development Status</a>
-                <a href="#" class="nav-link ps-5">LOP Status</a>
-                <a href="#" class="nav-link ps-5">Possession Status</a> --}}
+
+                {{-- <a href="#"
+                    class="nav-link ps-5 {{ request()->routeIs('categories.*') ? 'active' : '' }}">
+                    LOP
+                </a> --}}
+
 
             </div>
 
         </li>
+
 
         <li class="nav-item">
             <a href="{{ route('plots.index') }}" class="nav-link">
@@ -83,7 +88,72 @@
 
             </a>
         </li>
+        {{-- =========================================================
+            AREA VARIATION
+        ========================================================= --}}
+
         <li class="nav-item">
+            <a href="{{ route('area_variations.index') }}"
+            class="nav-link {{ request()->routeIs('area_variations.*') ? 'active' : '' }}">
+
+                <i class="fa fa-ruler-combined me-2"></i>
+
+                Area Variation
+
+            </a>
+        </li>
+
+
+        {{-- =========================================================
+            POSSESSION
+        ========================================================= --}}
+
+        <li class="nav-item">
+
+            <a class="nav-link"
+            data-bs-toggle="collapse"
+            href="#possessionMenu"
+            role="button"
+            aria-expanded="{{ request()->routeIs('possession-cases.*', 'owners.*') ? 'true' : 'false' }}"
+            aria-controls="possessionMenu">
+
+                <i class="fa fa-key me-2"></i>
+
+                Possession
+
+            </a>
+
+
+            <div class="collapse {{ request()->routeIs('possession-cases.*', 'owners.*') ? 'show' : '' }}"
+                id="possessionMenu">
+
+
+                {{-- Possession Cases --}}
+                <a href="{{ route('possession-cases.index') }}"
+                class="nav-link ps-5 {{ request()->routeIs('possession-cases.*') ? 'active' : '' }}">
+
+                    <i class="fa fa-file-signature me-2"></i>
+
+                    Possession Cases
+
+                </a>
+
+
+                {{-- Owners --}}
+                <a href="{{ route('owners.index') }}"
+                class="nav-link ps-5 {{ request()->routeIs('owners.*') ? 'active' : '' }}">
+
+                    <i class="fa fa-users me-2"></i>
+
+                    Owners
+
+                </a>
+
+            </div>
+
+        </li>
+
+        {{-- <li class="nav-item">
             <a href="{{ route('area_variations.index')}}" class="nav-link">
                 <i class="fa fa-map"></i>
                 Area Variation
@@ -91,8 +161,8 @@
                 {{-- <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">LOP Clear Plots</div>
                 <div class="h6 mb-0 font-weight-bold text-gray-800">{{ $stats['lop_clear'] }}</div> --}}
 
-            </a>
-        </li>
+            {{--</a>
+        </li> --}}
 
         {{-- <li class="nav-item">
             <a href="{{ route('development.index')}}" class="nav-link">

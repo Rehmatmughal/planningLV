@@ -65,24 +65,25 @@ class PossessionCaseController extends Controller
      */
     public function create(Request $request)
     {
-        $plots = Plot::with([
-            'project',
-            'block',
-            'street',
-            // 'plotSize',
-            'size',
-        ])->orderBy('plot_number')->get();
+        // old all plots
+        // $plots = Plot::with([
+        //     'project',
+        //     'block',
+        //     'street',
+        //     // 'plotSize',
+        //     'size',
+        // ])->orderBy('plot_number')->get();
 
-        $selectedPlot = null;
+        // $selectedPlot = null;
 
-        if ($request->filled('plot_id')) {
-            $selectedPlot = Plot::find($request->plot_id);
-        }
+        // if ($request->filled('plot_id')) {
+        //     $selectedPlot = Plot::find($request->plot_id);
+        // }
 
-        return view('possession_cases.create', compact(
-            'plots',
-            'selectedPlot'
-        ));
+        // return view('possession_cases.create', compact(
+        //     'plots',
+        //     'selectedPlot'
+        // ));
     }
 
 
