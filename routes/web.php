@@ -212,7 +212,7 @@ Route::middleware(['auth','permission:plot.view'])->prefix('admin')->group(funct
         ->name('plots.destroy');
         // deleted plots and restore route
     Route::get('/plots/deleted', [PlotController::class, 'deleted'])
-        ->middleware('permission:plot.delete')
+        ->middleware('permission:plot.trashview')
         ->name('plots.deleted');
 
     Route::get('/plots/{id}/deleted-view', [PlotController::class, 'deletedView'])
@@ -395,7 +395,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/get-sizes/{project_id}', [PlotController::class, 'getSizes'])->name('get.sizes');
     Route::get('/get-streets/{block_id}', [PlotController::class, 'getStreets'])->name('get.streets');
     // for preselect project name
-
     
     Route::post('/development/store', [DevelopmentStatusController::class, 'storeOrUpdate'])->name('development.store');
     Route::post('/lop/store', [LopStatusController::class, 'storeOrUpdate'])->name('lop.store');

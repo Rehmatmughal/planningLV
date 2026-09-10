@@ -2000,6 +2000,8 @@ class PossessionCaseController extends Controller
             if ($newStatus === 'completed') {
 
                 $updateData['is_active'] = false;
+                $updateData['handed_over_at'] =
+                    now()->toDateString();
             }
 
 

@@ -78,7 +78,7 @@ class RolePermissionNSeeder extends Seeder
             'project.create',
             'project.edit',
             'project.delete',
-            'project.destroy',
+            // 'project.destroy',
 
             'block.view',
             'block.update',
@@ -176,7 +176,7 @@ class RolePermissionNSeeder extends Seeder
             'project.create',
             'project.edit',
             'project.delete',
-            'project.destroy',
+            // 'project.destroy',
 
             'block.view',
             'block.update',

@@ -16,7 +16,7 @@
                 @else
                     Plots Management
                 @endif
-                    @can('plot.delete')
+                    @can('plot.trashview')
                     <a href="{{ route('plots.deleted') }}"
                     class="btn btn-danger btn-sm">
                         Deleted Plots
