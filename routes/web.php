@@ -511,12 +511,29 @@ Route::middleware(['auth','permission:permission.view'])->prefix('admin')->name(
 
 });
 // routs jo auth system k baghir han awr abi theek krny han
+// AJAX routes
+    Route::get(
+        'possession-cases/ajax/blocks/{projectId}',
+        [PossessionCaseController::class, 'getBlocks']
+    )->name('possession-cases.ajax.blocks');
+
+    Route::get(
+        'possession-cases/ajax/streets/{blockId}',
+        [PossessionCaseController::class, 'getStreets']
+    )->name('possession-cases.ajax.streets');
+
+    Route::get(
+        'possession-cases/ajax/search-plots',
+        [PossessionCaseController::class, 'searchPlots']
+    )->name('possession-cases.ajax.search-plots');
+
 Route::resource('possession-cases', PossessionCaseController::class);
 
 Route::patch(
     'possession-cases/{possessionCase}/status',
     [PossessionCaseController::class, 'updateStatus']
 )->name('possession-cases.update-status');
+
 Route::get(
     '/owners/find-by-cnic',
     [OwnerController::class, 'findByCnic']

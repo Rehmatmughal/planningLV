@@ -620,10 +620,6 @@
                                     </th>
 
                                     <th>
-                                        Ownership %
-                                    </th>
-
-                                    <th>
                                         Address
                                     </th>
 
@@ -656,11 +652,6 @@
                                             {{ $owner->contact_no ?? '-' }}
                                         </td>
 
-                                        <td>
-                                            {{ $owner->ownership_percentage !== null
-                                                ? $owner->ownership_percentage . '%'
-                                                : '-' }}
-                                        </td>
 
                                         <td>
                                             {{-- {{ $owner->address ?? '-' }} --}}

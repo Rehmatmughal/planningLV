@@ -18,7 +18,6 @@ class PossessionCaseOwner extends Model
     protected $fillable = [
         'possession_case_id',
         'owner_id',
-        'ownership_percentage',
         'address_snapshot',
     ];
 

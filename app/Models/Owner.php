@@ -30,7 +30,7 @@ class Owner extends Model
             PossessionCase::class,
             'possession_case_owners'
         )
-        ->withPivot('ownership_percentage')
+         ->withPivot('address_snapshot')
          ->withTimestamps();
     }
 }

@@ -865,11 +865,11 @@
                                             {{ $owner->contact_no ?? '-' }}
                                         </td>
 
-                                        <td>
+                                        {{-- <td>
                                             {{ $owner->ownership_percentage !== null
                                                 ? $owner->ownership_percentage . '%'
                                                 : '-' }}
-                                        </td>
+                                        </td> --}}
 
                                         <td>
                                             {{-- {{ $owner->address ?? '-' }} --}}

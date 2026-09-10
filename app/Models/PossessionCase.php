@@ -135,7 +135,6 @@ class PossessionCase extends Model
             'possession_case_owners'
         )
         ->withPivot(
-            'ownership_percentage',
             'address_snapshot'
         )
         ->withTimestamps();
