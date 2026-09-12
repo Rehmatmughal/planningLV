@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\PossessionCaseHistory;
+
 
 class PossessionCase extends Model
 {
@@ -139,4 +141,14 @@ class PossessionCase extends Model
         )
         ->withTimestamps();
     }
+    // One possession case can have many history records
+
+    public function histories()
+    {
+        return $this->hasMany(
+            PossessionCaseHistory::class,
+            'possession_case_id'
+        )->latest();
+    }
+    
 }

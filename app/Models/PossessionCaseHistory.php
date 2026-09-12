@@ -47,4 +47,11 @@ class PossessionCaseHistory extends Model
     {
         return $this->belongsTo(User::class);
     }
+    // public function histories()
+    // {
+    //     return $this->hasMany(
+    //         PossessionCaseHistory::class,
+    //         'possession_case_id'
+    //     )->latest();
+    // }
 }
