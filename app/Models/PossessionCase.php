@@ -114,10 +114,10 @@ class PossessionCase extends Model
     // }
 
     // A possession case has multiple history records
-    public function histories()
-    {
-        return $this->hasMany(PossessionCaseHistory::class);
-    }
+    // public function histories()
+    // {
+    //     return $this->hasMany(PossessionCaseHistory::class);
+    // }
 
     // User who created the case
     public function creator()

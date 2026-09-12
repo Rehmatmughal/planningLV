@@ -302,6 +302,7 @@ public function getStreets($blockId)
 
             'owners.*.cnic' => [
                 // 'nullable',
+                'required',
                 'string',
                 'max:30',
             ],
@@ -318,7 +319,6 @@ public function getStreets($blockId)
             ],
 
         ]);
-
 
         // Same case number for same plot should not exist
         $exists = PossessionCase::where('plot_id', $validated['plot_id'])
@@ -1278,6 +1278,23 @@ public function getStreets($blockId)
             $currentStatus,
             $newStatus
         ) {
+            $oldHolderName = $possessionCase->current_holder_name;
+            $newHolderName = $validated['handed_over_to'] ?? null;
+            /*
+            |--------------------------------------------------------------------------
+            | Holder Change During Handover
+            |--------------------------------------------------------------------------
+            */
+
+            $oldHolderName = $possessionCase->current_holder_name;
+
+            $newHolderName = $validated['handed_over_to'] ?? null;
+
+            if (!empty($newHolderName)) {
+
+                $updateData['current_holder_name'] = $newHolderName;
+
+            }
 
             /*
             |--------------------------------------------------------------------------
@@ -1339,19 +1356,30 @@ public function getStreets($blockId)
                     now()->toDateString();
             }
 
-
             /*
             |--------------------------------------------------------------------------
-            | Handed Over To
+            | Handed Over To / Current Holder
             |--------------------------------------------------------------------------
             */
 
-            if (!empty($validated['handed_over_to'])) {
+            if (!empty($newHolderName)) {
 
-                $updateData['handed_over_to'] =
-                    $validated['handed_over_to'];
+                $updateData['handed_over_to'] = $newHolderName;
+
+                $updateData['current_holder_name'] = $newHolderName;
+
             }
+            // /*
+            // |--------------------------------------------------------------------------
+            // | Handed Over To
+            // |--------------------------------------------------------------------------
+            // */
 
+            // if (!empty($validated['handed_over_to'])) {
+
+            //     $updateData['handed_over_to'] =
+            //         $validated['handed_over_to'];
+            // }
 
             /*
             |--------------------------------------------------------------------------
@@ -1364,7 +1392,6 @@ public function getStreets($blockId)
                 $updateData['remarks'] =
                     $validated['remarks'];
             }
-
 
             /*
             |--------------------------------------------------------------------------
@@ -1381,7 +1408,6 @@ public function getStreets($blockId)
                 $updateData['handed_over_at'] =
                     now()->toDateString();
             }
-
 
             /*
             |--------------------------------------------------------------------------
@@ -1436,14 +1462,21 @@ public function getStreets($blockId)
                 'new_status' =>
                     $newStatus,
 
-                'old_holder' =>
-                    $possessionCase->current_holder_name,
+                'old_holder' => 
+                    $oldHolderName,
 
-                'new_holder' =>
-                    $possessionCase->current_holder_name,
+                'new_holder' => $newHolderName
+                    ?? $oldHolderName,
 
-                'handed_over_to' =>
-                    $validated['handed_over_to'] ?? null,
+                'handed_over_to' => $newHolderName,
+                    // 'old_holder' =>
+                //     $possessionCase->current_holder_name,
+
+                // 'new_holder' =>
+                //     $possessionCase->current_holder_name,
+
+                // 'handed_over_to' =>
+                //     $validated['handed_over_to'] ?? null,
 
                 'remarks' =>
                     $validated['remarks'] ?? null,

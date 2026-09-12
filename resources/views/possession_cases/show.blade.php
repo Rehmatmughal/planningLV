@@ -463,7 +463,6 @@
 
                         </div>
 
-
                         <div class="col-md-4">
 
                             <small class="text-muted">
@@ -471,11 +470,11 @@
                             </small>
 
                             <div>
-                                {{ $possessionCase->signed_at?->format('d-m-Y') ?? '-' }}
+                                {{-- {{ $possessionCase->signed_at?->format('d-m-Y') ?? '-' }} --}}
+                                {{ $possessionCase->surveyor_signed_at?->format('d-m-Y') ?? '-'}}
                             </div>
 
                         </div>
-
 
                         <div class="col-md-4">
 
@@ -489,7 +488,6 @@
 
                         </div>
 
-
                         <div class="col-md-4">
 
                             <small class="text-muted">
@@ -502,7 +500,6 @@
 
                         </div>
 
-
                         <div class="col-md-4">
 
                             <small class="text-muted">
@@ -510,8 +507,8 @@
                             </small>
 
                             <div>
-                                {{-- {{ $possessionCase->handed_over_at?->format('d-m-Y') ?? '-' }} --}}
-                                {{ $possessionCase->completed_at?->format('d-m-Y') ?? '-' }}
+                                {{ $possessionCase->handed_over_at?->format('d-m-Y') ?? '-' }}
+                                {{-- {{ $possessionCase->completed_at?->format('d-m-Y') ?? '-' }} --}}
                             </div>
 
                         </div>
