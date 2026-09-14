@@ -24,6 +24,11 @@ use App\Http\Controllers\PlotCategoryTypeController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\PossessionCaseController;
 use App\Http\Controllers\OwnerController;
+use App\Http\Controllers\PlotSizeAssignmentController;
+use App\Http\Controllers\PropertyTypeController;
+// use App\Http\Controllers\PropertyTypeController;
+use App\Http\Controllers\PropertyTypeAssignmentController;
+
 
 
 
@@ -511,6 +516,38 @@ Route::middleware(['auth','permission:permission.view'])->prefix('admin')->name(
 
 });
 // routs jo auth system k baghir han awr abi theek krny han
+// Plot Size Assignments
+// Route::middleware(['auth', 'permission:size.view'])->prefix('admin')->group(function () {
+
+//     Route::get('/plot-size-assignments', [PlotSizeAssignmentController::class, 'index'])
+//         ->name('plot-size-assignments.index');
+
+//     Route::get('/plot-size-assignments/create', [PlotSizeAssignmentController::class, 'create'])
+//         ->middleware('permission:size.create')
+//         ->name('plot-size-assignments.create');
+
+//     Route::post('/plot-size-assignments', [PlotSizeAssignmentController::class, 'store'])
+//         ->middleware('permission:size.create')
+//         ->name('plot-size-assignments.store');
+
+//     Route::get('/plot-size-assignments/{plotSizeAssignment}/edit', [PlotSizeAssignmentController::class, 'edit'])
+//         ->middleware('permission:size.edit')
+//         ->name('plot-size-assignments.edit');
+
+//     Route::put('/plot-size-assignments/{plotSizeAssignment}', [PlotSizeAssignmentController::class, 'update'])
+//         ->middleware('permission:size.update')
+//         ->name('plot-size-assignments.update');
+
+//     Route::delete('/plot-size-assignments/{plotSizeAssignment}', [PlotSizeAssignmentController::class, 'destroy'])
+//         ->middleware('permission:size.delete')
+//         ->name('plot-size-assignments.destroy');
+//         // AJAX: Blocks by Project
+//     Route::get('/plot-size-assignments/blocks/{project_id}', [PlotSizeAssignmentController::class, 'getBlocks'])
+//         ->name('plot-size-assignments.blocks');
+//     // AJAX: Sizes by Project + Block + Property Type
+//     Route::get('/plot-size-assignments/sizes', [PlotSizeAssignmentController::class, 'getSizes'])
+//         ->name('plot-size-assignments.sizes');
+// });
 // AJAX routes
     Route::get(
         'possession-cases/ajax/blocks/{projectId}',
@@ -528,6 +565,49 @@ Route::middleware(['auth','permission:permission.view'])->prefix('admin')->name(
     )->name('possession-cases.ajax.search-plots');
 
 Route::resource('possession-cases', PossessionCaseController::class);
+// property type Assignment routes
+Route::resource('property-types', PropertyTypeController::class);
+Route::get(
+    '/property-type-assignments/blocks/{project_id}',
+    [PropertyTypeAssignmentController::class, 'getBlocks']
+)->name('property-type-assignments.blocks');
+
+Route::resource(
+    'property-type-assignments',
+    PropertyTypeAssignmentController::class
+)->only([
+    'index',
+    'create',
+    'store',
+    'edit',
+    'update',
+    'destroy',
+]);
+
+// test
+// test 2
+Route::get(
+    '/plot-size-assignments/blocks/{project_id}',
+    [PlotSizeAssignmentController::class, 'getBlocks']
+)->name('plot-size-assignments.blocks');
+Route::get(
+    '/plot-size-assignments/sizes/{project_id}',
+    [PlotSizeAssignmentController::class, 'getSizes']
+)->name('plot-size-assignments.sizes');
+Route::resource(
+    'plot-size-assignments',
+    PlotSizeAssignmentController::class
+)->only([
+    'index',
+    'create',
+    'store',
+    'edit',
+    'update',
+    'destroy',
+]);
+// test 2 end
+
+// end property type assignment routes
 
 Route::patch(
     'possession-cases/{possessionCase}/status',

@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
         // $this->call(PlotSystemSeeder::class);
         // $this->call(RolePermissionSeeder::class);
         // working --- start ---
+        $this->call(PropertyTypeSeeder::class);
         $this->call(RolePermissionNSeeder::class); // new seeder copy from other projects
         // $this->call(PlotSystemTempSeeder::class);
         // working --- end ---

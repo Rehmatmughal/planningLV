@@ -15,9 +15,10 @@ use App\Models\AreaVariation;
 use App\Models\PlotSize;
 use App\Models\PlotCategoryType;
 use App\Models\PlotCoordinate;
+use App\Models\PropertyType;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
- 
+
 // for excel exports
 use App\Exports\BlockPlotsExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -345,50 +346,114 @@ class PlotController extends Controller
         $streets = Street::all();
         $sizes = Plotsize::all();
         $categories = PlotCategoryType::all();
-
-        return view('plots.create', compact('projects', 'blocks', 'streets','sizes','categories'));
+        $propertytypes = PropertyType::all();
+        return view('plots.create', compact('projects', 'blocks', 'streets','sizes','categories','propertytypes'));
     }
 
     // ✅ Store New Plot -- NEW TRY START
     public function store(Request $request)
     {
-        
-        // Common validation rules
         $rules = [
             'numbering_type' => 'required|in:blockwise,streetwise',
+            'property_type_id' => 'required|integer|exists:property_types,id',
             'project_id' => 'required|integer|exists:projects,id',
             'block_id' => 'required|integer|exists:blocks,id',
             'plot_number' => 'required|string',
             'street_id' => 'nullable|exists:streets,id',
-            'size_id' => 'required',
+            'size_id' => 'required|integer',
             'category_id' => 'required|integer|exists:plot_category_types,id',
             'remarks' => 'nullable|string',
-            ];
+        ];
 
-        // Conditional validation
         if ($request->numbering_type === 'blockwise') {
             $rules['block_id'] = 'required|integer';
-            // 3 columns unique check
-            $rules['plot_number'] .= '|unique:plots,plot_number,NULL,id,project_id,' . $request->project_id . ',block_id,' . $request->block_id;
+
+            $rules['plot_number'] .= '|unique:plots,plot_number,NULL,id,project_id,'
+                . $request->project_id
+                . ',property_type_id,' . $request->property_type_id
+                . ',block_id,' . $request->block_id;
         }
 
         if ($request->numbering_type === 'streetwise') {
             $rules['street_id'] = 'required|integer';
-            // 4 columns unique check
-            $rules['plot_number'] .= '|unique:plots,plot_number,NULL,id,project_id,' . $request->project_id . ',block_id,' . $request->block_id . ',street_id,' . $request->street_id;
+
+            $rules['plot_number'] .= '|unique:plots,plot_number,NULL,id,project_id,'
+                . $request->project_id
+                . ',property_type_id,' . $request->property_type_id
+                . ',block_id,' . $request->block_id
+                . ',street_id,' . $request->street_id;
         }
 
         $validatedData = $request->validate($rules);
 
-        // return $validatedData;
-
-        // save data
         $plot = Plot::create($validatedData);
 
-        // return redirect()->back()->with('success', 'Plot saved successfully!');
-        return redirect()->route('plots.index')->with('success', 'Plot saved successfully!');
+        return redirect()
+            ->route('plots.create')
+            ->with('success', 'Plot saved successfully!')
+            ->withInput([
+                'project_id' => $validatedData['project_id'],
+                'property_type_id' => $validatedData['property_type_id'],
+                'block_id' => $validatedData['block_id'],
+                'street_id' => $validatedData['street_id'] ?? null,
+                'size_id' => $validatedData['size_id'],
+                'category_id' => $validatedData['category_id'],
+                'numbering_type' => $validatedData['numbering_type'],
+                'remarks' => $validatedData['remarks'] ?? null,
+                // 'plot_number' => '',
+                'plot_number' => $validatedData['plot_number'] ?? null,
+            ]);
+        // $plot = Plot::create($validatedData);
 
+        // return redirect()
+        //     ->route('plots.create')
+        //     ->with('success', 'Plot saved successfully!')
+        //     ->withInput($validatedData);
+
+        // return redirect()->route('plots.index')
+        //     ->with('success', 'Plot saved successfully!');
     }
+
+    // old store method 
+    // public function store(Request $request)
+    // {
+    
+    //     // Common validation rules
+    //     $rules = [
+    //         'numbering_type' => 'required|in:blockwise,streetwise',
+    //         'project_id' => 'required|integer|exists:projects,id',
+    //         'block_id' => 'required|integer|exists:blocks,id',
+    //         'plot_number' => 'required|string',
+    //         'street_id' => 'nullable|exists:streets,id',
+    //         'size_id' => 'required',
+    //         'category_id' => 'required|integer|exists:plot_category_types,id',
+    //         'remarks' => 'nullable|string',
+    //         ];
+
+    //     // Conditional validation
+    //     if ($request->numbering_type === 'blockwise') {
+    //         $rules['block_id'] = 'required|integer';
+    //         // 3 columns unique check
+    //         $rules['plot_number'] .= '|unique:plots,plot_number,NULL,id,project_id,' . $request->project_id . ',block_id,' . $request->block_id;
+    //     }
+
+    //     if ($request->numbering_type === 'streetwise') {
+    //         $rules['street_id'] = 'required|integer';
+    //         // 4 columns unique check
+    //         $rules['plot_number'] .= '|unique:plots,plot_number,NULL,id,project_id,' . $request->project_id . ',block_id,' . $request->block_id . ',street_id,' . $request->street_id;
+    //     }
+
+    //     $validatedData = $request->validate($rules);
+
+    //     // return $validatedData;
+
+    //     // save data
+    //     $plot = Plot::create($validatedData);
+
+    //     // return redirect()->back()->with('success', 'Plot saved successfully!');
+    //     return redirect()->route('plots.index')->with('success', 'Plot saved successfully!');
+
+    // }
 
     // // ✅ AJAX: Edit (Fetch plot data)
     // public function edit($id)

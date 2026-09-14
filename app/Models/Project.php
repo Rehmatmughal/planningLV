@@ -49,5 +49,10 @@ class Project extends Model
     public function streets() {
         return $this->hasMany(Street::class);
     }
+
+    public function plotSizeAssignments()
+    {
+        return $this->hasMany(PlotSizeAssignment::class);
+    }
     
 }

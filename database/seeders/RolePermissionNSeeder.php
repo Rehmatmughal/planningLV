@@ -266,32 +266,70 @@ class RolePermissionNSeeder extends Seeder
         /**
          * USERS (PASSWORD = password)
          */
-        $super = User::create([
-            'name' => 'Super Admin',
-            'email' => 'superadmin@example.com',
-            'password' => Hash::make('password'),
-        ]);
+
+
+        // $super = User::create([
+        //     'name' => 'Super Admin',
+        //     'email' => 'superadmin@example.com',
+        //     'password' => Hash::make('password'),
+        // ]);
+        // $super->assignRole('super-admin');
+
+        // $adminUser = User::create([
+        //     'name' => 'Admin',
+        //     'email' => 'admin@example.com',
+        //     'password' => Hash::make('password'),
+        // ]);
+        // $adminUser->assignRole('admin');
+
+        // $staffUser = User::create([
+        //     'name' => 'Staff',
+        //     'email' => 'staff@example.com',
+        //     'password' => Hash::make('password'),
+        // ]);
+        // $staffUser->assignRole('staff');
+
+        // $guestUser = User::create([
+        //     'name' => 'Guest',
+        //     'email' => 'guest@example.com',
+        //     'password' => Hash::make('password'),
+        // ]);
+        // $guestUser->assignRole('guest');
+
+        $super = User::firstOrCreate(
+            ['email' => 'superadmin@example.com'],
+            [
+                'name' => 'Super Admin',
+                'password' => Hash::make('password'),
+            ]
+        );
         $super->assignRole('super-admin');
 
-        $adminUser = User::create([
-            'name' => 'Admin',
-            'email' => 'admin@example.com',
-            'password' => Hash::make('password'),
-        ]);
+        $adminUser = User::firstOrCreate(
+            ['email' => 'admin@example.com'],
+            [
+                'name' => 'Admin',
+                'password' => Hash::make('password'),
+            ]
+        );
         $adminUser->assignRole('admin');
 
-        $staffUser = User::create([
-            'name' => 'Staff',
-            'email' => 'staff@example.com',
-            'password' => Hash::make('password'),
-        ]);
+        $staffUser = User::firstOrCreate(
+            ['email' => 'staff@example.com'],
+            [
+                'name' => 'Staff',
+                'password' => Hash::make('password'),
+            ]
+        );
         $staffUser->assignRole('staff');
 
-        $guestUser = User::create([
-            'name' => 'Guest',
-            'email' => 'guest@example.com',
-            'password' => Hash::make('password'),
-        ]);
+        $guestUser = User::firstOrCreate(
+            ['email' => 'guest@example.com'],
+            [
+                'name' => 'Guest',
+                'password' => Hash::make('password'),
+            ]
+        );
         $guestUser->assignRole('guest');
 
     }

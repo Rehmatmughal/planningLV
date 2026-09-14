@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Models\Activity;
+use App\Models\PropertyType;
 
 
 class Plot extends Model
@@ -18,20 +19,26 @@ class Plot extends Model
     use SoftDeletes;
 
     // protected $fillable = ['project_id'];
-    // protected $fillable = [
-    //     'project_id',
-    //     'pid_lv',
-    //     'block_id',
-    //     'street_id',
-    //     'plot_number',
-    //     'size_id',
-    //     'category_id',
-    //     'numbering_type',
-    //     'remarks'
-    // ];
+    protected $fillable = [
+        'project_id',
+        'pid_lv',
+        'block_id',
+        'street_id',
+        'plot_number',
+        'size_id',
+        'property_type_id',
+        'category_id',
+        'numbering_type',
+        'remarks'
+    ];
 
-    protected $guarded =[];
+    // protected $guarded =[];
     // protected $fillable = ['project_id','block_id','street_id','plot_number','size','numbering_type','remarks','created_at','updated_at'];
+
+    public function propertyType()
+    {
+        return $this->belongsTo(PropertyType::class);
+    }
 
     public function project()
     {

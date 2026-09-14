@@ -8,6 +8,8 @@ use Spatie\Activitylog\Traits\LogsActivity;
 // use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Models\Activity;
+use App\Models\PlotSizeAssignment;
+
 
 
 class Block extends Model
@@ -55,6 +57,11 @@ class Block extends Model
     public function plots()
     {
         return $this->hasMany(Plot::class);
+    }
+
+    public function plotSizeAssignments()
+    {
+        return $this->hasMany(PlotSizeAssignment::class);
     }
 
 }

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Models\Activity;
+use App\Models\PlotSizeAssignment;
+
 
 
 class Plotsize extends Model
@@ -55,6 +57,12 @@ class Plotsize extends Model
     {
         return $this->hasMany(Plot::class, 'size_id');
     }
+
+    public function plotSizeAssignments()
+    {
+        return $this->hasMany(PlotSizeAssignment::class, 'plotsize_id');
+    }
+
 
     // public function streets()
     // {
