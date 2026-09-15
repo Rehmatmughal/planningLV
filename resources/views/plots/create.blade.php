@@ -37,7 +37,6 @@
                 <div class="row">
                     {{-- left column --}}
                     <div class="col-md-6">
-
                         {{-- Project --}}
                         <div class="mb-3">
                             <label>Project</label>
@@ -208,36 +207,115 @@ $(document).ready(function () {
         }
     });
 
-    // Load Blocks and Sizes according to Project
+    const oldProject = "{{ old('project_id') }}";
+    const oldBlock = "{{ old('block_id') }}";
+    const oldStreet = "{{ old('street_id') }}";
+    const oldSize = "{{ old('size_id') }}";
+    const oldPropertyType = "{{ old('property_type_id') }}";
+
+
+    function loadAssignedSizes() {
+
+        let projectID = $('#project').val();
+        let blockID = $('#block').val();
+        let propertyTypeID = $('#propertytype').val();
+
+        $('#plotsize').html(
+            '<option value="">-- Select Size --</option>'
+        );
+
+        if (!projectID || !blockID || !propertyTypeID) {
+            return;
+        }
+
+        $('#plotsize').html(
+            '<option value="">Loading assigned sizes...</option>'
+        );
+
+        $.get(
+            '/admin/get-assigned-sizes/'
+            + projectID + '/'
+            + blockID + '/'
+            + propertyTypeID,
+
+            function (data) {
+
+                $('#plotsize').html(
+                    '<option value="">-- Select Size --</option>'
+                );
+
+                if (data.length === 0) {
+
+                    $('#plotsize').html(
+                        '<option value="">No size assigned</option>'
+                    );
+
+                    return;
+                }
+
+                $.each(data, function (i, item) {
+
+                    $('#plotsize').append(
+                        '<option value="' + item.id + '">'
+                        + item.title
+                        + (item.size_area
+                            ? ' - ' + item.size_area
+                            : '')
+                        + '</option>'
+                    );
+
+                });
+
+                if (oldSize) {
+                    $('#plotsize').val(oldSize);
+                }
+
+            }
+        );
+    }
+
+
+    // Project change par Blocks load honge
     $('#project').on('change', function () {
 
         let projectID = $(this).val();
 
-        $('#block').html('<option value="">Loading blocks...</option>');
-        $('#plotsize').html('<option value="">Loading sizes...</option>');
-        $('#street').html('<option value="">-- Select Street --</option>');
+        $('#block').html(
+            '<option value="">Loading blocks...</option>'
+        );
+
+        $('#street').html(
+            '<option value="">-- Select Street --</option>'
+        );
+
+        $('#plotsize').html(
+            '<option value="">-- Select Size --</option>'
+        );
 
         if (!projectID) {
-            $('#block').html('<option value="">-- Select Block --</option>');
-            $('#plotsize').html('<option value="">-- Select Size --</option>');
+
+            $('#block').html(
+                '<option value="">-- Select Block --</option>'
+            );
+
             return;
         }
 
-        // Load Blocks
         $.get('/get-blocks/' + projectID, function (data) {
 
-            $('#block').html('<option value="">-- Select Block --</option>');
+            $('#block').html(
+                '<option value="">-- Select Block --</option>'
+            );
 
             $.each(data, function (i, item) {
-                $('#block').append(
-                    '<option value="' + item.id + '">' +
-                    item.block_name +
-                    '</option>'
-                );
-            });
 
-            // Agar old block available hai to select kar dein
-            let oldBlock = "{{ old('block_id') }}";
+                $('#block').append(
+                    '<option value="' + item.id + '">'
+                    + item.block_name
+                    + '</option>'
+                );
+
+            });
 
             if (oldBlock) {
                 $('#block').val(oldBlock).trigger('change');
@@ -245,57 +323,46 @@ $(document).ready(function () {
 
         });
 
-        // Load Sizes
-        $.get('/get-sizes/' + projectID, function (data) {
-
-            $('#plotsize').html('<option value="">-- Select Size --</option>');
-
-            $.each(data, function (i, item) {
-                $('#plotsize').append(
-                    '<option value="' + item.id + '">' +
-                    item.title +
-                    '</option>'
-                );
-            });
-
-            // Old size select karein
-            let oldSize = "{{ old('size_id') }}";
-
-            if (oldSize) {
-                $('#plotsize').val(oldSize);
-            }
-
-        });
-
     });
 
 
-    // Load Streets according to Block
+    // Block change par Streets load hongi
     $('#block').on('change', function () {
 
         let blockID = $(this).val();
 
-        $('#street').html('<option value="">Loading streets...</option>');
+        $('#street').html(
+            '<option value="">Loading streets...</option>'
+        );
+
+        $('#plotsize').html(
+            '<option value="">-- Select Size --</option>'
+        );
 
         if (!blockID) {
-            $('#street').html('<option value="">-- Select Street --</option>');
+
+            $('#street').html(
+                '<option value="">-- Select Street --</option>'
+            );
+
             return;
         }
 
         $.get('/get-streets/' + blockID, function (data) {
 
-            $('#street').html('<option value="">-- Select Street --</option>');
+            $('#street').html(
+                '<option value="">-- Select Street --</option>'
+            );
 
             $.each(data, function (i, item) {
-                $('#street').append(
-                    '<option value="' + item.id + '">' +
-                    item.street_name +
-                    '</option>'
-                );
-            });
 
-            // Old street select karein
-            let oldStreet = "{{ old('street_id') }}";
+                $('#street').append(
+                    '<option value="' + item.id + '">'
+                    + item.street_name
+                    + '</option>'
+                );
+
+            });
 
             if (oldStreet) {
                 $('#street').val(oldStreet);
@@ -303,17 +370,26 @@ $(document).ready(function () {
 
         });
 
+        loadAssignedSizes();
+
     });
 
 
-    // Page load par old project ko dobara trigger karein
-    let oldProject = "{{ old('project_id') }}";
+    // Property Type change par assigned Sizes load hongi
+    $('#propertytype').on('change', function () {
 
+        loadAssignedSizes();
+
+    });
+
+
+    // Page load par old values restore hongi
     if (oldProject) {
-        $('#project').trigger('change');
+
+        $('#project').val(oldProject).trigger('change');
+
     }
 
 });
 </script>
-
 @endsection

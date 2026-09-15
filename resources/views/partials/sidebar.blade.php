@@ -93,8 +93,8 @@
         ========================================================= --}}
 
         <li class="nav-item">
-            <a href="{{ route('area_variations.index') }}"
-            class="nav-link {{ request()->routeIs('area_variations.*') ? 'active' : '' }}">
+            <a href="{{ route('area_variations.index') }}" class="nav-link">
+            {{-- class="nav-link {{ request()->routeIs('area_variations.*') ? 'active' : '' }}"> --}}
 
                 <i class="fa fa-ruler-combined me-2"></i>
 
@@ -102,6 +102,32 @@
 
             </a>
         </li>
+        {{-- property type --}}
+
+        <li class="nav-item">
+            <a href="{{ route('property-type-assignments.index') }} "class="nav-link" >
+            {{-- class="nav-link ps-5 {{ request()->routeIs('owners.*') ? 'active' : '' }}"> --}}
+
+                <i class="fa fa-users me-2"></i>
+
+                Property type
+
+            </a>               
+
+        </li>
+        {{-- size assignments --}}
+
+        <li class="nav-item">
+                <a href="{{ route('plot-size-assignments.index') }}" class="nav-link" >
+                {{-- class="nav-link ps-5 {{ request()->routeIs('owners.*') ? 'active' : '' }}"> --}}
+
+                    <i class="fa fa-users me-2"></i>
+
+                    Plot Size Assignments
+
+                </a>                                
+
+        </li>                
 
 
         {{-- =========================================================
@@ -148,6 +174,9 @@
                     Owners
 
                 </a>
+
+                {{-- property type --}}
+
 
             </div>
 

@@ -231,6 +231,17 @@ Route::middleware(['auth','permission:plot.view'])->prefix('admin')->group(funct
     Route::delete('/plots/{id}/force-delete', [PlotController::class, 'forceDelete'])
         ->middleware('permission:plot.force-delete')
         ->name('plots.forceDelete');
+
+    // getassigned size
+
+    // Route::get(
+    //     '/get-assigned-sizes/{project_id}/{block_id}/{property_type_id}',
+    //     [PlotController::class, 'getAssignedSizes']
+    // )->name('plots.assigned-sizes');
+    Route::get(
+        '/get-assigned-sizes/{project_id}/{block_id}/{property_type_id}',
+        [PlotController::class, 'getAssignedSizes']
+    )->name('plots.assigned-sizes');
 });
 
 Route::middleware(['auth','permission:areavariation.view'])->prefix('admin')->group(function () {

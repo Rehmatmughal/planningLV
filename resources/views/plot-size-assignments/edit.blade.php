@@ -1,5 +1,5 @@
-
-@extends('layouts.app')
+{{-- @extends('layouts.app') --}}
+@extends('app')
 
 @section('content')
 

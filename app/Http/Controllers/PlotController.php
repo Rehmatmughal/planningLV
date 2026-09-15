@@ -16,8 +16,10 @@ use App\Models\PlotSize;
 use App\Models\PlotCategoryType;
 use App\Models\PlotCoordinate;
 use App\Models\PropertyType;
+use App\Models\PlotSizeAssignment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+
 
 // for excel exports
 use App\Exports\BlockPlotsExport;
@@ -339,16 +341,45 @@ class PlotController extends Controller
     }
 
     // ➕ Create Form
+
     public function create()
     {
-        $projects = Project::all();
-        $blocks = Block::all();
-        $streets = Street::all();
-        $sizes = Plotsize::all();
-        $categories = PlotCategoryType::all();
-        $propertytypes = PropertyType::all();
-        return view('plots.create', compact('projects', 'blocks', 'streets','sizes','categories','propertytypes'));
+        $projects = Project::orderBy('project_name')->get();
+
+        $blocks = collect();
+
+        $streets = collect();
+
+        $sizes = collect();
+
+        $categories = PlotCategoryType::orderBy('category_title')->get();
+
+        $propertytypes = PropertyType::orderBy('name')->get();
+
+        return view(
+            'plots.create',
+            compact(
+                'projects',
+                'blocks',
+                'streets',
+                'sizes',
+                'categories',
+                'propertytypes'
+            )
+        );
     }
+
+    // old create
+    // public function create()
+    // {
+    //     $projects = Project::all();
+    //     $blocks = Block::all();
+    //     $streets = Street::all();
+    //     $sizes = Plotsize::all();
+    //     $categories = PlotCategoryType::all();
+    //     $propertytypes = PropertyType::all();
+    //     return view('plots.create', compact('projects', 'blocks', 'streets','sizes','categories','propertytypes'));
+    // }
 
     // ✅ Store New Plot -- NEW TRY START
     public function store(Request $request)
@@ -360,7 +391,8 @@ class PlotController extends Controller
             'block_id' => 'required|integer|exists:blocks,id',
             'plot_number' => 'required|string',
             'street_id' => 'nullable|exists:streets,id',
-            'size_id' => 'required|integer',
+            // 'size_id' => 'required|integer',
+            'size_id' => 'required|integer|exists:plotsizes,id',
             'category_id' => 'required|integer|exists:plot_category_types,id',
             'remarks' => 'nullable|string',
         ];
@@ -386,6 +418,32 @@ class PlotController extends Controller
 
         $validatedData = $request->validate($rules);
 
+        $sizeAssigned = PlotSizeAssignment::where(
+            'project_id',
+            $validatedData['project_id']
+        )
+            ->where(
+                'block_id',
+                $validatedData['block_id']
+            )
+            ->where(
+                'property_type_id',
+                $validatedData['property_type_id']
+            )
+            ->where(
+                'plotsize_id',
+                $validatedData['size_id']
+            )
+            ->exists();
+
+        if (! $sizeAssigned) {
+            return back()
+                ->withErrors([
+                    'size_id' =>
+                        'The selected Size is not assigned to this Project, Block and Property Type.',
+                ])
+                ->withInput();
+        }
         $plot = Plot::create($validatedData);
 
         return redirect()
@@ -547,58 +605,203 @@ class PlotController extends Controller
     // }
     public function edit(Plot $plot)
     {
-        $plot->load(['project', 'block', 'street', 'size']);
+        $plot->load([
+            'project',
+            'block',
+            'street',
+            'size'
+        ]);
 
         $projects = Project::orderBy('project_name')->get();
-        $blocks   = Block::where('project_id', $plot->project_id)->orderBy('block_name')->get();
-        $streets  = Street::where('project_id', $plot->project_id)->orderBy('street_name')->get();
-        $sizes    = PlotSize::where('project_id', $plot->project_id)->orderBy('title')->get();
-        $categories = PlotCategoryType::orderBy('category_title')->get();
 
-        return view('plots.edit', compact(
-            'plot',
-            'projects',
-            'blocks',
-            'streets',
-            'sizes',
-            'categories'
-        ));
+        $blocks = Block::where(
+            'project_id',
+            $plot->project_id
+        )
+        ->orderBy('block_name')
+        ->get();
+
+        $streets = Street::where(
+            'project_id',
+            $plot->project_id
+        )
+        ->orderBy('street_name')
+        ->get();
+
+        $categories = PlotCategoryType::orderBy(
+            'category_title'
+        )->get();
+
+        $propertytypes = PropertyType::orderBy(
+            'name'
+        )->get();
+
+        $sizes = PlotSizeAssignment::where(
+            'project_id',
+            $plot->project_id
+        )
+        ->where(
+            'block_id',
+            $plot->block_id
+        )
+        ->where(
+            'property_type_id',
+            $plot->property_type_id
+        )
+        ->with('plotsize')
+        ->get()
+        ->map(function ($assignment) {
+            return $assignment->plotsize;
+        })
+        ->filter();
+
+        return view(
+            'plots.edit',
+            compact(
+                'plot',
+                'projects',
+                'blocks',
+                'streets',
+                'sizes',
+                'categories',
+                'propertytypes'
+            )
+        );
     }
+    // public function edit(Plot $plot)
+    // {
+    //     $plot->load(['project', 'block', 'street', 'size']);
+
+    //     $projects = Project::orderBy('project_name')->get();
+    //     $blocks   = Block::where('project_id', $plot->project_id)->orderBy('block_name')->get();
+    //     $streets  = Street::where('project_id', $plot->project_id)->orderBy('street_name')->get();
+    //     $sizes    = PlotSize::where('project_id', $plot->project_id)->orderBy('title')->get();
+    //     $categories = PlotCategoryType::orderBy('category_title')->get();
+
+    //     return view('plots.edit', compact(
+    //         'plot',
+    //         'projects',
+    //         'blocks',
+    //         'streets',
+    //         'sizes',
+    //         'categories'
+    //     ));
+    // }
+
+
     public function update(Request $request, Plot $plot)
     {
         $rules = [
-            'numbering_type' => 'required|in:blockwise,streetwise',
-            'project_id'     => 'required|exists:projects,id',
-            'block_id'       => 'required|exists:blocks,id',
-            'street_id'      => 'required|exists:streets,id', // ALWAYS REQUIRED
-            'plot_number'    => 'required|string',
-            'size_id'        => 'required|exists:plotsizes,id',
-            'category_id'    => 'required|exists:plot_category_types,id',
-            'remarks'        => 'nullable|string',
+            'numbering_type'   => 'required|in:blockwise,streetwise',
+            'project_id'       => 'required|exists:projects,id',
+            'block_id'         => 'required|exists:blocks,id',
+            'street_id'        => 'required|exists:streets,id',
+            'plot_number'      => 'required|string',
+            'property_type_id' => 'required|integer|exists:property_types,id',
+            'size_id'          => 'required|integer|exists:plotsizes,id',
+            'category_id'      => 'required|exists:plot_category_types,id',
+            'remarks'          => 'nullable|string',
         ];
 
-        // UNIQUE LOGIC (same as store but IGNORE current plot)
+        // UNIQUE LOGIC
+        // Current plot ko ignore karega
         if ($request->numbering_type === 'blockwise') {
 
             $rules['plot_number'] .= '|unique:plots,plot_number,' . $plot->id .
                 ',id,project_id,' . $request->project_id .
+                ',property_type_id,' . $request->property_type_id .
                 ',block_id,' . $request->block_id;
 
-        } else { // streetwise
+        } else {
 
             $rules['plot_number'] .= '|unique:plots,plot_number,' . $plot->id .
                 ',id,project_id,' . $request->project_id .
+                ',property_type_id,' . $request->property_type_id .
                 ',block_id,' . $request->block_id .
                 ',street_id,' . $request->street_id;
         }
 
         $validated = $request->validate($rules);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Check Size Assignment
+        |--------------------------------------------------------------------------
+        | Selected size Project + Block + Property Type ke liye assigned honi chahiye.
+        */
+
+        $sizeAssigned = PlotSizeAssignment::where(
+            'project_id',
+            $validated['project_id']
+        )
+            ->where(
+                'block_id',
+                $validated['block_id']
+            )
+            ->where(
+                'property_type_id',
+                $validated['property_type_id']
+            )
+            ->where(
+                'plotsize_id',
+                $validated['size_id']
+            )
+            ->exists();
+
+        if (! $sizeAssigned) {
+
+            return back()
+                ->withErrors([
+                    'size_id' =>
+                        'The selected Size is not assigned to this Project, Block and Property Type.',
+                ])
+                ->withInput();
+        }
+
+        // Update plot
         $plot->update($validated);
 
-        return redirect()->route('plots.index')
+        return redirect()
+            ->route('plots.index')
             ->with('success', 'Plot updated successfully!');
     }
+    // update function old 15-05-2026
+
+    // public function update(Request $request, Plot $plot)
+    // {
+    //     $rules = [
+    //         'numbering_type' => 'required|in:blockwise,streetwise',
+    //         'project_id'     => 'required|exists:projects,id',
+    //         'block_id'       => 'required|exists:blocks,id',
+    //         'street_id'      => 'required|exists:streets,id', // ALWAYS REQUIRED
+    //         'plot_number'    => 'required|string',
+    //         'size_id'        => 'required|exists:plotsizes,id',
+    //         'category_id'    => 'required|exists:plot_category_types,id',
+    //         'remarks'        => 'nullable|string',
+    //     ];
+
+    //     // UNIQUE LOGIC (same as store but IGNORE current plot)
+    //     if ($request->numbering_type === 'blockwise') {
+
+    //         $rules['plot_number'] .= '|unique:plots,plot_number,' . $plot->id .
+    //             ',id,project_id,' . $request->project_id .
+    //             ',block_id,' . $request->block_id;
+
+    //     } else { // streetwise
+
+    //         $rules['plot_number'] .= '|unique:plots,plot_number,' . $plot->id .
+    //             ',id,project_id,' . $request->project_id .
+    //             ',block_id,' . $request->block_id .
+    //             ',street_id,' . $request->street_id;
+    //     }
+
+    //     $validated = $request->validate($rules);
+
+    //     $plot->update($validated);
+
+    //     return redirect()->route('plots.index')
+    //         ->with('success', 'Plot updated successfully!');
+    // }
 
     // public function update(Request $request, $id)
     // {
@@ -660,7 +863,34 @@ class PlotController extends Controller
         return back()->with('success', 'Plot deleted successfully!');
     }
 
+    // new ajax for plot size
+    public function getAssignedSizes(
+    $project_id,
+    $block_id,
+    $property_type_id
+    ) {
+        $sizes = PlotSizeAssignment::where('project_id', $project_id)
+            ->where('block_id', $block_id)
+            ->where('property_type_id', $property_type_id)
+            ->with('plotsize')
+            ->get()
+            ->filter(function ($assignment) {
+                return $assignment->plotsize !== null;
+            })
+            ->map(function ($assignment) {
+                return [
+                    'id' => $assignment->plotsize->id,
+                    'title' => $assignment->plotsize->title,
+                    'size_area' => $assignment->plotsize->size_area,
+                ];
+            })
+            ->values();
+
+        return response()->json($sizes);
+    }
+
     // 🔹 AJAX: Get blocks by project
+
     public function getBlocks($project_id)
     {
         $blocks = Block::where('project_id', $project_id)->get(['id', 'block_name']);

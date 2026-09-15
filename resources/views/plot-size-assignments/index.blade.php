@@ -1,5 +1,5 @@
-
-@extends('layouts.app')
+{{-- @extends('layouts.app') --}}
+@extends('app')
 
 @section('content')
 
@@ -17,7 +17,6 @@
                 Project, Block and Property Type ke sath assigned Sizes
             </p>
         </div>
-
 
         <a
             href="{{ route('plot-size-assignments.create') }}"
