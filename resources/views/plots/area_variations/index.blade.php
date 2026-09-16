@@ -3,7 +3,7 @@
 @section('content')
 {{-- {{ dd($areaVariations) }} --}}
 
-<div class="container mt-4">
+{{-- <div class="container mt-4"> --}}
 
     {{-- Page Header --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -428,7 +428,7 @@
         </div>
 
     </div>
-</div>
+{{-- </div> --}}
 
 <!-- Edit Modal -->
 <div class="modal fade" id="editAVModal" tabindex="-1" aria-labelledby="editAVModalLabel" aria-hidden="true">

@@ -17,17 +17,26 @@ return new class extends Migration
                 ->constrained('possession_cases')
                 ->cascadeOnDelete();
 
+            $table->foreignId('owner_id')
+                ->nullable()
+                ->constrained('owners')
+                ->nullOnDelete();
+
             // Owner Information
-            $table->string('owner_name');
+            $table->string('owner_name')
+                ->nullable();
 
-            $table->string('cnic')->nullable();
+            $table->string('cnic')
+                ->nullable();
 
-            $table->text('address')->nullable();
+            $table->text('address')
+                ->nullable();
 
-            $table->string('contact_no')->nullable();
+            $table->string('contact_no')->nullable()
+                ->nullable();
 
-            // Optional: ownership share
-            $table->decimal('ownership_percentage', 5, 2)->nullable();
+            $table->text('address_snapshot')
+                ->nullable();
 
             $table->timestamps();
 

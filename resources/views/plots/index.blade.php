@@ -5,7 +5,7 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         {{-- <h4 class="fw-bold">Plots Management</h4> --}}
-{{-- new heading start --}}
+        {{-- new heading start --}}
         <div>
             <h4 class="fw-bold mb-0">
                 @if($currentStreet)
@@ -154,7 +154,8 @@
         </div>
     </div> --}}
     <div class="card shadow-sm">
-        <div class="card-body table-responsive p-0">
+        {{-- <div class="card-body table-responsive p-0"> --}}
+        <div class="card-body table-responsive">
             <table class="table table-bordered table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr class="text-center">

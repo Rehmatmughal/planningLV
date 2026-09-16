@@ -42,7 +42,9 @@ return new class extends Migration
             // Important dates
             $table->date('received_at')->nullable();
             $table->date('prepared_at')->nullable();
+            $table->date('surveyor_signed_at')->nullable();
             $table->date('signed_at')->nullable();
+            $table->date('town_planner_signed_at')->nullable();
             $table->date('approval_sent_at')->nullable();
             $table->date('received_back_at')->nullable();
             $table->date('handed_over_at')->nullable();
