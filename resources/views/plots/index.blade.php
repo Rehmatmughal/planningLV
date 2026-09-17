@@ -74,7 +74,8 @@
                     {{-- Property Type --}}
                     <div class="col-md-2">
                         <label>Property Type</label>
-                        <select name="property_type_id" class="form-control">
+                        <select name="property_type_id" id="propertyTypeFilter" class="form-control">
+                        {{-- <select name="property_type_id" class="form-control"> --}}
                             <option value="">All</option>
 
                             @foreach($propertyTypes as $propertyType)
@@ -113,15 +114,13 @@
                     </div>
 
                     {{-- Size --}}
+                    {{-- Size --}}
+                    {{-- Size --}}
                     <div class="col-md-2">
                         <label>Size</label>
-                        <select name="size_id" class="form-control">
+
+                        <select name="size_id" id="sizeFilter" class="form-control">
                             <option value="">All</option>
-                            @foreach($sizes as $size)
-                                <option value="{{ $size->id }}" {{ request('size_id') == $size->id ? 'selected' : '' }}>
-                                    {{ $size->title }}
-                                </option>
-                            @endforeach
                         </select>
                     </div>
 
@@ -429,38 +428,251 @@
 <script>
 // for filter copy from other page -- start --    
 $(function() {
-    // 🟢 Project change => load blocks
-    $('#projectFilter').on('change', function() {
-        let projectID = $(this).val();
-        $('#blockFilter').html('<option value="">Loading...</option>');
-        $('#streetFilter').html('<option value="">All Streets</option>');
-        if (projectID) {
-            $.get('/get-blocks/' + projectID, function(data) {
-                $('#blockFilter').html('<option value="">All Blocks</option>');
-                $.each(data, function(_, block) {
-                    $('#blockFilter').append('<option value="'+block.id+'">'+block.block_name+'</option>');
-                });
-            });
-        } else {
-            $('#blockFilter').html('<option value="">All Blocks</option>');
+
+    // Current filter values
+    const selectedProject = "{{ request('project_id') }}";
+    const selectedBlock = "{{ request('block_id') }}";
+    const selectedStreet = "{{ request('street_id') }}";
+    const selectedPropertyType = "{{ request('property_type_id') }}";
+    const selectedSize = "{{ request('size_id') }}";
+
+
+    // =========================================================
+    // Load Assigned Sizes
+    // Project + Block + Property Type
+    // =========================================================
+    function loadAssignedSizes(selectedSizeID = '') {
+
+        let projectID = $('#projectFilter').val();
+        let blockID = $('#blockFilter').val();
+        let propertyTypeID = $('#propertyTypeFilter').val();
+
+        $('#sizeFilter').html('<option value="">All</option>');
+
+        // Jab tak Project, Block aur Property Type select na hon
+        // Size load nahi hogi
+        if (!projectID || !blockID || !propertyTypeID) {
+            return;
         }
+
+        $('#sizeFilter').html(
+            '<option value="">Loading sizes...</option>'
+        );
+
+        $.get(
+            '/admin/get-assigned-sizes/'
+            + projectID + '/'
+            + blockID + '/'
+            + propertyTypeID,
+            function(data) {
+
+                $('#sizeFilter').html(
+                    '<option value="">All</option>'
+                );
+
+                if (data.length === 0) {
+                    $('#sizeFilter').html(
+                        '<option value="">No size assigned</option>'
+                    );
+                    return;
+                }
+
+                $.each(data, function(_, size) {
+
+                    let selected = '';
+
+                    if (String(size.id) === String(selectedSizeID)) {
+                        selected = 'selected';
+                    }
+
+                    $('#sizeFilter').append(
+                        '<option value="' + size.id + '" '
+                        + selected + '>'
+                        + size.title
+                        + (size.size_area
+                            ? ' - ' + size.size_area
+                            : '')
+                        + '</option>'
+                    );
+                });
+            }
+        )
+        .fail(function() {
+
+            $('#sizeFilter').html(
+                '<option value="">Error loading sizes</option>'
+            );
+
+        });
+    }
+
+
+    // =========================================================
+    // Project Change
+    // Project change => Blocks reload
+    // =========================================================
+    $('#projectFilter').on('change', function() {
+
+        let projectID = $(this).val();
+
+        // Block reset
+        $('#blockFilter').html(
+            '<option value="">Loading blocks...</option>'
+        );
+
+        // Street reset
+        $('#streetFilter').html(
+            '<option value="">All Streets</option>'
+        );
+
+        // Size reset
+        $('#sizeFilter').html(
+            '<option value="">All</option>'
+        );
+
+        if (!projectID) {
+
+            $('#blockFilter').html(
+                '<option value="">All Blocks</option>'
+            );
+
+            return;
+        }
+
+        $.get(
+            '/get-blocks/' + projectID,
+            function(data) {
+
+                $('#blockFilter').html(
+                    '<option value="">All Blocks</option>'
+                );
+
+                $.each(data, function(_, block) {
+
+                    $('#blockFilter').append(
+                        '<option value="' + block.id + '">'
+                        + block.block_name +
+                        '</option>'
+                    );
+                });
+
+                // Page reload ke baad selected block restore
+                if (selectedBlock) {
+
+                    $('#blockFilter')
+                        .val(selectedBlock)
+                        .trigger('change');
+
+                }
+
+            }
+        );
     });
 
-    // 🟠 Block change => load streets
+
+    // =========================================================
+    // Block Change
+    // Block change => Streets reload + Sizes reload
+    // =========================================================
     $('#blockFilter').on('change', function() {
+
         let blockID = $(this).val();
-        $('#streetFilter').html('<option value="">Loading...</option>');
-        if (blockID) {
-            $.get('/get-streets/' + blockID, function(data) {
-                $('#streetFilter').html('<option value="">All Streets</option>');
-                $.each(data, function(_, street) {
-                    $('#streetFilter').append('<option value="'+street.id+'">'+street.street_name+'</option>');
-                });
-            });
-        } else {
-            $('#streetFilter').html('<option value="">All Streets</option>');
+
+        // Street reset
+        $('#streetFilter').html(
+            '<option value="">Loading streets...</option>'
+        );
+
+        // Size reset
+        $('#sizeFilter').html(
+            '<option value="">All</option>'
+        );
+
+        if (!blockID) {
+
+            $('#streetFilter').html(
+                '<option value="">All Streets</option>'
+            );
+
+            return;
         }
+
+        // -------------------------
+        // Load Streets
+        // -------------------------
+        $.get(
+            '/get-streets/' + blockID,
+            function(data) {
+
+                $('#streetFilter').html(
+                    '<option value="">All Streets</option>'
+                );
+
+                $.each(data, function(_, street) {
+
+                    $('#streetFilter').append(
+                        '<option value="' + street.id + '">'
+                        + street.street_name +
+                        '</option>'
+                    );
+                });
+
+                // Page reload ke baad selected street restore
+                if (selectedStreet) {
+
+                    $('#streetFilter')
+                        .val(selectedStreet);
+
+                }
+
+            }
+        );
+
+
+        // -------------------------
+        // Load Assigned Sizes
+        // -------------------------
+        loadAssignedSizes(selectedSize);
     });
+
+
+    // =========================================================
+    // Property Type Change
+    // Property Type change => Sizes reload
+    // =========================================================
+    $('#propertyTypeFilter').on('change', function() {
+
+        // Property type change hone par
+        // purani size remove ho jayegi
+        $('#sizeFilter').html(
+            '<option value="">All</option>'
+        );
+
+        loadAssignedSizes();
+    });
+
+
+    // =========================================================
+    // PAGE LOAD
+    // Existing filters restore
+    // =========================================================
+
+    if (selectedProject) {
+
+        // Project select
+        $('#projectFilter')
+            .val(selectedProject)
+            .trigger('change');
+
+    } else {
+
+        // Agar Project select nahi hai to
+        // Size dropdown simple All rahega
+        $('#sizeFilter').html(
+            '<option value="">All</option>'
+        );
+    }
+
 });
 
 document.addEventListener('DOMContentLoaded', function(){

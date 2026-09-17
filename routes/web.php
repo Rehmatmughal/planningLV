@@ -376,21 +376,7 @@ Route::middleware(['auth'])->group(function () {
     // plot coordinate 
     Route::get('/plot/{plot}/googlemap', [PlotController::class, 'getMap'])->name('googlemap.index');
 
-    // new with chatgpt
-    // old V1.1
-    // Route::get('/', function () {
-    //     // return redirect()->route('plots.index');
-    //     return redirect()->route('dashboard');
-    // })->name('home');
-
-    // Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-
-    // Route::get('/app', [DashboardController::class, 'app'])->name('app');
-
-    // new ajax -- Start --
-
-    // Route::post('/plots/{plot}/area-variations', [AreaVariationController::class, 'storearea'])->name('area_variations.storearea');
+    
     // new store routes
     Route::get('/area-variations/create/{plot}', [AreaVariationController::class, 'create'])
         ->name('area_variations.create');
@@ -461,31 +447,9 @@ Route::middleware(['auth'])->group(function () {
     )->name('projects.blocks.excel');
 
 });
-// auth system routes copy from other project
-// Route::middleware('auth')->group(function () {
-//     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-//     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-//     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-// });
+
 
 Route::middleware(['auth','permission:user.view'])->prefix('admin')->name('admin.')->group(function () {
-
-//     Route::get('/users', [UserController::class, 'index'])->name('users.index');
-//     Route::get('/users/create', [UserController::class, 'create'])
-//         ->middleware('permission:user.create')
-//         ->name('users.create');
-
-//     Route::post('/users', [UserController::class, 'store'])
-//         ->middleware('permission:user.create')
-//         ->name('users.store');
-
-//     Route::get('/users/{user}/edit', [UserController::class, 'edit'])
-//         ->middleware('permission:user.edit')
-//         ->name('users.edit');
-
-//     Route::put('/users/{user}', [UserController::class, 'update'])
-//         ->middleware('permission:user.edit')
-//         ->name('users.update');
 
     Route::delete('/users/{user}', [UserController::class, 'destroy'])
         ->middleware('permission:user.delete')
@@ -515,9 +479,7 @@ Route::middleware(['auth','permission:role.view'])->prefix('admin')->name('admin
     Route::delete('/roles',[RoleController::class, 'destroy'])
         ->middleware('permission:role.destroy')
         ->name('roles.destroy');
-    // Route::resource('roles', RoleController::class);
-    // old resource route
-    // Route::resource('permissions', PermissionController::class);
+    
 
 });
 
@@ -526,39 +488,7 @@ Route::middleware(['auth','permission:permission.view'])->prefix('admin')->name(
     Route::resource('permissions', PermissionController::class);
 
 });
-// routs jo auth system k baghir han awr abi theek krny han
-// Plot Size Assignments
-// Route::middleware(['auth', 'permission:size.view'])->prefix('admin')->group(function () {
 
-//     Route::get('/plot-size-assignments', [PlotSizeAssignmentController::class, 'index'])
-//         ->name('plot-size-assignments.index');
-
-//     Route::get('/plot-size-assignments/create', [PlotSizeAssignmentController::class, 'create'])
-//         ->middleware('permission:size.create')
-//         ->name('plot-size-assignments.create');
-
-//     Route::post('/plot-size-assignments', [PlotSizeAssignmentController::class, 'store'])
-//         ->middleware('permission:size.create')
-//         ->name('plot-size-assignments.store');
-
-//     Route::get('/plot-size-assignments/{plotSizeAssignment}/edit', [PlotSizeAssignmentController::class, 'edit'])
-//         ->middleware('permission:size.edit')
-//         ->name('plot-size-assignments.edit');
-
-//     Route::put('/plot-size-assignments/{plotSizeAssignment}', [PlotSizeAssignmentController::class, 'update'])
-//         ->middleware('permission:size.update')
-//         ->name('plot-size-assignments.update');
-
-//     Route::delete('/plot-size-assignments/{plotSizeAssignment}', [PlotSizeAssignmentController::class, 'destroy'])
-//         ->middleware('permission:size.delete')
-//         ->name('plot-size-assignments.destroy');
-//         // AJAX: Blocks by Project
-//     Route::get('/plot-size-assignments/blocks/{project_id}', [PlotSizeAssignmentController::class, 'getBlocks'])
-//         ->name('plot-size-assignments.blocks');
-//     // AJAX: Sizes by Project + Block + Property Type
-//     Route::get('/plot-size-assignments/sizes', [PlotSizeAssignmentController::class, 'getSizes'])
-//         ->name('plot-size-assignments.sizes');
-// });
 // AJAX routes
     Route::get(
         'possession-cases/ajax/blocks/{projectId}',
