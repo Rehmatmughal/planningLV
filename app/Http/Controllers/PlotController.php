@@ -222,7 +222,7 @@ class PlotController extends Controller
         if ($request->size_id) {
             $query->where('size_id', $request->size_id);
         }
-
+ 
         // 🔹 Property Type
         if ($request->property_type_id) {
             $query->where('property_type_id', $request->property_type_id);
