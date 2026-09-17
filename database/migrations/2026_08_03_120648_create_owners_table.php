@@ -18,6 +18,7 @@ return new class extends Migration
             $table->id();
 
             $table->string('owner_name');
+            $table->string('relative_name')->nullable();
 
             // CNIC unique hoga - same CNIC dobara owner ke taur par create nahi ho sakega
             $table->string('cnic')->unique();

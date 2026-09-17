@@ -104,43 +104,6 @@
     {{ $sizes->links() }}
 </div>
 
-<!-- 🧱 Add size Modal -->
-{{-- <div class="modal fade" id="addSizeModal" tabindex="-1" aria-labelledby="addSizeModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title">Add New Size</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="addSizeForm">
-                    @csrf
-                    <div class="mb-3">
-                        <label>Project</label>
-                        <select name="project_id" class="form-select" required>
-                            <option value="">Select Project</option>
-                            @foreach ($projects as $project)
-                                <option value="{{ $project->id }}">{{ $project->project_name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label>Size</label>
-                        <input type="text" name="size_title" class="form-control" placeholder="Enter size name" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label>Remarks</label>
-                        <textarea name="remarks" class="form-control" rows="2" placeholder="Optional"></textarea>
-                    </div>
-
-                    <button type="submit" class="btn btn-success w-100">Save Size</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div> --}}
 
 @endsection 
 
@@ -149,33 +112,6 @@
 <script>
 $(document).ready(function () {
 
-//     // ✅ Add size via AJAX
-//     $('#addSizeForm').on('submit', function (e) {
-//         e.preventDefault();
-
-//         $.ajax({
-//             url: "{{ route('sizes.store') }}",
-//             type: "POST",
-//             data: $(this).serialize(),
-//             success: function (response) {
-//                 if (response.status === 'success') {
-//                     showAlert('success', response.message);
-//                     $('#addSizeModal').modal('hide');
-//                     $('#addsizeForm')[0].reset();
-//                     setTimeout(() => location.reload(), 6000);
-//                 }
-//             },
-//             error: function (xhr) {
-//                 if (xhr.status === 422) {
-//                     let errors = xhr.responseJSON.errors;
-//                     let message = Object.values(errors).flat().join('<br>');
-//                     showAlert('danger', message);
-//                 } else {
-//                     showAlert('danger', 'Error saving size.');
-//                 }
-//             }
-//         });
-//     });
 
     // 🗑️ Delete Size
     $('.delete-btn').on('click', function () {
@@ -209,58 +145,4 @@ $(document).ready(function () {
 });
 </script>
 
-
-
-{{-- <script>
-$(function() {
-
-    // 🧱 Create size AJAX
-    $('#addsizeForm').on('submit', function(e) {
-        e.preventDefault();
-
-        $.ajax({
-            url: "{{ route('sizes.store') }}",
-            method: 'POST',
-            data: $(this).serialize(),
-            success: function(response) {
-                if (response.status === 'success') {
-                    alert(response.message);
-                    $('#addSizeModal').modal('hide');
-                    location.reload();
-                }
-            },
-            error: function(xhr) {
-                if (xhr.status === 422) {
-                    let errors = xhr.responseJSON.errors;
-                    let messages = Object.values(errors).flat().join('\n');
-                    alert(messages);
-                } else {
-                    alert('Something went wrong while saving the size.');
-                }
-            }
-        });
-    });
-
-    // 🗑️ Delete size
-    $('.delete-btn').on('click', function() {
-        let id = $(this).data('id');
-        if (confirm('Are you sure you want to delete this size?')) {
-            $.ajax({
-                url: '/sizes/' + id,
-                type: 'DELETE',
-                data: {_token: '{{ csrf_token() }}'},
-                success: function(response) {
-                    alert(response.message);
-                    location.reload();
-                },
-                error: function(xhr) {
-                    alert('Error deleting size.');
-                    console.error(xhr.responseText);
-                }
-            });
-        }
-    });
-
-});
-</script> --}}
 @endpush

@@ -911,11 +911,11 @@ class PlotController extends Controller
     }
 
     // 🔹 AJAX: Get sizes by project
-    public function getSizes($project_id)
-    {
-        $sizes = PlotSize::where('project_id', $project_id)->get(['id', 'title']);
-        return response()->json($sizes);
-    }
+    // public function getSizes($project_id)
+    // {
+    //     $sizes = PlotSize::where('project_id', $project_id)->get(['id', 'title']);
+    //     return response()->json($sizes);
+    // }
 
     // 🔹 AJAX: Get streets by block
     public function getStreets($block_id)

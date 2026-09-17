@@ -394,7 +394,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Ajax dependent dropdowns
     Route::get('/get-blocks/{project_id}', [PlotController::class, 'getBlocks'])->name('get.blocks');
-    Route::get('/get-sizes/{project_id}', [PlotController::class, 'getSizes'])->name('get.sizes');
+    // Route::get('/get-sizes/{project_id}', [PlotController::class, 'getSizes'])->name('get.sizes');
     Route::get('/get-streets/{block_id}', [PlotController::class, 'getStreets'])->name('get.streets');
     // for preselect project name
     

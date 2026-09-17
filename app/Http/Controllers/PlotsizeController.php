@@ -25,12 +25,6 @@ class PlotsizeController extends Controller
             $query->where('project_id', $project_id);
         }
  
-        // 📌 Order by: First Project Name, then Block Name
-        // $query->join('projects', 'projects.id', '=', 'plotsizes.project_id')
-        //     ->orderBy('projects.project_name', 'ASC')
-        //     ->orderBy('sizes.title', 'ASC')
-        //     ->select('sizes.*'); // important to avoid issues in pagination
-
         $sizes = $query->paginate(10);
         $sizes->appends($request->all());
 
@@ -161,28 +155,9 @@ class PlotsizeController extends Controller
             // return redirect()->route('sizes.index')->with('error', 'Unable to delete size.It might have related plots.');
             return redirect()->back()->with('error', 'Unable to delete size.It might have related plots.');
 
-            // return response()->json([
-            //     'status' => 'error',
-            //     'message' => 'Unable to delete size. It might have related plots.'
-            // ], 500);
+ 
         }
-        // try {
-        
-        //     $size = Plotsize::findOrFail($plotsize);
-        //     $size->delete();
-
-        //     return response()->json([
-        //         'status'=> 'success',
-        //         'message' => 'Size deleted successfully',
-        //     ]);
-
-        // }catch (\Exception $e) {
-        //     return response()->json([
-        //         'status' => 'error',
-        //         'message' => 'Unable to delete size. It might have related plots.'
-        //     ], 500);
-        // }
-
+ 
     }
     /**
      * Show deleted sizes
@@ -263,25 +238,5 @@ class PlotsizeController extends Controller
 
             }
         }
-        // public function forceDelete($id)
-        // {
-        //     try {
-
-        //         $size = Plotsize::onlyTrashed()->findOrFail($id);
-
-        //         $size->forceDelete();
-
-        //         return redirect()
-        //             ->route('sizes.trash')
-        //             ->with('success', 'Size permanently deleted successfully!');
-
-        //     } catch (\Exception $e) {
-
-        //         return redirect()
-        //             ->back()
-        //             ->with('error', 'Unable to permanently delete size.');
-
-        //     }
-        // }
 
 }
