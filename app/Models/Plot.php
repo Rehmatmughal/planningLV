@@ -40,6 +40,11 @@ class Plot extends Model
         return $this->belongsTo(PropertyType::class);
     }
 
+    // public function propertyType()
+    // {
+    //     return $this->belongsTo(PropertyType::class, 'property_type_id');
+    // }
+
     public function project()
     {
         return $this->belongsTo(Project::class);

@@ -199,7 +199,8 @@ class PlotController extends Controller
             'category',
             'lopStatus',
             'developmentStatus',
-            'latestAreavariation'
+            'latestAreavariation',
+            'propertyType'
         ]);
 
         // 🔹 Project
@@ -222,6 +223,11 @@ class PlotController extends Controller
             $query->where('size_id', $request->size_id);
         }
 
+        // 🔹 Property Type
+        if ($request->property_type_id) {
+            $query->where('property_type_id', $request->property_type_id);
+        }
+
         // 🔹 Plot No
         if ($request->plot_no) {
             // $query->where('plot_number', 'LIKE', '%' . $request->plot_no . '%');
@@ -238,8 +244,13 @@ class PlotController extends Controller
                 ->orWhereHas('street', fn($s) => $s->where('street_name', 'LIKE', "%$search%"))
                 // ->orWhereHas('plotSize', fn($ps) => $ps->where('title', 'LIKE', "%$search%"))
                 ->orWhereHas('size', fn($ps) => $ps->where('title', 'LIKE', "%$search%"))
-                ->orWhereHas('category', fn($c) => $c->where('category_title', 'LIKE', "%$search%"));
+                ->orWhereHas('category', fn($c) => $c->where('category_title', 'LIKE', "%$search%"))
+                ->orWhereHas('propertyType', function ($pt) use ($search) {
+                        $pt->where('name', 'LIKE', "%$search%");
+                    });
             });
+
+
         }
 
         $plots = $query->orderBy('id', 'desc')->paginate(5)->withQueryString();
@@ -259,6 +270,7 @@ class PlotController extends Controller
             'blocks' => Block::all(),
             'streets' => Street::all(),
             'sizes' => PlotSize::all(),
+            'propertyTypes' => PropertyType::orderBy('name')->get(),
             'currentStreet' => $currentStreet,
         ]);
     }

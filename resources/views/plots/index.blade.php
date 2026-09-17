@@ -36,12 +36,7 @@
                     {{ $currentStreet->project->project_name ?? '-' }}
                 </small>
             @endif
-            {{-- @can('plot.deleted')
-            <a href="{{ route('plots.deleted') }}"
-            class="btn btn-danger btn-sm">
-                Deleted Plots
-            </a>
-            @endcan --}}
+
         </div>
         {{-- new heading end --}}
         @can('plot.create')
@@ -72,6 +67,20 @@
                             @foreach($projects as $p)
                                 <option value="{{ $p->id }}" {{ request('project_id') == $p->id ? 'selected' : '' }}>
                                     {{ $p->project_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    {{-- Property Type --}}
+                    <div class="col-md-2">
+                        <label>Property Type</label>
+                        <select name="property_type_id" class="form-control">
+                            <option value="">All</option>
+
+                            @foreach($propertyTypes as $propertyType)
+                                <option value="{{ $propertyType->id }}"
+                                    {{ request('property_type_id') == $propertyType->id ? 'selected' : '' }}>
+                                    {{ $propertyType->name }}
                                 </option>
                             @endforeach
                         </select>
@@ -138,21 +147,7 @@
         </div>
     </div>
 
-    {{-- Table --}}
-    {{-- <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr class="text-center">
-                            <th width="5%">#</th>
-                            <th>Plot No</th>
-                        </tr>
-                    </thead>
-                </table>
-            </div>
-        </div>
-    </div> --}}
+
     <div class="card shadow-sm">
         {{-- <div class="card-body table-responsive p-0"> --}}
         <div class="card-body table-responsive">
@@ -160,6 +155,7 @@
                 <thead class="table-light">
                     <tr class="text-center">
                         {{-- <th style="width:100px">Block - Plot</th> --}}
+                        <th width="5%">Property Type</th>
                         <th width="2%">Block-Plot</th>                        
                         <th width="3%">Street</th>
                         <th width="4%">Size</th>
@@ -204,6 +200,7 @@
                         @endphp
 
                         <tr id="plot-row-{{ $plot->id }}" class="{{ $rowClass }}">
+                            <td>{{ $plot->propertyType->name ?? '-' }}</td>
                             {{-- Block-PlotNo --}}
                             <td>
                                 {{ $plot->block->block_name ?? '-' }}-{{ $plot->plot_number }}
@@ -425,51 +422,6 @@
   </div>
 </div>
 
-{{-- 3) Area Variation modal --}}
-{{-- <div class="modal fade" id="areaModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form id="areaForm">
-        @csrf
-        <input type="hidden" id="area_plot_id" name="plot_id">
-        <div class="modal-header">
-            <h5 class="modal-title">Add Area Variation</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-
-        <div class="modal-body">
-            <label class="form-label">Measured Area</label>
-            <input type="number" step="0.01" name="measured_area" id="measured_area" class="form-control" required>
-
-            <div class="mt-2">
-                <label class="form-label">Measured By</label>
-                <input type="text" name="measured_by" id="measured_by" class="form-control">
-            </div>
-
-            <div class="mt-2">
-                <label class="form-label">Measured Date</label>
-                <input type="date" name="measured_date" id="measured_date" class="form-control" value="{{ date('Y-m-d') }}">
-            </div>
-
-            <div class="mt-2">
-                <label class="form-label">Remarks</label>
-                <textarea name="remarks" id="area_remarks" class="form-control" rows="2"></textarea>
-            </div>
-
-            <div class="form-text mt-2 text-muted">
-                If no previous area exists the row will show 0.00 — you can add the first measurement here.
-            </div>
-        </div>
-
-        <div class="modal-footer">
-            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button class="btn btn-warning" type="submit">Add Area</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div> --}}
-
 @endsection
 
 @section('scripts')
@@ -529,12 +481,6 @@ document.addEventListener('DOMContentLoaded', function(){
                     document.getElementById('lop_status').value = data.lop_status ?? '';
                     document.getElementById('lop_remarks').value = data.remarks ?? '';
                     new bootstrap.Modal(document.getElementById('lopModal')).show();
-                // }).catch(()=> {
-                //     // if endpoint not available, still show empty modal
-                //     document.getElementById('lop_plot_id').value = id;
-                //     document.getElementById('lop_status').value = '';
-                //     document.getElementById('lop_remarks').value = '';
-                //     new bootstrap.Modal(document.getElementById('lopModal')).show();
                 });
         });
     });
@@ -683,21 +629,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
     // helper to reattach handlers for dynamically replaced buttons
     function attachDynamicButtons(){
-        // reattach lop buttons
-        // document.querySelectorAll('.btn-lop').forEach(btn => {
-        //     btn.onclick = function(){
-        //         const id = this.dataset.id;
-        //         console.log('LOP DATA:', data);
-        //         document.getElementById('lop_plot_id').value = id;
-        //         document.getElementById('lop_status').value = data.lop_status ?? '';
-        //         document.getElementById('lop_remarks').value = data.remarks ?? '';
-        //         new bootstrap.Modal(document.getElementById('lopModal')).show();
-        //         // document.getElementById('lop_plot_id').value = id;
-        //         // document.getElementById('lop_status').value = '';
-        //         // document.getElementById('lop_remarks').value = '';
-        //         // new bootstrap.Modal(document.getElementById('lopModal')).show();
-        //     };
-        // });
         document.querySelectorAll('.btn-lop').forEach(btn => {
             btn.onclick = function(){
                 const id = this.dataset.id;
@@ -719,17 +650,6 @@ document.addEventListener('DOMContentLoaded', function(){
             };
         });
 
-        // dev buttons
-        // document.querySelectorAll('.btn-dev').forEach(btn => {
-        //     btn.onclick = function(){
-        //         const id = this.dataset.id;
-        //         document.getElementById('dev_plot_id').value = id;
-        //         document.getElementById('dev_road').value = '';
-        //         document.getElementById('dev_sewer').value = '';
-        //         document.getElementById('dev_remarks').value = '';
-        //         new bootstrap.Modal(document.getElementById('devModal')).show();
-        //     };
-        // });
         // dev buttons
         document.querySelectorAll('.btn-dev').forEach(btn => {
             btn.onclick = function(){
