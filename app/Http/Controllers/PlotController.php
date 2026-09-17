@@ -1080,7 +1080,6 @@ class PlotController extends Controller
         // $size = DB::table('plotsizes')
         //             ->get();
         // $project_name = $project->project_name ?? 'Unknown Project';
-
         // return view('plots.plot', compact('plots','project_name','block_name','size'));
     }
 }
