@@ -17,8 +17,12 @@ return new class extends Migration
                 ->constrained('plots')
                 ->cascadeOnDelete();
 
-            // Case number for this plot
-            $table->unsignedInteger('case_no');
+            // Possession numbering
+            $table->string('possession_no')->nullable();
+            $table->string('reference_no')->nullable();
+
+            $table->unsignedInteger('possession_sequence');
+            $table->unsignedInteger('revision_no')->default(0);
 
             // Approval
             $table->boolean('need_approval')->default(false);
@@ -32,6 +36,7 @@ return new class extends Migration
                 'receive_back',
                 'handed_over',
                 'completed',
+                'cancelled',
             ])->default('received');
 
             // Current holder
@@ -52,6 +57,16 @@ return new class extends Migration
 
             // Handover
             $table->string('handed_over_to')->nullable();
+
+            // Cancellation
+            $table->date('cancelled_at')->nullable();
+
+            $table->foreignId('cancelled_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
+
+            $table->text('cancellation_reason')->nullable();
 
             // Remarks
             $table->text('remarks')->nullable();
@@ -75,8 +90,7 @@ return new class extends Migration
             // Soft delete
             $table->softDeletes();
 
-            // One case number can occur only once for a plot
-            $table->unique(['plot_id', 'case_no']);
+            
 
             // Useful indexes
             $table->index(['plot_id', 'is_active']);

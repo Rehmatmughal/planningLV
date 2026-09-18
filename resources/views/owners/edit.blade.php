@@ -126,6 +126,27 @@
 
                             </div>
 
+                            {{-- Relative Name --}}
+                            <div class="col-md-6">
+
+                                <label class="form-label fw-bold">
+                                    F/H/W Name
+                                </label>
+
+                                <input type="text"
+                                    name="relative_name"
+                                    class="form-control @error('relative_name') is-invalid @enderror"
+                                    value="{{ old('relative_name', $owner->relative_name) }}"
+                                    placeholder="Father / Husband / Wife name">
+
+                                @error('relative_name')
+
+                                    <div class="invalid-feedback">
+                                        {{ $message }}
+                                    </div>
+
+                                @enderror
+                            </div>
 
                             {{-- CNIC --}}
                             <div class="col-md-6">

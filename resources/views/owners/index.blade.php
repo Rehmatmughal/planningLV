@@ -16,13 +16,27 @@
                 Manage owner information and CNIC records
             </small>
         </div>
+        <div class="d-flex gap-2">
 
-        <a href="{{ route('owners.create') }}"
-           class="btn btn-primary">
+            <button type="button"
+                    class="btn btn-success"
+                    data-bs-toggle="modal"
+                    data-bs-target="#importOwnersModal">
 
-            + Add Owner
+                📁 Upload Owners CSV
 
-        </a>
+            </button>
+
+            <a href="{{ route('owners.create') }}"
+            class="btn btn-primary">
+
+                + Add Owner
+
+            </a>
+
+        </div>
+
+    
 
     </div>
 
@@ -81,7 +95,7 @@
                                name="search"
                                class="form-control"
                                value="{{ request('search') }}"
-                               placeholder="Search by name, CNIC or contact number">
+                               placeholder="Search by name, F/H/W name, CNIC or contact number">
 
                     </div>
 
@@ -143,6 +157,10 @@
                             </th>
 
                             <th>
+                                F/H/W Name
+                            </th>
+
+                            <th>
                                 CNIC
                             </th>
 
@@ -184,39 +202,32 @@
 
                                 {{-- Name --}}
                                 <td>
-
                                     <strong>
                                         {{ $owner->owner_name }}
                                     </strong>
-
                                 </td>
 
+                                {{-- Relative Name --}}
+                                <td>
+                                    {{ $owner->relative_name ?? '-' }}
+                                </td>
 
                                 {{-- CNIC --}}
                                 <td>
-
                                     <span class="font-monospace">
                                         {{ $owner->cnic }}
                                     </span>
-
                                 </td>
-
 
                                 {{-- Contact --}}
                                 <td>
-
                                     {{ $owner->contact_no ?? '-' }}
-
                                 </td>
-
 
                                 {{-- Address --}}
                                 <td>
-
                                     {{ $owner->address ?? '-' }}
-
                                 </td>
-
 
                                 {{-- Possession Cases --}}
                                 <td class="text-center">
@@ -291,7 +302,7 @@
 
                             <tr>
 
-                                <td colspan="7"
+                                <td colspan="8"
                                     class="text-center py-5 text-muted">
 
                                     @if(request('search'))
@@ -341,5 +352,133 @@
     </div>
 
 </div>
+{{-- Import Owners CSV Modal --}}
+<div class="modal fade"
+     id="importOwnersModal"
+     tabindex="-1"
+     aria-labelledby="importOwnersModalLabel"
+     aria-hidden="true">
 
+    <div class="modal-dialog">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title"
+                    id="importOwnersModalLabel">
+
+                    📁 Upload Owners CSV
+
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+
+            </div>
+
+
+            <form method="POST"
+                  action="{{ route('owners.import') }}"
+                  enctype="multipart/form-data">
+
+                @csrf
+
+                <div class="modal-body">
+
+                    <div class="alert alert-info">
+
+                        <strong>CSV Format:</strong>
+
+                        <div class="mt-2 font-monospace">
+                            Name, relative_name, CNIC, Address
+                        </div>
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label for="owner_csv"
+                               class="form-label fw-bold">
+
+                            Select CSV File
+
+                        </label>
+
+                        <input type="file"
+                               name="file"
+                               id="owner_csv"
+                               class="form-control"
+                               accept=".csv,.txt"
+                               required>
+
+                        <small class="text-muted">
+                            Only CSV files are allowed. Maximum size: 10 MB.
+                        </small>
+
+                    </div>
+
+
+                    <div class="alert alert-warning mb-0">
+
+                        <strong>Important:</strong>
+
+                        <ul class="mb-0 mt-2">
+
+                            <li>
+                                CNIC will be used to identify the owner.
+                            </li>
+
+                            <li>
+                                New CNIC will create a new owner.
+                            </li>
+
+                            <li>
+                                Existing CNIC will update the owner record.
+                            </li>
+
+                            <li>
+                                CSV must contain these columns:
+                                <strong>
+                                    Name, relative_name, CNIC, Address
+                                </strong>
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+                </div>
+
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+
+                        Cancel
+
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-success">
+
+                        📥 Import Owners
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
 @endsection

@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Owner;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use App\Imports\OwnersImport;
+use Maatwebsite\Excel\Facades\Excel;
+
 
 class OwnerController extends Controller
 {
@@ -23,6 +26,7 @@ class OwnerController extends Controller
             $query->where(function ($q) use ($search) {
 
                 $q->where('owner_name', 'like', "%{$search}%")
+                    ->orWhere('relative_name', 'like', "%{$search}%")
                     ->orWhere('cnic', 'like', "%{$search}%")
                     ->orWhere('contact_no', 'like', "%{$search}%");
 
@@ -56,6 +60,12 @@ class OwnerController extends Controller
 
             'owner_name' => [
                 'required',
+                'string',
+                'max:255',
+            ],
+
+            'relative_name' => [
+                'nullable',
                 'string',
                 'max:255',
             ],
@@ -108,6 +118,12 @@ class OwnerController extends Controller
 
             'owner_name' => [
                 'required',
+                'string',
+                'max:255',
+            ],
+
+            'relative_name' => [
+                'nullable',
                 'string',
                 'max:255',
             ],
@@ -167,6 +183,42 @@ class OwnerController extends Controller
             ->with('success', 'Owner deleted successfully.');
     }
 
+    /**
+     * Import owners from CSV.
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => [
+                'required',
+                'file',
+                'mimes:csv,txt',
+                'max:10240',
+            ],
+        ]);
+
+        try {
+
+            Excel::import(
+                new OwnersImport,
+                $request->file('file')
+            );
+
+            return redirect()
+                ->route('owners.index')
+                ->with('success', 'Owners imported successfully.');
+
+        } catch (\Throwable $e) {
+
+            return redirect()
+                ->route('owners.index')
+                ->with(
+                    'error',
+                    'Owner CSV import failed. Please check the CSV file and try again.'
+                );
+        }
+    }
+
     public function findByCnic(Request $request)
     {
         $request->validate([
@@ -192,6 +244,7 @@ class OwnerController extends Controller
             'owner' => [
                 'id' => $owner->id,
                 'owner_name' => $owner->owner_name,
+                'relative_name' => $owner->relative_name,
                 'cnic' => $owner->cnic,
                 'address' => $owner->address,
                 'contact_no' => $owner->contact_no,

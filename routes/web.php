@@ -555,6 +555,13 @@ Route::patch(
     [PossessionCaseController::class, 'updateStatus']
 )->name('possession-cases.update-status');
 
+// owner routes
+// owner import
+Route::post(
+    '/owners/import',
+    [OwnerController::class, 'import']
+)->name('owners.import');
+
 Route::get(
     '/owners/find-by-cnic',
     [OwnerController::class, 'findByCnic']

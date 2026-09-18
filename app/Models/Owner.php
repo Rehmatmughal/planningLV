@@ -12,6 +12,7 @@ class Owner extends Model
 
     protected $fillable = [
         'owner_name',
+        'relative_name',
         'cnic',
         'address',
         'contact_no',

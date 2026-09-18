@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\PossessionCase;
-use App\Models\PossessionCaseOwner;
-use App\Models\PossessionCaseHistory;
 use App\Models\Project;
 use App\Models\Block;
 use App\Models\Street;
@@ -23,62 +21,134 @@ class PossessionCaseController extends Controller
     public function index(Request $request)
     {
         $query = PossessionCase::with([
-            'plot',
+            'plot.project',
+            'plot.block',
+            'plot.street',
+            'plot.size',
+            'plot.propertyType',
             'owners',
             'creator',
         ])->latest();
 
-        // Search by case number
-        if ($request->filled('case_no')) {
-            $query->where('case_no', $request->case_no);
+        /*
+        |--------------------------------------------------------------------------
+        | Search by possession number
+        |--------------------------------------------------------------------------
+        */
+        if ($request->filled('possession_no')) {
+            $query->where(
+                'possession_no',
+                'like',
+                '%' . $request->possession_no . '%'
+            );
         }
 
-        // Filter by status
+        /*
+        |--------------------------------------------------------------------------
+        | Search by reference number
+        |--------------------------------------------------------------------------
+        */
+        if ($request->filled('reference_no')) {
+            $query->where(
+                'reference_no',
+                'like',
+                '%' . $request->reference_no . '%'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Filter by status
+        |--------------------------------------------------------------------------
+        */
         if ($request->filled('status')) {
-            $query->where('current_status', $request->status);
+            $query->where(
+                'current_status',
+                $request->status
+            );
         }
 
-        // Filter active/inactive cases
+        /*
+        |--------------------------------------------------------------------------
+        | Filter active/inactive
+        |--------------------------------------------------------------------------
+        */
         if ($request->filled('is_active')) {
-            $query->where('is_active', $request->is_active);
+            $query->where(
+                'is_active',
+                $request->is_active
+            );
         }
 
-        // Search by owner name
+        /*
+        |--------------------------------------------------------------------------
+        | Search by owner name
+        |--------------------------------------------------------------------------
+        */
         if ($request->filled('owner_name')) {
             $query->whereHas('owners', function ($q) use ($request) {
-                $q->where('owner_name', 'like', '%' . $request->owner_name . '%');
+                $q->where(
+                    'owner_name',
+                    'like',
+                    '%' . $request->owner_name . '%'
+                );
             });
         }
 
-        // Search by CNIC
+        /*
+        |--------------------------------------------------------------------------
+        | Search by CNIC
+        |--------------------------------------------------------------------------
+        */
         if ($request->filled('cnic')) {
             $query->whereHas('owners', function ($q) use ($request) {
-                $q->where('cnic', 'like', '%' . $request->cnic . '%');
+                $q->where(
+                    'cnic',
+                    'like',
+                    '%' . $request->cnic . '%'
+                );
             });
         }
 
-        $possessionCases = $query->paginate(20)->withQueryString();
+        $possessionCases = $query
+            ->paginate(20)
+            ->withQueryString();
 
-        return view('possession_cases.index', compact('possessionCases'));
+        return view(
+            'possession_cases.index',
+            compact('possessionCases')
+        );
     }
 
 
     /**
      * Show form for creating a new possession case.
      */
-
     public function create(Request $request)
     {
-        // Sirf projects load honge.
-        // Tamam plots ek sath load nahi honge.
+        /*
+        |--------------------------------------------------------------------------
+        | Sirf projects load honge
+        |--------------------------------------------------------------------------
+        | Tamam plots ek sath load nahi honge.
+        */
         $projects = Project::orderBy('project_name')
-            ->get(['id', 'project_name']);
+            ->get([
+                'id',
+                'project_name',
+            ]);
 
         $selectedPlot = null;
 
-        // Agar kisi selected plot ke sath create page open hua ho
-        // to us plot ki details load kar dein.
-        $plotId = old('plot_id', $request->plot_id);
+        /*
+        |--------------------------------------------------------------------------
+        | Selected plot
+        |--------------------------------------------------------------------------
+        */
+        $plotId = old(
+            'plot_id',
+            $request->plot_id
+        );
 
         if ($plotId) {
             $selectedPlot = Plot::with([
@@ -86,73 +156,61 @@ class PossessionCaseController extends Controller
                 'block',
                 'street',
                 'size',
+                'propertyType',
             ])->find($plotId);
         }
 
-        return view('possession_cases.create', compact(
-            'projects',
-            'selectedPlot'
-        ));
+        return view(
+            'possession_cases.create',
+            compact(
+                'projects',
+                'selectedPlot'
+            )
+        );
     }
 
-    // public function create(Request $request)
-    // {
-        // old all plots
-        // $plots = Plot::with([
-        //     'project',
-        //     'block',
-        //     'street',
-        //     // 'plotSize',
-        //     'size',
-        // ])->orderBy('plot_number')->get();
 
-        // $selectedPlot = null;
-
-        // if ($request->filled('plot_id')) {
-        //     $selectedPlot = Plot::find($request->plot_id);
-        // }
-
-        // return view('possession_cases.create', compact(
-        //     'plots',
-        //     'selectedPlot'
-        // ));
-    // }
     /**
- * Get blocks according to selected project.
- */
-public function getBlocks($projectId)
-{
-    $blocks = Block::where('project_id', $projectId)
-        ->orderBy('block_name')
-        ->get([
-            'id',
-            'block_name',
-        ]);
+     * Get blocks according to selected project.
+     */
+    public function getBlocks($projectId)
+    {
+        $blocks = Block::where(
+                'project_id',
+                $projectId
+            )
+            ->orderBy('block_name')
+            ->get([
+                'id',
+                'block_name',
+            ]);
 
-    return response()->json($blocks);
-}
-
-
-/**
- * Get streets according to selected block.
- */
-public function getStreets($blockId)
-{
-    $streets = Street::where('block_id', $blockId)
-        ->orderBy('street_name')
-        ->get([
-            'id',
-            'street_name',
-        ]);
-
-    return response()->json($streets);
-}
+        return response()->json($blocks);
+    }
 
 
-/**
- * Search plots according to project, block,
- * optional street and plot number.
- */
+    /**
+     * Get streets according to selected block.
+     */
+    public function getStreets($blockId)
+    {
+        $streets = Street::where(
+                'block_id',
+                $blockId
+            )
+            ->orderBy('street_name')
+            ->get([
+                'id',
+                'street_name',
+            ]);
+
+        return response()->json($streets);
+    }
+
+
+    /**
+     * Search plots.
+     */
     public function searchPlots(Request $request)
     {
         $request->validate([
@@ -171,6 +229,7 @@ public function getStreets($blockId)
             'street_id' => [
                 'nullable',
                 'integer',
+                'exists:streets,id',
             ],
 
             'plot_number' => [
@@ -185,38 +244,81 @@ public function getStreets($blockId)
             'block',
             'street',
             'size',
+            'propertyType',
         ])
-            ->where('project_id', $request->project_id)
-            ->where('block_id', $request->block_id)
-            ->where('plot_number', $request->plot_number);
+            ->where(
+                'project_id',
+                $request->project_id
+            )
+            ->where(
+                'block_id',
+                $request->block_id
+            )
+            ->where(
+                'plot_number',
+                $request->plot_number
+            );
 
-        // Street optional hai.
-        // Agar street select ki gayi hai to us street ke plots hi search honge.
+        /*
+        |--------------------------------------------------------------------------
+        | Optional Street
+        |--------------------------------------------------------------------------
+        */
         if ($request->filled('street_id')) {
-            $query->where('street_id', $request->street_id);
+            $query->where(
+                'street_id',
+                $request->street_id
+            );
         }
 
-        // Soft-deleted plots automatically nahi aayenge
-        // kyun ke Plot model mein SoftDeletes use ho raha hai.
+        /*
+        |--------------------------------------------------------------------------
+        | Soft deleted plots automatically excluded
+        |--------------------------------------------------------------------------
+        */
         $plots = $query
             ->orderBy('plot_number')
             ->limit(50)
             ->get();
 
         $results = $plots->map(function ($plot) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Property Type Name
+            |--------------------------------------------------------------------------
+            | Agar PropertyType model mein name hai to name.
+            | Agar title hai to title.
+            */
+            $propertyTypeName =
+                $plot->propertyType?->name
+                ?? $plot->propertyType?->title
+                ?? $plot->propertyType?->property_type
+                ?? '-';
+
             return [
                 'id' => $plot->id,
-                'plot_number' => $plot->plot_number,
 
-                'project_name' => $plot->project?->project_name,
+                'plot_number' =>
+                    $plot->plot_number,
 
-                'block_name' => $plot->block?->block_name,
+                'project_name' =>
+                    $plot->project?->project_name,
 
-                'street_name' => $plot->street?->street_name,
+                'block_name' =>
+                    $plot->block?->block_name,
 
-                'size_title' => $plot->size?->title,
+                'street_name' =>
+                    $plot->street?->street_name,
 
-                'size_area' => $plot->size?->size_area,
+                'size_title' =>
+                    $plot->size?->title,
+
+                'size_area' =>
+                    $plot->size?->size_area,
+
+                'property_type_name' =>
+                    $propertyTypeName,
             ];
         });
 
@@ -225,36 +327,121 @@ public function getStreets($blockId)
 
 
     /**
+     * Generate next base possession number.
+     *
+     * Numbering project + property type ke hisaab se hogi.
+     *
+     * Example:
+     * 250
+     * 251
+     * 252
+     */
+    private function generateBasePossessionNumber(Plot $plot): string
+    {
+        $query = PossessionCase::query()
+            ->whereNotNull('possession_no')
+            ->whereRaw(
+                "possession_no REGEXP '^[0-9]+$'"
+            )
+            ->whereHas('plot', function ($q) use ($plot) {
+
+                $q->where(
+                    'project_id',
+                    $plot->project_id
+                );
+
+                if ($plot->property_type_id !== null) {
+                    $q->where(
+                        'property_type_id',
+                        $plot->property_type_id
+                    );
+                } else {
+                    $q->whereNull('property_type_id');
+                }
+            });
+
+        $maxNumber = $query->max(
+            DB::raw(
+                'CAST(possession_no AS UNSIGNED)'
+            )
+        );
+
+        return (string) (
+            ((int) $maxNumber) + 1
+        );
+    }
+
+
+    /**
+     * Extract base possession number.
+     *
+     * 250       -> 250
+     * 250-T1    -> 250
+     * 250-T2    -> 250
+     */
+    private function getBasePossessionNumber(
+        ?string $possessionNo
+    ): ?string {
+
+        if (!$possessionNo) {
+            return null;
+        }
+
+        return preg_replace(
+            '/-T\d+$/i',
+            '',
+            trim($possessionNo)
+        );
+    }
+
+
+    /**
      * Store a new possession case.
      */
-    // new store
-
     public function store(Request $request)
     {
         $validated = $request->validate([
-            // 'plot_id' => [
-            //     'required',
-            //     'exists:plots,id',
 
+            /*
+            |--------------------------------------------------------------------------
+            | Plot
+            |--------------------------------------------------------------------------
+            */
             'plot_id' => [
                 'required',
                 'integer',
-                Rule::exists('plots', 'id')->where(function ($query) {
-                    $query->whereNull('deleted_at');
-                }),
+                Rule::exists('plots', 'id')
+                    ->where(function ($query) {
+                        $query->whereNull('deleted_at');
+                    }),
             ],
 
-            'case_no' => [
-                'required',
-                'integer',
-                'min:1',
+            /*
+            |--------------------------------------------------------------------------
+            | Reference Number
+            |--------------------------------------------------------------------------
+            */
+            'reference_no' => [
+                'nullable',
+                'string',
+                'max:255',
             ],
 
+            /*
+            |--------------------------------------------------------------------------
+            | Approval
+            |--------------------------------------------------------------------------
+            */
             'need_approval' => [
                 'nullable',
                 'boolean',
             ],
 
+            /*
+            |--------------------------------------------------------------------------
+            | Current Holder
+            |--------------------------------------------------------------------------
+            */
             'current_holder_type' => [
                 'nullable',
                 'string',
@@ -272,16 +459,31 @@ public function getStreets($blockId)
                 'max:255',
             ],
 
+            /*
+            |--------------------------------------------------------------------------
+            | Received Date
+            |--------------------------------------------------------------------------
+            */
             'received_at' => [
                 'nullable',
                 'date',
             ],
 
+            /*
+            |--------------------------------------------------------------------------
+            | Remarks
+            |--------------------------------------------------------------------------
+            */
             'remarks' => [
                 'nullable',
                 'string',
             ],
 
+            /*
+            |--------------------------------------------------------------------------
+            | Owners
+            |--------------------------------------------------------------------------
+            */
             'owners' => [
                 'required',
                 'array',
@@ -300,8 +502,13 @@ public function getStreets($blockId)
                 'max:255',
             ],
 
+            'owners.*.relative_name' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
             'owners.*.cnic' => [
-                // 'nullable',
                 'required',
                 'string',
                 'max:30',
@@ -317,62 +524,183 @@ public function getStreets($blockId)
                 'string',
                 'max:50',
             ],
-
         ]);
 
-        // Same case number for same plot should not exist
-        $exists = PossessionCase::where('plot_id', $validated['plot_id'])
-            ->where('case_no', $validated['case_no'])
-            ->exists();
 
-        if ($exists) {
-
-            return back()
-                ->withInput()
-                ->withErrors([
-                    'case_no' =>
-                        'This case number already exists for the selected plot.',
-                ]);
-        }
-
-
+        /*
+        |--------------------------------------------------------------------------
+        | Transaction
+        |--------------------------------------------------------------------------
+        */
         DB::transaction(function () use ($validated) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Lock Plot
+            |--------------------------------------------------------------------------
+            |
+            | Same plot par agar simultaneously possession create ho
+            | to sequence control mein rahe.
+            |
+            */
+            $plot = Plot::whereKey(
+                $validated['plot_id']
+            )
+                ->lockForUpdate()
+                ->firstOrFail();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Find Previous Possession
+            |--------------------------------------------------------------------------
+            */
+            $previousCase = PossessionCase::where(
+                    'plot_id',
+                    $plot->id
+                )
+                ->orderBy(
+                    'possession_sequence',
+                    'desc'
+                )
+                ->lockForUpdate()
+                ->first();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Next Possession Sequence
+            |--------------------------------------------------------------------------
+            |
+            | First:
+            | 1
+            |
+            | Second:
+            | 2
+            |
+            | Third:
+            | 3
+            |
+            */
+            $nextSequence =
+                ((int) PossessionCase::where(
+                    'plot_id',
+                    $plot->id
+                )->max('possession_sequence')) + 1;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Base Possession Number
+            |--------------------------------------------------------------------------
+            */
+            $basePossessionNo = null;
+
+            if ($previousCase) {
+                $basePossessionNo =
+                    $this->getBasePossessionNumber(
+                        $previousCase->possession_no
+                    );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Agar previous case ka base number available nahi
+            |--------------------------------------------------------------------------
+            */
+            if (
+                !$basePossessionNo ||
+                !ctype_digit($basePossessionNo)
+            ) {
+                $basePossessionNo =
+                    $this->generateBasePossessionNumber(
+                        $plot
+                    );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Final Possession Number
+            |--------------------------------------------------------------------------
+            |
+            | First:
+            | 250
+            |
+            | Second:
+            | 250-T1
+            |
+            | Third:
+            | 250-T2
+            |
+            */
+            if ($nextSequence === 1) {
+
+                $possessionNo =
+                    $basePossessionNo;
+
+            } else {
+
+                $possessionNo =
+                    $basePossessionNo
+                    . '-T'
+                    . ($nextSequence - 1);
+            }
+
 
             /*
             |--------------------------------------------------------------------------
             | Create Possession Case
             |--------------------------------------------------------------------------
             */
-
             $case = PossessionCase::create([
 
                 'plot_id' =>
-                    $validated['plot_id'],
+                    $plot->id,
 
-                'case_no' =>
-                    $validated['case_no'],
+                'possession_no' =>
+                    $possessionNo,
+
+                'reference_no' =>
+                    $validated['reference_no']
+                    ?? null,
+
+                'possession_sequence' =>
+                    $nextSequence,
+
+                /*
+                | Initial creation always revision 0.
+                */
+                'revision_no' =>
+                    0,
 
                 'need_approval' =>
-                    $validated['need_approval'] ?? false,
+                    $validated['need_approval']
+                    ?? false,
 
                 'current_status' =>
                     'received',
 
                 'current_holder_type' =>
-                    $validated['current_holder_type'] ?? null,
+                    $validated['current_holder_type']
+                    ?? null,
 
                 'current_holder_id' =>
-                    $validated['current_holder_id'] ?? null,
+                    $validated['current_holder_id']
+                    ?? null,
 
                 'current_holder_name' =>
-                    $validated['current_holder_name'] ?? null,
+                    $validated['current_holder_name']
+                    ?? null,
 
                 'received_at' =>
                     $validated['received_at']
-                        ?? now()->toDateString(),
+                    ?? now()->toDateString(),
 
                 'remarks' =>
-                    $validated['remarks'] ?? null,
+                    $validated['remarks']
+                    ?? null,
 
                 'is_active' =>
                     true,
@@ -387,54 +715,70 @@ public function getStreets($blockId)
             | Save Owners
             |--------------------------------------------------------------------------
             */
-
-            // new loop data for duplication check
-            foreach ($validated['owners'] as $ownerData) {
-
-                /*
-                |--------------------------------------------------------------------------
-                | Existing owner ID se owner find karein
-                |--------------------------------------------------------------------------
-                */
+            foreach (
+                $validated['owners']
+                as $ownerData
+            ) {
 
                 $owner = null;
 
+
+                /*
+                |--------------------------------------------------------------------------
+                | Owner ID
+                |--------------------------------------------------------------------------
+                */
                 if (!empty($ownerData['owner_id'])) {
 
-                    $owner = Owner::find($ownerData['owner_id']);
+                    $owner = Owner::find(
+                        $ownerData['owner_id']
+                    );
 
                     if (!$owner) {
 
                         throw \Illuminate\Validation\ValidationException::withMessages([
-                            'owners' => 'Selected owner record was not found.',
+                            'owners' =>
+                                'Selected owner record was not found.',
                         ]);
                     }
                 }
 
-                /*
-                |--------------------------------------------------------------------------
-                | CNIC se existing owner check karein
-                |--------------------------------------------------------------------------
-                */
-
-                $cnic = trim($ownerData['cnic']);
-
-                $ownerByCnic = Owner::where('cnic', $cnic)->first();
 
                 /*
                 |--------------------------------------------------------------------------
-                | CNIC already kisi owner ke paas hai
+                | CNIC
                 |--------------------------------------------------------------------------
                 */
+                $cnic = trim(
+                    $ownerData['cnic']
+                );
 
+
+                /*
+                |--------------------------------------------------------------------------
+                | Search owner by CNIC
+                |--------------------------------------------------------------------------
+                */
+                $ownerByCnic = Owner::where(
+                    'cnic',
+                    $cnic
+                )->first();
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Existing CNIC
+                |--------------------------------------------------------------------------
+                */
                 if ($ownerByCnic) {
 
                     /*
-                    | Agar owner_id bhi diya gaya hai lekin CNIC kisi
-                    | different owner ka hai to error.
+                    | Selected owner ID different hai
                     */
-
-                    if ($owner && $owner->id !== $ownerByCnic->id) {
+                    if (
+                        $owner &&
+                        $owner->id !== $ownerByCnic->id
+                    ) {
 
                         throw \Illuminate\Validation\ValidationException::withMessages([
                             'owners' =>
@@ -442,17 +786,28 @@ public function getStreets($blockId)
                         ]);
                     }
 
+
                     /*
                     |--------------------------------------------------------------------------
-                    | Existing owner mil gaya.
-                    | Naam compare karein.
+                    | Name safety check
                     |--------------------------------------------------------------------------
                     */
+                    $enteredName =
+                        trim(
+                            $ownerData['owner_name']
+                        );
 
-                    $enteredName = trim($ownerData['owner_name']);
-                    $existingName = trim($ownerByCnic->owner_name);
+                    $existingName =
+                        trim(
+                            $ownerByCnic->owner_name
+                        );
 
-                    if (strcasecmp($enteredName, $existingName) !== 0) {
+                    if (
+                        strcasecmp(
+                            $enteredName,
+                            $existingName
+                        ) !== 0
+                    ) {
 
                         throw \Illuminate\Validation\ValidationException::withMessages([
                             'owners' =>
@@ -460,62 +815,94 @@ public function getStreets($blockId)
                         ]);
                     }
 
+
                     /*
                     |--------------------------------------------------------------------------
-                    | CNIC + Name dono match hain.
-                    | Existing owner use hoga.
-                    | Existing central record ko overwrite nahi karenge.
+                    | Existing owner use karein
                     |--------------------------------------------------------------------------
                     */
-
-                    $owner = $ownerByCnic;
+                    $owner =
+                        $ownerByCnic;
                 }
+
 
                 /*
                 |--------------------------------------------------------------------------
-                | CNIC database mein nahi mila
+                | New CNIC
                 |--------------------------------------------------------------------------
                 */
-
                 else {
-
-                    /*
-                    | Agar owner_id diya gaya tha to usi owner ka CNIC
-                    | update nahi karna bina verification ke.
-                    | New CNIC hai to existing selected owner use kar sakte hain.
-                    */
 
                     if ($owner) {
 
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Existing selected owner
+                        |--------------------------------------------------------------------------
+                        */
                         $owner->update([
-                            'owner_name' => $ownerData['owner_name'],
-                            'cnic' => $cnic,
-                            'address' => $ownerData['address'],
-                            'contact_no' => $ownerData['contact_no'],
+
+                            'owner_name' =>
+                                $ownerData['owner_name'],
+
+                            'relative_name' =>
+                                $ownerData['relative_name']
+                                ?? null,
+
+                            'cnic' =>
+                                $cnic,
+
+                            'address' =>
+                                $ownerData['address']
+                                ?? null,
+
+                            'contact_no' =>
+                                $ownerData['contact_no']
+                                ?? null,
                         ]);
 
                     } else {
 
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Completely new owner
+                        |--------------------------------------------------------------------------
+                        */
                         $owner = Owner::create([
-                            'owner_name' => $ownerData['owner_name'],
-                            'cnic' => $cnic,
-                            'address' => $ownerData['address'],
-                            'contact_no' => $ownerData['contact_no'],
+
+                            'owner_name' =>
+                                $ownerData['owner_name'],
+
+                            'relative_name' =>
+                                $ownerData['relative_name']
+                                ?? null,
+
+                            'cnic' =>
+                                $cnic,
+
+                            'address' =>
+                                $ownerData['address']
+                                ?? null,
+
+                            'contact_no' =>
+                                $ownerData['contact_no']
+                                ?? null,
                         ]);
                     }
                 }
 
+
                 /*
                 |--------------------------------------------------------------------------
-                | Owner ko possession case ke sath attach karein
+                | Attach Owner
                 |--------------------------------------------------------------------------
                 */
-
                 $case->owners()->attach(
                     $owner->id,
                     [
                         'address_snapshot' =>
-                            $ownerData['address'] ?? $owner->address,
+                            $ownerData['address']
+                            ?? $owner->address,
                     ]
                 );
             }
@@ -526,7 +913,6 @@ public function getStreets($blockId)
             | First History Record
             |--------------------------------------------------------------------------
             */
-
             $case->histories()->create([
 
                 'plot_id' =>
@@ -551,7 +937,8 @@ public function getStreets($blockId)
                     null,
 
                 'remarks' =>
-                    'Possession case created.',
+                    'Possession case created. Possession No: '
+                    . $case->possession_no,
 
                 'user_id' =>
                     Auth::id(),
@@ -568,24 +955,24 @@ public function getStreets($blockId)
     }
 
 
-
     /**
      * Display a specific possession case.
      */
-    public function show(PossessionCase $possessionCase)
-    {
+    public function show(
+        PossessionCase $possessionCase
+    ) {
         $possessionCase->load([
             'plot.project',
             'plot.block',
             'plot.street',
-            // 'plot.plotSize',
             'plot.size',
+            'plot.propertyType',
             'owners',
             'histories.user',
             'creator',
             'updater',
         ]);
- 
+
         return view(
             'possession_cases.show',
             compact('possessionCase')
@@ -594,22 +981,23 @@ public function getStreets($blockId)
 
 
     /**
-     * Show form for editing a possession case.
+     * Show edit form.
      */
-
-    public function edit(PossessionCase $possessionCase)
-    {
+    public function edit(
+        PossessionCase $possessionCase
+    ) {
         $possessionCase->load([
             'plot.project',
             'plot.block',
             'plot.street',
             'plot.size',
+            'plot.propertyType',
             'owners',
         ]);
 
-        // Sirf projects load honge.
-        // Tamam plots ek sath load nahi honge.
-        $projects = Project::orderBy('project_name')
+        $projects = Project::orderBy(
+                'project_name'
+            )
             ->get([
                 'id',
                 'project_name',
@@ -624,55 +1012,29 @@ public function getStreets($blockId)
         );
     }
 
-    // old edit
-    // public function edit(PossessionCase $possessionCase)
-
-    // {
-    //     $possessionCase->load('owners');
-
-    //     $plots = Plot::with([
-    //         'project',
-    //         'block',
-    //         'street',
-    //         // 'plotSize',
-    //         'size',
-    //     ])->orderBy('plot_number')->get();
-
-    //     return view(
-    //         'possession_cases.edit',
-    //         compact(
-    //             'possessionCase',
-    //             'plots'
-    //         )
-    //     );
-    // }
 
     /**
      * Update possession case.
      */
-
-    /**
-     * Update possession case.
-     */
-
     public function update(
-    Request $request,
-    PossessionCase $possessionCase
+        Request $request,
+        PossessionCase $possessionCase
     ) {
         $validated = $request->validate([
 
             'plot_id' => [
                 'required',
                 'integer',
-                Rule::exists('plots', 'id')->where(function ($query) {
-                    $query->whereNull('deleted_at');
-                }),
+                Rule::exists('plots', 'id')
+                    ->where(function ($query) {
+                        $query->whereNull('deleted_at');
+                    }),
             ],
 
-            'case_no' => [
-                'required',
-                'integer',
-                'min:1',
+            'reference_no' => [
+                'nullable',
+                'string',
+                'max:255',
             ],
 
             'need_approval' => [
@@ -712,7 +1074,6 @@ public function getStreets($blockId)
             | Owners
             |--------------------------------------------------------------------------
             */
-
             'owners' => [
                 'required',
                 'array',
@@ -732,6 +1093,12 @@ public function getStreets($blockId)
 
             'owners.*.owner_name' => [
                 'required',
+                'string',
+                'max:255',
+            ],
+
+            'owners.*.relative_name' => [
+                'nullable',
                 'string',
                 'max:255',
             ],
@@ -757,31 +1124,25 @@ public function getStreets($blockId)
 
         /*
         |--------------------------------------------------------------------------
-        | Check duplicate case number
+        | Plot change prevent
         |--------------------------------------------------------------------------
+        |
+        | Possession number plot ke sath linked hai.
+        | Is liye existing case ko doosre plot par move nahi karenge.
         */
-
-        $exists = PossessionCase::where('plot_id', $validated['plot_id'])
-            ->where('case_no', $validated['case_no'])
-            ->where('id', '!=', $possessionCase->id)
-            ->exists();
-
-        if ($exists) {
+        if (
+            (int) $validated['plot_id']
+            !== (int) $possessionCase->plot_id
+        ) {
 
             return back()
                 ->withInput()
                 ->withErrors([
-                    'case_no' =>
-                        'This case number already exists for the selected plot.',
+                    'plot_id' =>
+                        'An existing possession case cannot be moved to another plot.',
                 ]);
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Update everything inside transaction
-        |--------------------------------------------------------------------------
-        */
 
         DB::transaction(function () use (
             $validated,
@@ -793,32 +1154,35 @@ public function getStreets($blockId)
             | Update Possession Case
             |--------------------------------------------------------------------------
             */
-
             $possessionCase->update([
 
-                'plot_id' =>
-                    $validated['plot_id'],
-
-                'case_no' =>
-                    $validated['case_no'],
+                'reference_no' =>
+                    $validated['reference_no']
+                    ?? null,
 
                 'need_approval' =>
-                    $validated['need_approval'] ?? false,
+                    $validated['need_approval']
+                    ?? false,
 
                 'current_holder_type' =>
-                    $validated['current_holder_type'] ?? null,
+                    $validated['current_holder_type']
+                    ?? null,
 
                 'current_holder_id' =>
-                    $validated['current_holder_id'] ?? null,
+                    $validated['current_holder_id']
+                    ?? null,
 
                 'current_holder_name' =>
-                    $validated['current_holder_name'] ?? null,
+                    $validated['current_holder_name']
+                    ?? null,
 
                 'received_at' =>
-                    $validated['received_at'] ?? null,
+                    $validated['received_at']
+                    ?? null,
 
                 'remarks' =>
-                    $validated['remarks'] ?? null,
+                    $validated['remarks']
+                    ?? null,
 
                 'updated_by' =>
                     Auth::id(),
@@ -827,20 +1191,15 @@ public function getStreets($blockId)
 
             /*
             |--------------------------------------------------------------------------
-            | Existing owners attached to this case
+            | Existing owners
             |--------------------------------------------------------------------------
             */
+            $oldOwnerIds =
+                $possessionCase
+                    ->owners()
+                    ->pluck('owners.id')
+                    ->toArray();
 
-            $oldOwnerIds = $possessionCase->owners()
-                ->pluck('owners.id')
-                ->toArray();
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Owners that will remain attached
-            |--------------------------------------------------------------------------
-            */
 
             $existingOwnerIds = [];
 
@@ -850,20 +1209,13 @@ public function getStreets($blockId)
             | Process Owners
             |--------------------------------------------------------------------------
             */
-
-            foreach ($validated['owners'] as $ownerData) {
+            foreach (
+                $validated['owners']
+                as $ownerData
+            ) {
 
                 $owner = null;
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Owner ID
-                |--------------------------------------------------------------------------
-                |
-                | Edit form se existing owner ka ID aa sakta hai.
-                |
-                */
 
                 $ownerId =
                     $ownerData['owner_id']
@@ -873,7 +1225,9 @@ public function getStreets($blockId)
 
                 if ($ownerId) {
 
-                    $owner = \App\Models\Owner::find($ownerId);
+                    $owner = Owner::find(
+                        $ownerId
+                    );
 
                     if (!$owner) {
 
@@ -885,44 +1239,30 @@ public function getStreets($blockId)
                 }
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | CNIC
-                |--------------------------------------------------------------------------
-                */
-
-                $cnic = trim($ownerData['cnic']);
+                $cnic =
+                    trim(
+                        $ownerData['cnic']
+                    );
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Find owner by CNIC
-                |--------------------------------------------------------------------------
-                */
-
-                $ownerByCnic = \App\Models\Owner::where(
-                    'cnic',
-                    $cnic
-                )->first();
+                $ownerByCnic =
+                    Owner::where(
+                        'cnic',
+                        $cnic
+                    )->first();
 
 
                 /*
                 |--------------------------------------------------------------------------
-                | CNIC already exists
+                | Existing CNIC
                 |--------------------------------------------------------------------------
                 */
-
                 if ($ownerByCnic) {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Selected owner ID aur CNIC kisi doosre owner ka hai
-                    |--------------------------------------------------------------------------
-                    */
 
                     if (
                         $owner &&
-                        $owner->id !== $ownerByCnic->id
+                        $owner->id
+                            !== $ownerByCnic->id
                     ) {
 
                         throw \Illuminate\Validation\ValidationException::withMessages([
@@ -932,17 +1272,15 @@ public function getStreets($blockId)
                     }
 
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Name safety check
-                    |--------------------------------------------------------------------------
-                    */
-
                     $enteredName =
-                        trim($ownerData['owner_name']);
+                        trim(
+                            $ownerData['owner_name']
+                        );
 
                     $existingName =
-                        trim($ownerByCnic->owner_name);
+                        trim(
+                            $ownerByCnic->owner_name
+                        );
 
 
                     if (
@@ -959,108 +1297,83 @@ public function getStreets($blockId)
                     }
 
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Existing owner mil gaya
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $owner = $ownerByCnic;
+                    $owner =
+                        $ownerByCnic;
 
                 } else {
 
                     /*
                     |--------------------------------------------------------------------------
-                    | CNIC does NOT exist
+                    | New CNIC
                     |--------------------------------------------------------------------------
                     */
-
                     if ($owner) {
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Existing selected owner - update it
-                        |--------------------------------------------------------------------------
-                        */
 
                         $owner->update([
 
                             'owner_name' =>
                                 $ownerData['owner_name'],
 
+                            'relative_name' =>
+                                $ownerData['relative_name']
+                                ?? null,
+
                             'cnic' =>
                                 $cnic,
 
                             'address' =>
-                                $ownerData['address'] ?? null,
+                                $ownerData['address']
+                                ?? null,
 
                             'contact_no' =>
-                                $ownerData['contact_no'] ?? null,
+                                $ownerData['contact_no']
+                                ?? null,
                         ]);
 
                     } else {
 
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Completely new owner
-                        |--------------------------------------------------------------------------
-                        */
+                        $owner =
+                            Owner::create([
 
-                        $owner = \App\Models\Owner::create([
+                                'owner_name' =>
+                                    $ownerData['owner_name'],
 
-                            'owner_name' =>
-                                $ownerData['owner_name'],
+                                'relative_name' =>
+                                    $ownerData['relative_name']
+                                    ?? null,
 
-                            'cnic' =>
-                                $cnic,
+                                'cnic' =>
+                                    $cnic,
 
-                            'address' =>
-                                $ownerData['address'] ?? null,
+                                'address' =>
+                                    $ownerData['address']
+                                    ?? null,
 
-                            'contact_no' =>
-                                $ownerData['contact_no'] ?? null,
-                        ]);
+                                'contact_no' =>
+                                    $ownerData['contact_no']
+                                    ?? null,
+                            ]);
                     }
                 }
 
 
                 /*
                 |--------------------------------------------------------------------------
-                | Update owner information
-                |--------------------------------------------------------------------------
-                |
-                | Existing CNIC + same name:
-                | central owner record ko use karenge.
-                |
-                | Yahan address/contact ko automatically overwrite nahi kar rahe.
-                | Central owner changes Owner module se manage honge.
-                |
-                */
-
-                /*
-                |--------------------------------------------------------------------------
-                | Attach owner to possession case
+                | Attach / update pivot
                 |--------------------------------------------------------------------------
                 */
+                $possessionCase
+                    ->owners()
+                    ->syncWithoutDetaching([
 
-                $possessionCase->owners()->syncWithoutDetaching([
+                        $owner->id => [
 
-                    $owner->id => [
+                            'address_snapshot' =>
+                                $ownerData['address']
+                                ?? $owner->address,
+                        ],
+                    ]);
 
-                        'address_snapshot' =>
-                            $ownerData['address']
-                            ?? $owner->address,
-
-                    ],
-
-                ]);
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Remember owner
-                |--------------------------------------------------------------------------
-                */
 
                 $existingOwnerIds[] =
                     $owner->id;
@@ -1069,45 +1382,37 @@ public function getStreets($blockId)
 
             /*
             |--------------------------------------------------------------------------
-            | Remove owners deleted from edit form
+            | Detach removed owners
             |--------------------------------------------------------------------------
-            |
-            | Sirf possession_case_owners se detach hoga.
-            |
-            | Central owners table ka record delete NAHI hoga.
-            |
             */
-
-            $ownersToDetach = array_diff(
-                $oldOwnerIds,
-                $existingOwnerIds
-            );
+            $ownersToDetach =
+                array_diff(
+                    $oldOwnerIds,
+                    $existingOwnerIds
+                );
 
 
             if (!empty($ownersToDetach)) {
 
-                $possessionCase->owners()
-                    ->detach($ownersToDetach);
+                $possessionCase
+                    ->owners()
+                    ->detach(
+                        $ownersToDetach
+                    );
             }
 
 
             /*
             |--------------------------------------------------------------------------
-            | Update updater
+            | Updater
             |--------------------------------------------------------------------------
             */
-
             $possessionCase->update([
-                'updated_by' => Auth::id(),
+                'updated_by' =>
+                    Auth::id(),
             ]);
         });
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Redirect
-        |--------------------------------------------------------------------------
-        */
 
         return redirect()
             ->route(
@@ -1119,12 +1424,11 @@ public function getStreets($blockId)
                 'Possession case updated successfully.'
             );
     }
-    
+
 
     /**
      * Update case status.
      */
-
     public function updateStatus(
         Request $request,
         PossessionCase $possessionCase
@@ -1136,12 +1440,6 @@ public function getStreets($blockId)
                 'in:received,prepared,surveyor_signed,approval,town_planner_signed,completed',
             ],
 
-            // 'handed_over_to' => [
-            //     'nullable',
-            //     'string',
-            //     'max:255',
-            // ],
-            
             'handed_over_to' => [
                 $request->status === 'completed'
                     ? 'required'
@@ -1157,47 +1455,37 @@ public function getStreets($blockId)
             ],
         ]);
 
+
         /*
         |--------------------------------------------------------------------------
-        | Allowed workflow
+        | Cancelled case cannot continue workflow
         |--------------------------------------------------------------------------
-        |
-        | Without Approval:
-        | Received
-        |     ↓
-        | Prepared
-        |     ↓
-        | Surveyor Signed
-        |     ↓
-        | Town Planner Signed
-        |     ↓
-        | Completed
-        |
-        | With Approval:
-        | Received
-        |     ↓
-        | Prepared
-        |     ↓
-        | Surveyor Signed
-        |     ↓
-        | Approval
-        |     ↓
-        | Town Planner Signed
-        |     ↓
-        | Completed
-        |
         */
+        if (
+            $possessionCase->current_status
+            === 'cancelled'
+        ) {
 
-        $currentStatus = $possessionCase->current_status;
-        $newStatus = $validated['status'];
+            return back()
+                ->withErrors([
+                    'status' =>
+                        'Cancelled possession case cannot continue through the normal workflow.',
+                ]);
+        }
+
+
+        $currentStatus =
+            $possessionCase->current_status;
+
+        $newStatus =
+            $validated['status'];
 
 
         /*
         |--------------------------------------------------------------------------
-        | Determine next allowed status
+        | Allowed Workflow
         |--------------------------------------------------------------------------
         */
-
         if ($possessionCase->need_approval) {
 
             $allowedNextStatuses = [
@@ -1223,7 +1511,6 @@ public function getStreets($blockId)
                 ],
 
                 'completed' => [],
-
             ];
 
         } else {
@@ -1238,30 +1525,27 @@ public function getStreets($blockId)
                     'surveyor_signed',
                 ],
 
-                // 'surveyor_signed' => [
-                //     'town_planner_signed',
-                // ],
-
                 'surveyor_signed' => [
                     'completed',
                 ],
 
                 'completed' => [],
-
             ];
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Check whether selected status is actually allowed
+        | Validate transition
         |--------------------------------------------------------------------------
         */
-
-        if (!in_array(
-            $newStatus,
-            $allowedNextStatuses[$currentStatus] ?? []
-        )) {
+        if (
+            !in_array(
+                $newStatus,
+                $allowedNextStatuses[$currentStatus]
+                ?? []
+            )
+        ) {
 
             return back()
                 ->withErrors([
@@ -1278,30 +1562,26 @@ public function getStreets($blockId)
             $currentStatus,
             $newStatus
         ) {
-            $oldHolderName = $possessionCase->current_holder_name;
-            $newHolderName = $validated['handed_over_to'] ?? null;
-            /*
-            |--------------------------------------------------------------------------
-            | Holder Change During Handover
-            |--------------------------------------------------------------------------
-            */
-
-            $oldHolderName = $possessionCase->current_holder_name;
-
-            $newHolderName = $validated['handed_over_to'] ?? null;
-
-            if (!empty($newHolderName)) {
-
-                $updateData['current_holder_name'] = $newHolderName;
-
-            }
 
             /*
             |--------------------------------------------------------------------------
-            | Date field according to status
+            | Holder
             |--------------------------------------------------------------------------
             */
+            $oldHolderName =
+                $possessionCase
+                    ->current_holder_name;
 
+            $newHolderName =
+                $validated['handed_over_to']
+                ?? null;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Date Field
+            |--------------------------------------------------------------------------
+            */
             $dateField = match ($newStatus) {
 
                 'received' =>
@@ -1329,10 +1609,9 @@ public function getStreets($blockId)
 
             /*
             |--------------------------------------------------------------------------
-            | Prepare update data
+            | Prepare Update Data FIRST
             |--------------------------------------------------------------------------
             */
-
             $updateData = [
 
                 'current_status' =>
@@ -1340,90 +1619,80 @@ public function getStreets($blockId)
 
                 'updated_by' =>
                     Auth::id(),
-
             ];
 
 
             /*
             |--------------------------------------------------------------------------
-            | Save status date
+            | Save Date
             |--------------------------------------------------------------------------
             */
-
             if ($dateField) {
 
                 $updateData[$dateField] =
                     now()->toDateString();
             }
 
+
             /*
             |--------------------------------------------------------------------------
-            | Handed Over To / Current Holder
+            | Handover
             |--------------------------------------------------------------------------
             */
-
             if (!empty($newHolderName)) {
 
-                $updateData['handed_over_to'] = $newHolderName;
+                $updateData[
+                    'handed_over_to'
+                ] = $newHolderName;
 
-                $updateData['current_holder_name'] = $newHolderName;
-
+                $updateData[
+                    'current_holder_name'
+                ] = $newHolderName;
             }
-            // /*
-            // |--------------------------------------------------------------------------
-            // | Handed Over To
-            // |--------------------------------------------------------------------------
-            // */
 
-            // if (!empty($validated['handed_over_to'])) {
-
-            //     $updateData['handed_over_to'] =
-            //         $validated['handed_over_to'];
-            // }
 
             /*
             |--------------------------------------------------------------------------
             | Remarks
             |--------------------------------------------------------------------------
             */
-
             if (!empty($validated['remarks'])) {
 
                 $updateData['remarks'] =
                     $validated['remarks'];
             }
 
+
             /*
             |--------------------------------------------------------------------------
             | Completed
             |--------------------------------------------------------------------------
-            |
-            | Jab case Completed ho jaye to case inactive ho jayega.
-            |
             */
-
             if ($newStatus === 'completed') {
 
-                $updateData['is_active'] = false;
+                $updateData['is_active'] =
+                    false;
+
                 $updateData['handed_over_at'] =
                     now()->toDateString();
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Update Possession Case
-            |--------------------------------------------------------------------------
-            */
-
-            $possessionCase->update($updateData);
-
 
             /*
             |--------------------------------------------------------------------------
-            | Create History
+            | Update Case
             |--------------------------------------------------------------------------
             */
+            $possessionCase->update(
+                $updateData
+            );
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | History
+            |--------------------------------------------------------------------------
+            */
             $actionLabels = [
 
                 'received' =>
@@ -1443,47 +1712,49 @@ public function getStreets($blockId)
 
                 'completed' =>
                     'Case Completed',
-
             ];
 
 
-            $possessionCase->histories()->create([
+            $possessionCase
+                ->histories()
+                ->create([
 
-                'plot_id' =>
-                    $possessionCase->plot_id,
+                    'plot_id' =>
+                        $possessionCase->plot_id,
 
-                'action' =>
-                    $actionLabels[$newStatus]
-                    ?? ucfirst(str_replace('_', ' ', $newStatus)),
+                    'action' =>
+                        $actionLabels[$newStatus]
+                        ?? ucfirst(
+                            str_replace(
+                                '_',
+                                ' ',
+                                $newStatus
+                            )
+                        ),
 
-                'old_status' =>
-                    $currentStatus,
+                    'old_status' =>
+                        $currentStatus,
 
-                'new_status' =>
-                    $newStatus,
+                    'new_status' =>
+                        $newStatus,
 
-                'old_holder' => 
-                    $oldHolderName,
+                    'old_holder' =>
+                        $oldHolderName,
 
-                'new_holder' => $newHolderName
-                    ?? $oldHolderName,
+                    'new_holder' =>
+                        $newHolderName
+                        ?? $oldHolderName,
 
-                'handed_over_to' => $newHolderName,
-                    // 'old_holder' =>
-                //     $possessionCase->current_holder_name,
+                    'handed_over_to' =>
+                        $newHolderName,
 
-                // 'new_holder' =>
-                //     $possessionCase->current_holder_name,
+                    'remarks' =>
+                        $validated['remarks']
+                        ?? null,
 
-                // 'handed_over_to' =>
-                //     $validated['handed_over_to'] ?? null,
-
-                'remarks' =>
-                    $validated['remarks'] ?? null,
-
-                'user_id' =>
-                    Auth::id(),
-            ]);
+                    'user_id' =>
+                        Auth::id(),
+                ]);
         });
 
 
@@ -1494,21 +1765,156 @@ public function getStreets($blockId)
             );
     }
 
+
+    /**
+     * Cancel possession case.
+     *
+     * Cancelled possession delete nahi hoti.
+     * Sirf status cancelled aur inactive hota hai.
+     */
+    public function cancel(
+        Request $request,
+        PossessionCase $possessionCase
+    ) {
+        $validated = $request->validate([
+
+            'cancellation_reason' => [
+                'required',
+                'string',
+                'min:3',
+            ],
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Already cancelled
+        |--------------------------------------------------------------------------
+        */
+        if (
+            $possessionCase->current_status
+            === 'cancelled'
+        ) {
+
+            return back()
+                ->withErrors([
+                    'cancellation_reason' =>
+                        'This possession case is already cancelled.',
+                ]);
+        }
+
+
+        DB::transaction(function () use (
+            $validated,
+            $possessionCase
+        ) {
+
+            $oldStatus =
+                $possessionCase->current_status;
+
+            $oldHolder =
+                $possessionCase->current_holder_name;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Cancel Case
+            |--------------------------------------------------------------------------
+            */
+            $possessionCase->update([
+
+                'current_status' =>
+                    'cancelled',
+
+                'is_active' =>
+                    false,
+
+                'cancelled_at' =>
+                    now()->toDateString(),
+
+                'cancelled_by' =>
+                    Auth::id(),
+
+                'cancellation_reason' =>
+                    $validated[
+                        'cancellation_reason'
+                    ],
+
+                'updated_by' =>
+                    Auth::id(),
+            ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | History
+            |--------------------------------------------------------------------------
+            */
+            $possessionCase
+                ->histories()
+                ->create([
+
+                    'plot_id' =>
+                        $possessionCase->plot_id,
+
+                    'action' =>
+                        'Possession Cancelled',
+
+                    'old_status' =>
+                        $oldStatus,
+
+                    'new_status' =>
+                        'cancelled',
+
+                    'old_holder' =>
+                        $oldHolder,
+
+                    'new_holder' =>
+                        $oldHolder,
+
+                    'handed_over_to' =>
+                        null,
+
+                    'remarks' =>
+                        $validated[
+                            'cancellation_reason'
+                        ],
+
+                    'user_id' =>
+                        Auth::id(),
+                ]);
+        });
+
+
+        return back()
+            ->with(
+                'success',
+                'Possession case cancelled successfully.'
+            );
+    }
+
+
     /**
      * Soft delete possession case.
      */
-
-    public function destroy(PossessionCase $possessionCase)
-    {
+    public function destroy(
+        PossessionCase $possessionCase
+    ) {
         $possessionCase->update([
-            'is_active' => false,
-            'updated_by' => Auth::id(),
+
+            'is_active' =>
+                false,
+
+            'updated_by' =>
+                Auth::id(),
         ]);
 
         $possessionCase->delete();
 
         return redirect()
-            ->route('possession-cases.index')
+            ->route(
+                'possession-cases.index'
+            )
             ->with(
                 'success',
                 'Possession case deleted successfully.'
