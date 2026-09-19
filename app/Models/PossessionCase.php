@@ -38,10 +38,42 @@ class PossessionCase extends Model
     //     'updated_by',
     //     'town_planner_signed_at',
     // ];
+    // protected $fillable = [
+    //     'plot_id',
+    //     'case_no',
+    //     'need_approval',
+    //     'current_status',
+
+    //     'current_holder_type',
+    //     'current_holder_id',
+    //     'current_holder_name',
+
+    //     'received_at',
+    //     'prepared_at',
+    //     'surveyor_signed_at',
+    //     'signed_at',
+    //     'town_planner_signed_at',
+    //     'approval_sent_at',
+    //     'received_back_at',
+    //     'handed_over_at',
+    //     'completed_at',
+
+    //     'handed_over_to',
+    //     'remarks',
+
+    //     'is_active',
+
+    //     'created_by',
+    //     'updated_by',
+    // ];
     protected $fillable = [
         'plot_id',
-        'case_no',
+        'possession_no',
+        'reference_no',
+        'possession_sequence',
+        'revision_no',
         'need_approval',
+
         'current_status',
 
         'current_holder_type',
@@ -59,8 +91,12 @@ class PossessionCase extends Model
         'completed_at',
 
         'handed_over_to',
-        'remarks',
 
+        'cancelled_at',
+        'cancelled_by',
+        'cancellation_reason',
+
+        'remarks',
         'is_active',
 
         'created_by',
@@ -93,6 +129,7 @@ class PossessionCase extends Model
         'received_back_at' => 'date',
         'handed_over_at' => 'date',
         'completed_at' => 'date',
+        'cancelled_ad' => 'date',
     ];
 
     /*

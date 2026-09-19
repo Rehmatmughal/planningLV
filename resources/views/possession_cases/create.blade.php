@@ -252,6 +252,10 @@
                                     @if($selectedPlot->size)
                                         - {{ $selectedPlot->size->title }}
                                     @endif
+                                    
+                                    @if($selectedPlot->propertyType)
+                                        - {{ $selectedPlot->propertyType->name ?? $selectedPlot->propertyType->title ?? '-' }}
+                                    @endif
 
                                 @endif
 

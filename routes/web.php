@@ -554,6 +554,11 @@ Route::patch(
     'possession-cases/{possessionCase}/status',
     [PossessionCaseController::class, 'updateStatus']
 )->name('possession-cases.update-status');
+// possession case cancelation route
+Route::post(
+    'possession-cases/{possessionCase}/cancel',
+    [PossessionCaseController::class, 'cancel']
+)->name('possession-cases.cancel');
 
 // owner routes
 // owner import
