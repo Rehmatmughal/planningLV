@@ -12,7 +12,7 @@
 
         <div>
             <h4 class="fw-bold mb-1">
-                📋 Possession Case #{{ $possessionCase->case_no }}
+                📋 Possession No: {{ $possessionCase->possession_no ?? '-' }}
             </h4>
 
             <small class="text-muted">
@@ -57,56 +57,6 @@
     @endif
 
 
-    {{-- =========================================================
-         CASE STATUS
-    ========================================================== --}}
-{{-- $statusLabels = [
-
-            'received' => 'Received',
-            'prepared' => 'Prepared',
-            'signed' => 'Signed',
-            'approval' => 'Approval',
-            'receive_back' => 'Receive Back',
-            'handed_over' => 'Handed Over',
-            'completed' => 'Completed',
-
-        ];
-
-        $statusClasses = [
-
-            'received' => 'bg-primary',
-            'prepared' => 'bg-info',
-            'signed' => 'bg-warning text-dark',
-            'approval' => 'bg-secondary',
-            'receive_back' => 'bg-dark',
-            'handed_over' => 'bg-success',
-            'completed' => 'bg-success',
-
-        ]; --}}
-{{-- 2nd time copy --}}
-        {{-- $statusLabels = [
-
-            'received' => 'Received',
-            'prepared' => 'Prepared',
-            'surveyor_signed' => 'Surveyor Signed',
-            'approval' => 'Approval',
-            'town_planner_signed' => 'Town Planner Signed',
-            'completed' => 'Completed',
-
-        ]; --}}
-
-        {{-- $statusClasses = [
-
-            'received' => 'bg-primary',
-            'prepared' => 'bg-info',
-            'surveyor_signed' => 'bg-warning text-dark',
-            'approval' => 'bg-secondary',
-            'town_planner_signed' => 'bg-warning text-dark',
-            'completed' => 'bg-success',
-
-        ]; --}}
-
-
     @php
         
         $statusLabels = [
@@ -120,6 +70,7 @@
             'approval' => 'Approval',
             'town_planner_signed' => 'Town Planner Signed',
             'completed' => 'Completed',
+            'cancelled' => 'Cancelled',
 
         ];
 
@@ -131,6 +82,7 @@
             'approval' => 'bg-secondary',
             'town_planner_signed' => 'bg-warning text-dark',
             'completed' => 'bg-success',
+            'cancelled' => 'bg-danger',
 
         ];
 
@@ -193,8 +145,17 @@
     ========================================================== --}}
 
     @php
+
+        /*
+        |--------------------------------------------------------------------------
+        | Workflow Definition
+        |--------------------------------------------------------------------------
+        */
+
         if ($possessionCase->need_approval) {
+
             $workflow = [
+
                 'received' => 'Received',
 
                 'prepared' => 'Prepared',
@@ -226,7 +187,20 @@
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Workflow Statuses
+        |--------------------------------------------------------------------------
+        */
+
         $workflowStatuses = array_keys($workflow);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Current Workflow Index
+        |--------------------------------------------------------------------------
+        */
 
         $currentIndex = array_search(
             $possessionCase->current_status,
@@ -240,109 +214,153 @@
     <div class="card shadow-sm mb-4">
 
         <div class="card-header bg-light">
-            <strong>🔄 Possession Workflow</strong>
+
+            <strong>
+                🔄 Possession Workflow
+            </strong>
+
         </div>
+
 
         <div class="card-body">
 
-            {{-- Approval Requirement --}}
 
-            <div class="mb-3">
+            {{-- =====================================================
+                CANCELLED CASE
+            ====================================================== --}}
 
-                @if($possessionCase->need_approval)
+            @if($possessionCase->current_status === 'cancelled')
 
-                    <span class="badge bg-warning text-dark">
-                        Approval Required
-                    </span>
+                <div class="alert alert-danger mb-0">
 
-                @else
+                    <strong>
+                        ❌ Possession Case Cancelled
+                    </strong>
 
-                    <span class="badge bg-secondary">
-                        No Approval Required
-                    </span>
+                    <br>
 
-                @endif
+                    This possession case has been cancelled and cannot
+                    continue through the normal workflow.
 
-            </div>
-
-
-            {{-- Workflow Steps --}}
-
-            <div class="row g-2">
-
-                @foreach($workflow as $status => $label)
-
-                    @php
-
-                        $statusIndex = array_search(
-                            $status,
-                            $workflowStatuses,
-                            true
-                        );
+                </div>
 
 
-                        if (
-                            $currentIndex !== false &&
-                            $statusIndex < $currentIndex
-                        ) {
-
-                            $stepClass = 'bg-success text-white';
-
-                        } elseif (
-                            $currentIndex !== false &&
-                            $statusIndex === $currentIndex
-                        ) {
-
-                            $stepClass = 'bg-primary text-white';
-
-                        } else {
-
-                            $stepClass = 'bg-light text-muted border';
-
-                        }
-
-                    @endphp
+            @else
 
 
-                    <div class="col">
+                {{-- =================================================
+                    APPROVAL REQUIREMENT
+                ================================================== --}}
 
-                        <div class="rounded p-3 text-center {{ $stepClass }}">
+                <div class="mb-3">
 
-                            <div class="fw-bold">
-                                {{ $label }}
+                    @if($possessionCase->need_approval)
+
+                        <span class="badge bg-warning text-dark">
+
+                            Approval Required
+
+                        </span>
+
+                    @else
+
+                        <span class="badge bg-secondary">
+
+                            No Approval Required
+
+                        </span>
+
+                    @endif
+
+                </div>
+
+
+                {{-- =================================================
+                    WORKFLOW STEPS
+                ================================================== --}}
+
+                <div class="row g-2">
+
+                    @foreach($workflow as $status => $label)
+
+                        @php
+
+                            $statusIndex = array_search(
+                                $status,
+                                $workflowStatuses,
+                                true
+                            );
+
+
+                            if (
+                                $currentIndex !== false &&
+                                $statusIndex < $currentIndex
+                            ) {
+
+                                $stepClass = 'bg-success text-white';
+
+                            } elseif (
+                                $currentIndex !== false &&
+                                $statusIndex === $currentIndex
+                            ) {
+
+                                $stepClass = 'bg-primary text-white';
+
+                            } else {
+
+                                $stepClass = 'bg-light text-muted border';
+
+                            }
+
+                        @endphp
+
+
+                        <div class="col">
+
+                            <div class="rounded p-3 text-center {{ $stepClass }}">
+
+                                <div class="fw-bold">
+
+                                    {{ $label }}
+
+                                </div>
+
                             </div>
 
                         </div>
 
-                    </div>
+                    @endforeach
 
-                @endforeach
-
-            </div>
+                </div>
 
 
-            {{-- Current Status --}}
+                {{-- =================================================
+                    CURRENT STATUS
+                ================================================== --}}
 
-            <div class="mt-3">
+                <div class="mt-3">
 
-                <span class="text-muted">
-                    Current Status:
-                </span>
+                    <span class="text-muted">
 
-                <strong>
+                        Current Status:
 
-                    {{ $workflow[$possessionCase->current_status]
-                        ?? ucfirst(str_replace('_', ' ', $possessionCase->current_status)) }}
+                    </span>
 
-                </strong>
+                    <strong>
 
-            </div>
+                        {{ $workflow[$possessionCase->current_status]
+                            ?? ucfirst(str_replace('_', ' ', $possessionCase->current_status)) }}
+
+                    </strong>
+
+                </div>
+
+
+            @endif
 
         </div>
 
     </div>
-
-
 
 
     <div class="row">
@@ -370,19 +388,23 @@
                 <div class="card-body">
 
                     <div class="row g-3">
-
                         <div class="col-md-4">
+                            <small class="text-muted">
+                                Possession No
+                            </small>
+                            <div class="fw-bold">
+                                {{ $possessionCase->possession_no ?? '-' }}
+                            </div>
+                        </div>
 
+                        {{-- <div class="col-md-4">
                             <small class="text-muted">
                                 Case No
                             </small>
-
                             <div class="fw-bold">
                                 {{ $possessionCase->case_no }}
                             </div>
-
-                        </div>
-
+                        </div> --}}
 
                         <div class="col-md-4">
 
@@ -573,6 +595,98 @@
 
             </div>
 
+            {{-- =================================================
+                CANCELLATION DETAILS
+            ================================================== --}}
+
+            @if($possessionCase->current_status === 'cancelled')
+
+                <div class="card shadow-sm border-danger mb-4">
+
+                    <div class="card-header bg-danger text-white">
+
+                        <strong>
+                            ❌ Cancellation Details
+                        </strong>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            {{-- Cancelled Date --}}
+                            <div class="col-md-4">
+
+                                <small class="text-muted">
+                                    Cancelled Date
+                                </small>
+
+                                <div class="fw-bold text-danger">
+
+                                    {{ $possessionCase->cancelled_at?->format('d-m-Y') ?? '-' }}
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Cancelled By --}}
+                            <div class="col-md-4">
+
+                                <small class="text-muted">
+                                    Cancelled By
+                                </small>
+
+                                <div class="fw-bold">
+
+                                    {{ $possessionCase->cancelled_by ?? '-' }}
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Active --}}
+                            <div class="col-md-4">
+
+                                <small class="text-muted">
+                                    Case Status
+                                </small>
+
+                                <div>
+
+                                    <span class="badge bg-danger">
+                                        Cancelled
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Cancellation Reason --}}
+                            <div class="col-12">
+
+                                <small class="text-muted">
+                                    Cancellation Reason
+                                </small>
+
+                                <div class="border border-danger rounded p-3 bg-light">
+
+                                    {{ $possessionCase->cancellation_reason ?? 'No cancellation reason recorded.' }}
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            @endif
 
             {{-- OWNERS --}}
             <div class="card shadow-sm mb-4">
@@ -847,6 +961,106 @@
                         @endif
                     </div>
                 </div>
+            @endif
+                        {{-- @endif --}}
+
+
+            {{-- =================================================
+                 CANCEL POSSESSION
+            ================================================== --}}
+
+            @if(
+                $possessionCase->current_status !== 'cancelled'
+                // && $possessionCase->is_active
+            )
+
+                <div class="card shadow-sm border-danger mb-4">
+
+                    <div class="card-header bg-light">
+
+                        <strong class="text-danger">
+                            ❌ Cancel Possession
+                        </strong>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <p class="text-muted small">
+
+                            Cancelling this possession will make the case
+                            inactive. The possession number will remain
+                            reserved and will not be reused.
+
+                        </p>
+
+                        <form method="POST"
+                            action="{{ route('possession-cases.cancel', $possessionCase) }}">
+
+                            @csrf
+
+                            <div class="mb-3">
+
+                                <label class="form-label fw-bold">
+                                    Cancellation Reason
+                                </label>
+
+                                <textarea
+                                    name="cancellation_reason"
+                                    class="form-control"
+                                    rows="3"
+                                    required
+                                    minlength="3"
+                                    placeholder="Enter reason for cancellation">{{ old('cancellation_reason') }}</textarea>
+
+                            </div>
+
+                            <button type="submit"
+                                    class="btn btn-danger"
+                                    onclick="return confirm('Are you sure you want to cancel this possession case? This action cannot be undone.');">
+
+                                ❌ Cancel Possession
+
+                            </button>
+
+                        </form>
+                        {{-- <form method="POST"
+                              action="{{ route('possession-cases.cancel', $possessionCase) }}">
+
+                            @csrf
+
+                            @method('PATCH')
+                            <div class="mb-3">
+
+                                <label class="form-label fw-bold">
+                                    Cancellation Reason
+                                </label>
+
+                                <textarea
+                                    name="cancellation_reason"
+                                    class="form-control"
+                                    rows="3"
+                                    required
+                                    minlength="3"
+                                    placeholder="Enter reason for cancellation">{{ old('cancellation_reason') }}</textarea>
+
+                            </div>
+
+
+                            <button type="submit"
+                                    class="btn btn-danger"
+                                    onclick="return confirm('Are you sure you want to cancel this possession case? This action cannot be undone.');">
+
+                                ❌ Cancel Possession
+
+                            </button>
+
+                        </form> --}}
+
+                    </div>
+
+                </div>
+
             @endif
         </div>
 

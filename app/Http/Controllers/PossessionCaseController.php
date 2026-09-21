@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use App\Models\Owner;
+use App\Models\PropertyType;
+
 
 class PossessionCaseController extends Controller
 {
@@ -336,36 +338,95 @@ class PossessionCaseController extends Controller
      * 251
      * 252
      */
+
     private function generateBasePossessionNumber(Plot $plot): string
     {
-        $query = PossessionCase::query()
+        /*
+        |--------------------------------------------------------------------------
+        | Lock Project
+        |--------------------------------------------------------------------------
+        |
+        | Same Project + Property Type mein agar 2 different plots par
+        | simultaneously new possession create ho rahi ho,
+        | to dono ko same MAX number milne se prevent karta hai.
+        |
+        */
+        Project::whereKey($plot->project_id)
+            ->lockForUpdate()
+            ->firstOrFail();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Find Existing Base Possession Numbers
+        |--------------------------------------------------------------------------
+        |
+        | withTrashed() is liye use ho raha hai taake soft-deleted
+        | possession cases ke numbers bhi dobara reuse na hon.
+        |
+        */
+        $query = PossessionCase::withTrashed()
             ->whereNotNull('possession_no')
             ->whereRaw(
                 "possession_no REGEXP '^[0-9]+$'"
             )
             ->whereHas('plot', function ($q) use ($plot) {
 
-                $q->where(
-                    'project_id',
-                    $plot->project_id
-                );
+                /*
+                | Soft-deleted plot ke possession records bhi
+                | numbering mein count honge.
+                */
+                $q->withTrashed()
+                    ->where(
+                        'project_id',
+                        $plot->project_id
+                    );
 
+                /*
+                | Property Type ke hisaab se separate numbering.
+                */
                 if ($plot->property_type_id !== null) {
+
                     $q->where(
                         'property_type_id',
                         $plot->property_type_id
                     );
+
                 } else {
-                    $q->whereNull('property_type_id');
+
+                    $q->whereNull(
+                        'property_type_id'
+                    );
                 }
             });
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Highest Existing Base Number
+        |--------------------------------------------------------------------------
+        |
+        | Example:
+        | 1, 2, 3, 7, 9
+        |
+        | MAX = 9
+        | Next = 10
+        |
+        | Gaps reuse nahi honge.
+        |
+        */
         $maxNumber = $query->max(
             DB::raw(
                 'CAST(possession_no AS UNSIGNED)'
             )
         );
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Next Number
+        |--------------------------------------------------------------------------
+        */
         return (string) (
             ((int) $maxNumber) + 1
         );
@@ -555,7 +616,11 @@ class PossessionCaseController extends Controller
             | Find Previous Possession
             |--------------------------------------------------------------------------
             */
-            $previousCase = PossessionCase::where(
+
+            // soft delete k sath wala code is mn soft delete ka possession no b reserve he ho ga resue nae hoga 
+            // yani previouse possession find krty howay softdelete kia howa possession b find hoga
+            $previousCase = PossessionCase::withTrashed()
+                ->where(
                     'plot_id',
                     $plot->id
                 )
@@ -583,7 +648,11 @@ class PossessionCaseController extends Controller
             |
             */
             $nextSequence =
-                ((int) PossessionCase::where(
+                // soft delete ko b sath mn find kryga awr uska number b dekhy ga
+                ((int) PossessionCase::withTrashed()
+                    ->where(
+                // soft delete ko find nae krny ka code 
+                // ((int) PossessionCase::where(
                     'plot_id',
                     $plot->id
                 )->max('possession_sequence')) + 1;
@@ -1791,10 +1860,8 @@ class PossessionCaseController extends Controller
         | Already cancelled
         |--------------------------------------------------------------------------
         */
-        if (
-            $possessionCase->current_status
-            === 'cancelled'
-        ) {
+
+        if ($possessionCase->current_status === 'cancelled') {
 
             return back()
                 ->withErrors([
@@ -1803,6 +1870,14 @@ class PossessionCaseController extends Controller
                 ]);
         }
 
+        if ($possessionCase->current_status !== 'completed') {
+
+            return back()
+                ->withErrors([
+                    'cancellation_reason' =>
+                        'Only completed possession cases can be cancelled.',
+                ]);
+        }
 
         DB::transaction(function () use (
             $validated,

@@ -61,18 +61,18 @@
 
                 <div class="row g-3">
 
-                    {{-- Case No --}}
+                    {{-- Possession No --}}
                     <div class="col-md-2">
 
                         <label class="form-label">
-                            Case No
+                            Possession No
                         </label>
 
                         <input type="number"
-                               name="case_no"
+                               name="possession_no"
                                class="form-control"
-                               value="{{ request('case_no') }}"
-                               placeholder="Case No">
+                               value="{{ request('possession_no') }}"
+                               placeholder="Possession No">
 
                     </div>
 
@@ -224,7 +224,7 @@
                             </th>
 
                             <th>
-                                Case No
+                                Property type - Possession No
                             </th>
 
                             <th>
@@ -274,17 +274,17 @@
 
                                 </td>
 
-
                                 {{-- Case No
                                 ------------------------------------------------ --}}
                                 <td>
 
                                     <strong>
-                                        {{ $case->case_no }}
+                                        {{-- {{ $case->case_no }} --}}
+                                        {{ $case->plot->propertyType->name ?? '-' }} - {{ $case->possession_no ?? '-' }}
+                                        
                                     </strong>
 
                                 </td>
-
 
                                 {{-- Plot
                                 ------------------------------------------------ --}}

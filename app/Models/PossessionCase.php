@@ -129,7 +129,7 @@ class PossessionCase extends Model
         'received_back_at' => 'date',
         'handed_over_at' => 'date',
         'completed_at' => 'date',
-        'cancelled_ad' => 'date',
+        'cancelled_at' => 'date',
     ];
 
     /*

@@ -31,11 +31,17 @@ return new class extends Migration
             $table->enum('current_status', [
                 'received',
                 'prepared',
-                'signed',
+                'surveyor_signed',
                 'approval',
-                'receive_back',
-                'handed_over',
+                'town_planner_signed',
                 'completed',
+                // 'received',
+                // 'prepared',
+                // 'signed',
+                // 'approval',
+                // 'receive_back',
+                // 'handed_over',
+                // 'completed',
                 'cancelled',
             ])->default('received');
 

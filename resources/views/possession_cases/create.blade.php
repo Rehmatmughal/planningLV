@@ -1,73 +1,45 @@
 @extends('app')
 
 @section('content')
-
 <div class="container-fluid mt-4">
-
     {{-- Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
-
         <div>
             <h4 class="fw-bold mb-1">
                 ➕ New Possession Case
             </h4>
-
             <small class="text-muted">
                 Create a new possession case and add owner information
             </small>
         </div>
-
         <a href="{{ route('possession-cases.index') }}"
            class="btn btn-secondary">
             ← Back to Cases
         </a>
-
     </div>
-
-
     {{-- Validation Errors --}}
     @if($errors->any())
-
         <div class="alert alert-danger">
-
             <strong>Please correct the following errors:</strong>
-
             <ul class="mb-0 mt-2">
-
                 @foreach($errors->all() as $error)
-
                     <li>{{ $error }}</li>
-
                 @endforeach
-
             </ul>
-
         </div>
-
     @endif
-
-
     <form method="POST"
           action="{{ route('possession-cases.store') }}">
-
         @csrf
-
-
         {{-- =========================================================
              CASE INFORMATION
         ========================================================== --}}
-
         <div class="card shadow-sm mb-4">
-
             <div class="card-header bg-light">
-
                 <strong>
                     📋 Case Information
                 </strong>
-
             </div>
-
-
             <div class="card-body">
 
                 {{-- =================================================
