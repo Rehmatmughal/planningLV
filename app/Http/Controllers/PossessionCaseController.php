@@ -30,6 +30,8 @@ class PossessionCaseController extends Controller
             'plot.propertyType',
             'owners',
             'creator',
+            // test
+            'plot.latestAreavariation',
         ])->latest();
 
         /*
@@ -128,68 +130,140 @@ class PossessionCaseController extends Controller
      */
     public function create(Request $request)
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Sirf projects load honge
-        |--------------------------------------------------------------------------
-        | Tamam plots ek sath load nahi honge.
-        */
-        $projects = Project::orderBy('project_name')
-            ->get([
-                'id',
-                'project_name',
-            ]);
+        $projects = Project::select('id', 'project_name')
+            ->orderBy('project_name')
+            ->get();
+
+        $propertyTypes = PropertyType::orderBy('name')
+            ->get();
 
         $selectedPlot = null;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Selected plot
-        |--------------------------------------------------------------------------
-        */
-        $plotId = old(
-            'plot_id',
-            $request->plot_id
-        );
+        if ($request->filled('plot_id')) {
 
-        if ($plotId) {
             $selectedPlot = Plot::with([
                 'project',
                 'block',
                 'street',
                 'size',
                 'propertyType',
-            ])->find($plotId);
+                // test
+                'latestAreavariation',
+            ])->find($request->plot_id);
         }
 
-        return view(
-            'possession_cases.create',
-            compact(
-                'projects',
-                'selectedPlot'
-            )
-        );
+        return view('possession_cases.create', compact(
+            'projects',
+            'propertyTypes',
+            'selectedPlot'
+        ));
     }
 
-
     /**
-     * Get blocks according to selected project.
+     * Get blocks according to selected project and property type.
      */
-    public function getBlocks($projectId)
+    public function getBlocks(Request $request, $projectId)
     {
-        $blocks = Block::where(
-                'project_id',
-                $projectId
-            )
+        $propertyTypeId = $request->property_type_id;
+
+        $query = Block::where('project_id', $projectId);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Property Type Selected
+        |--------------------------------------------------------------------------
+        | Sirf woh blocks show honge jin mein selected
+        | property type ke plots mojood hain.
+        |--------------------------------------------------------------------------
+        */
+
+        if ($propertyTypeId) {
+
+            $blockIds = Plot::where('project_id', $projectId)
+                ->where('property_type_id', $propertyTypeId)
+                ->pluck('block_id')
+                ->unique();
+
+            $query->whereIn('id', $blockIds);
+        }
+
+        return $query
             ->orderBy('block_name')
             ->get([
                 'id',
                 'block_name',
             ]);
-
-        return response()->json($blocks);
     }
 
+    public function getPossessionPreview($plotId)
+    {
+        $plot = Plot::findOrFail($plotId);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Find latest possession for this plot
+        |--------------------------------------------------------------------------
+        | withTrashed() is important because cancelled/deleted old
+        | possession numbers must remain reserved.
+        |--------------------------------------------------------------------------
+        */
+
+        $previousCase = PossessionCase::withTrashed()
+            ->where('plot_id', $plot->id)
+            ->orderByDesc('possession_sequence')
+            ->first();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Next Sequence
+        |--------------------------------------------------------------------------
+        */
+
+        $nextSequence = ($previousCase?->possession_sequence ?? 0) + 1;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Base Possession Number
+        |--------------------------------------------------------------------------
+        */
+
+        if ($previousCase) {
+
+            $basePossessionNo = $this->getBasePossessionNumber(
+                $previousCase->possession_no
+            );
+
+        } else {
+
+            $basePossessionNo = $this->generateBasePossessionNumber($plot);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Final Possession Number
+        |--------------------------------------------------------------------------
+        */
+
+        if ($nextSequence === 1) {
+
+            $possessionNo = $basePossessionNo;
+
+            $caseType = 'Possession';
+
+        } else {
+
+            $possessionNo =
+                $basePossessionNo . '-T' . ($nextSequence - 1);
+
+            $caseType = 'Re-Possession';
+        }
+
+        return response()->json([
+            'possession_no' => $possessionNo,
+            'case_type' => $caseType,
+            'possession_sequence' => $nextSequence,
+        ]);
+    }
 
     /**
      * Get streets according to selected block.
@@ -445,7 +519,9 @@ class PossessionCaseController extends Controller
     ): ?string {
 
         if (!$possessionNo) {
+
             return null;
+
         }
 
         return preg_replace(
@@ -454,6 +530,21 @@ class PossessionCaseController extends Controller
             trim($possessionNo)
         );
     }
+
+    // private function getBasePossessionNumber(
+    //     ?string $possessionNo
+    // ): ?string {
+
+    //     if (!$possessionNo) {
+    //         return null;
+    //     }
+
+    //     return preg_replace(
+    //         '/-T\d+$/i',
+    //         '',
+    //         trim($possessionNo)
+    //     );
+    // }
 
 
     /**

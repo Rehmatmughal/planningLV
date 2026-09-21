@@ -946,9 +946,7 @@
                                 </div>
                             </form>
                         @else
-
                             <div class="alert alert-success mb-0">
-
                                 <strong>
                                     ✅ Case Completed
                                 </strong>
@@ -971,6 +969,7 @@
 
             @if(
                 $possessionCase->current_status !== 'cancelled'
+                && $possessionCase->current_status == 'completed'
                 // && $possessionCase->is_active
             )
 

@@ -269,6 +269,7 @@
                                 {{-- #
                                 ------------------------------------------------ --}}
                                 <td>
+                                    {{$case->plot->latestAreavariation->measured_area ?? '-' }} -
 
                                     {{ $possessionCases->firstItem() + $loop->index }}
 

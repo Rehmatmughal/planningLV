@@ -574,3 +574,8 @@ Route::get(
 
 Route::resource('owners', OwnerController::class)
     ->except(['show']);
+// route for auto possession no
+Route::get(
+    '/possession-cases/ajax/possession-preview/{plotId}',
+    [PossessionCaseController::class, 'getPossessionPreview']
+)->name('possession-cases.ajax.possession-preview');
