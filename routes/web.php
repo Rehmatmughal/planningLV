@@ -28,46 +28,54 @@ use App\Http\Controllers\PlotSizeAssignmentController;
 use App\Http\Controllers\PropertyTypeController;
 // use App\Http\Controllers\PropertyTypeController;
 use App\Http\Controllers\PropertyTypeAssignmentController;
-
-
-
-
 // use App\Models\PlotCategoryType;
 
 
+require __DIR__.'/auth.php';
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
-
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware('auth')
-    ->name('dashboard');
-
-// Route::get('/dashboard', function () {
-//     return view('dashboard');
-// })->middleware(['auth', 'verified'])->name('dashboard');
-
-// Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+// new setting of routes -- Start --
 
 Route::middleware('auth')->group(function () {
+
+    Route::get('/', [DashboardController::class, 'index'])->name('Home');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // profile routes -- start --
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // profile routes -- end --
+
+    // activity routes -- start --
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity.logs');
+    Route::get('/activity-logs-export', [ActivityLogController::class, 'export'])->name('activity.logs.export');
+    // activity routes -- end --
+
+    Route::middleware('permission:user.view')->prefix('admin')->name('admin.')->group(function () {
+
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->middleware('permission:user.create')->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->middleware('permission:user.create')->name('users.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->middleware('permission:user.edit')->name('users.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])->middleware('permission:user.edit')->name('users.update');
+        // for password change
+
+    });
     
-});
-
-Route::middleware(['auth'])->group(function () {
-    // Route::get('/activity-logs', [App\Http\Controllers\ActivityLogController::class, 'index'])
-    Route::get('/activity-logs', [ActivityLogController::class, 'index'])
-        ->name('activity.logs');
-    // Route::get('/activity-logs-export', [App\Http\Controllers\ActivityLogController::class, 'export'])
-    Route::get('/activity-logs-export', [ActivityLogController::class, 'export'])
-    ->name('activity.logs.export');
 
 });
 
-require __DIR__.'/auth.php';
+// for checking only -- start --
+
+// for check end
+
+// new setting of routes -- End -- 
+
+
+// routes to be set
+
+
+
 //
 Route::middleware(['auth','role:admin|super-admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/admindashboard', [AdminDashboardController::class, 'index'])
@@ -75,27 +83,31 @@ Route::middleware(['auth','role:admin|super-admin'])->prefix('admin')->name('adm
         ->name('admin.index');
 
 });
-Route::middleware(['auth','permission:user.view'])->prefix('admin')->name('admin.')->group(function () {
 
-    Route::get('/users', [UserController::class, 'index'])->name('users.index');
-    Route::get('/users/create', [UserController::class, 'create'])
-        ->middleware('permission:user.create')
-        ->name('users.create');
+// testing stage
+// Route::middleware(['auth','permission:user.view'])->prefix('admin')->name('admin.')->group(function () {
 
-    Route::post('/users', [UserController::class, 'store'])
-        ->middleware('permission:user.create')
-        ->name('users.store');
+//     Route::get('/users', [UserController::class, 'index'])->name('users.index');
+//     Route::get('/users/create', [UserController::class, 'create'])
+//         ->middleware('permission:user.create')
+//         ->name('users.create');
 
-    Route::get('/users/{user}/edit', [UserController::class, 'edit'])
-        ->middleware('permission:user.edit')
-        ->name('users.edit');
+//     Route::post('/users', [UserController::class, 'store'])
+//         ->middleware('permission:user.create')
+//         ->name('users.store');
 
-    Route::put('/users/{user}', [UserController::class, 'update'])
-        ->middleware('permission:user.edit')
-        ->name('users.update');
-    // for password change
+//     Route::get('/users/{user}/edit', [UserController::class, 'edit'])
+//         ->middleware('permission:user.edit')
+//         ->name('users.edit');
 
-});
+//     Route::put('/users/{user}', [UserController::class, 'update'])
+//         ->middleware('permission:user.edit')
+//         ->name('users.update');
+//     // for password change
+
+// });
+// testing stage end
+
 
 //  for passwrod change
 // ye change password remove kr dia ha ku k ye function already Auth.php mn ha

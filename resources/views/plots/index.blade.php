@@ -201,7 +201,7 @@
                         <tr id="plot-row-{{ $plot->id }}" class="{{ $rowClass }}">
                             <td>{{ $plot->propertyType->name ?? '-' }}</td>
                             {{-- Block-PlotNo --}}
-                            <td>
+                            <td> 
                                 {{ $plot->block->block_name ?? '-' }}-{{ $plot->plot_number }}
                             </td>
  
