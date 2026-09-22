@@ -19,6 +19,8 @@ use App\Models\MortgageStatus;
 use App\Models\PlotCoordinate;
 use App\Models\DevelopmentStatus;
 use App\Models\PropertyTypeAssignment;
+use Spatie\Activitylog\Facades\Activity;
+
 
 
 class ImportPlotsNew extends Command
@@ -113,8 +115,10 @@ class ImportPlotsNew extends Command
 
         DB::beginTransaction();
 // IMPORT LOGIC START
-        try {
 
+        try {
+            // for disable loging
+            activity()->disableLogging();
 
             foreach ($rows as $row) {
 
@@ -362,6 +366,9 @@ class ImportPlotsNew extends Command
             );
 
             return Command::FAILURE;
+        } finally {
+
+            activity()->enableLogging();
         }
 // m b end
     }

@@ -312,6 +312,7 @@ class RolePermissionNSeeder extends Seeder
                 'password' => Hash::make('password'),
             ]
         );
+        
         $adminUser->assignRole('admin');
 
         $staffUser = User::firstOrCreate(
@@ -331,6 +332,5 @@ class RolePermissionNSeeder extends Seeder
             ]
         );
         $guestUser->assignRole('guest');
-
     }
 }

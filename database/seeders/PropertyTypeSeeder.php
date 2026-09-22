@@ -10,8 +10,8 @@ class PropertyTypeSeeder extends Seeder
     public function run(): void
     {
         $types = [
-            'Residencial Plot',
-            'Farmhouse',
+            'Residencia Plot',
+            'Greens Plot',
             'Commercial Plot',
             'Apartment Site',
             'School',
