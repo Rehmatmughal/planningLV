@@ -116,8 +116,8 @@
             </a>               
 
         </li>
-                {{-- LOP and Mortgage --}}
 
+                {{-- LOP and Mortgage --}}
         <li class="nav-item">
             <a href="{{ route('lop-mortgage.index') }} "class="nav-link" >
             {{-- class="nav-link ps-5 {{ request()->routeIs('owners.*') ? 'active' : '' }}"> --}}
@@ -129,6 +129,20 @@
             </a>               
 
         </li>
+
+        {{-- LOP and Mortgage --}}
+        <li class="nav-item">
+            <a href="{{ route('development.index') }} "class="nav-link" >
+            {{-- class="nav-link ps-5 {{ request()->routeIs('owners.*') ? 'active' : '' }}"> --}}
+
+                <i class="fa fa-users me-2"></i>
+
+                Development Status of Plots
+
+            </a>               
+
+        </li>
+
 
         {{-- size assignments --}}
 

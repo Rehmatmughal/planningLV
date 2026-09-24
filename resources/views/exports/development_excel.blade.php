@@ -1,4 +1,37 @@
 <table>
+    <tr>
+        <td colspan="11">
+            AS BUILT STATUS OF PLOTS
+        </td>
+    </tr>
+
+    <tr>
+        <td colspan="11">
+            {{ $projectTitle }}
+        </td>
+    </tr>
+
+    <tr>
+        <td colspan="11">
+            Generated on: {{ now()->format('d-M-Y h:i A') }}
+        </td>
+    </tr>
+
+    <tr>
+        <td colspan="11">
+            @if(count($appliedFilters) > 0)
+                Applied Filters:
+                {{ implode(' | ', $appliedFilters) }}
+            @else
+                Applied Filters: None — All Records
+            @endif
+        </td>
+    </tr>
+
+    <tr>
+        <td colspan="11"></td>
+    </tr>
+
     <thead>
         <tr>
             <th>S.No</th>
@@ -67,6 +100,7 @@
                 <td>
                     @if($plot->developmentStatus)
                         @switch($plot->developmentStatus->overall_status)
+
                             @case('developed')
                                 Developed
                                 @break
@@ -81,6 +115,7 @@
 
                             @default
                                 Not Set
+
                         @endswitch
                     @else
                         Not Set
