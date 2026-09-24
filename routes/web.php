@@ -127,6 +127,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/get-assigned-sizes/{project_id}/{block_id}/{property_type_id}', [PlotController::class, 'getAssignedSizes'])->name('plots.assigned-sizes');
 
     });
+
     Route::middleware(['auth'])->prefix('admin')->group(function () {
         Route::get('/lop-mortgage', [LopMortgageStatusController::class, 'index'])->middleware('permission:lop.view')->name('lop-mortgage.index');
         Route::get('/lop-mortgage/create', [LopMortgageStatusController::class, 'create'])->middleware('permission:lop.create')->name('lop-mortgage.create');
@@ -135,7 +136,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/lop-mortgage/{plot}/edit', [LopMortgageStatusController::class, 'edit'])->middleware('permission:lop.edit')->name('lop-mortgage.edit');
         Route::put('/lop-mortgage/{plot}', [LopMortgageStatusController::class, 'update'])->middleware('permission:lop.edit')->name('lop-mortgage.update');
         Route::delete('/lop-mortgage/{plot}', [LopMortgageStatusController::class, 'destroy'])->middleware('permission:lop.delete')->name('lop-mortgage.destroy');
-
+        Route::get('/lop-mortgage/export-excel', [LopMortgageStatusController::class, 'exportExcel'])->middleware('permission:lop.excel')->name('lop-mortgage.export-excel');
 
     });
 

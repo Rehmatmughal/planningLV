@@ -4,7 +4,6 @@
 
 <div class="container-fluid py-4">
 
-
 {{-- Success Message --}}
 @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -12,7 +11,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 @endif
-
+ 
 {{-- Error Message --}}
 @if($errors->any())
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -31,7 +30,7 @@
 {{-- Page Header --}}
 <div class="d-flex justify-content-between align-items-center mb-4">
 
-    <div>
+    {{-- <div>
         <h3 class="mb-1">
             LOP & Mortgage Status
         </h3>
@@ -39,15 +38,56 @@
         <p class="text-muted mb-0">
             Manage plot LOP and mortgage status
         </p>
+    </div> --}}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-1">
+                LOP & Mortgage Status
+            </h4>
+            <p class="text-muted mb-0">
+                Manage LOP and Mortgage status of plots.
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            {{-- @can('lop.excel')
+                <a href="{{ route('lop-mortgage.export-excel', request()->query()) }}"
+                class="btn btn-success">
+                    <i class="bi bi-file-earmark-excel"></i>
+                    Export Excel
+                </a>
+            @endcan --}}
+
+            {{-- @can('lop.create')
+                <a href="{{ route('lop-mortgage.create') }}"
+                class="btn btn-primary">
+                    <i class="bi bi-plus-circle "></i>
+                    Add LOP / Mortgage
+                </a>
+            @endcan --}}
+        </div>
     </div>
 
-    @can('lop.create')
-        <a href="{{ route('lop-mortgage.create') }}"
-           class="btn btn-primary">
-            <i class="bi bi-plus-circle me-1"></i>
-            Add LOP / Mortgage
-        </a>
-    @endcan
+    <div class="d-flex gap-2">
+        @can('lop.excel')
+            <a href="{{ route('lop-mortgage.export-excel', request()->query()) }}"
+            class="btn btn-success">
+                <i class="bi bi-file-earmark-excel"></i>
+                Export Excel
+            </a>
+        @endcan
+
+        @can('lop.create')
+            <a href="{{ route('lop-mortgage.create') }}"
+            class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>
+                Add LOP / Mortgage
+            </a>
+        @endcan
+    </div>
+
+        
 
 </div>
 
@@ -562,27 +602,13 @@
 
 
 </div>
+@endsection
 
 {{-- Dependent Filter Dropdowns --}}
 
+@section('scripts')
+<script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 <script>
-console.log('LOP Mortgage Index JS loaded');
-
-$(document).ready(function () {
-
-    console.log('Document ready');
-
-    $('#filter_project').on('change', function () {
-
-        console.log('PROJECT CHANGED');
-
-        let projectId = $(this).val();
-
-        console.log('Selected Project ID:', projectId);
-
-    });
-
-});
 
 $(document).ready(function () {
 

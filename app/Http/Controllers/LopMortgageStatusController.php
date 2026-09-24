@@ -8,6 +8,8 @@ use App\Models\MortgageStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
+
 
 class LopMortgageStatusController extends Controller
 {
@@ -325,4 +327,23 @@ class LopMortgageStatusController extends Controller
             ->route('lop-mortgage.index')
             ->with('success', 'LOP & Mortgage status deleted successfully!');
     }
+
+    public function exportExcel(Request $request)
+    {
+        $filters = [
+            'project_id' => $request->project_id,
+            'block_id' => $request->block_id,
+            'street_id' => $request->street_id,
+            'property_type_id' => $request->property_type_id,
+            'lop_status' => $request->lop_status,
+            'is_mortgaged' => $request->is_mortgaged,
+            'plot_number' => $request->plot_number,
+        ];
+
+        return Excel::download(
+            new \App\Exports\LopMortgageExport($filters),
+            'lop_mortgage_status.xlsx'
+        );
+    }
+    
 }
