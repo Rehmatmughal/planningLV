@@ -93,7 +93,7 @@ class PlotController extends Controller
     public function updateLop(Request $r, Plot $plot)
     {
         $r->validate([
-            'lop_status' => 'required|in:lop,non_lop,mortgaged',
+            'lop_status' => 'required|in:lop,non_lop',
             'remarks'    => 'nullable|string',
         ]);
 

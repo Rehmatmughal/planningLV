@@ -10,8 +10,8 @@ class LopStatusController extends Controller
     public function storeOrUpdate(Request $request)
     {
         $request->validate([
-            'plot_id' => 'required',
-            'lop_status' => 'required',
+            'plot_id' => 'required|exists:plots,id',
+            'lop_status' => 'required|in:lop,non_lop',
             'remarks' => 'nullable'
         ]);
 

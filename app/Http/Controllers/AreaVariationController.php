@@ -25,6 +25,8 @@ use App\Exports\PlotVariationExporttemplate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Spatie\Activitylog\Models\Activity;
+use Illuminate\Support\Facades\DB;
+
 
 
 class AreaVariationController extends Controller
@@ -587,96 +589,308 @@ class AreaVariationController extends Controller
 
     public function store(Request $request)
     {
-            // dd($request());
         $request->validate([
-            'plot_id'           => 'required|exists:plots,id',
-            // 'previous_area'     => 'required|numeric',
-            'measured_area'     => 'required|numeric',
-            'measured_date'     => 'required|date',
-            'measured_by'       => 'nullable|string',
+            'plot_id' => 'required|exists:plots,id',
+            // 'previous_area' => 'required|numeric',
+            'measured_area' => 'required|numeric',
+            'measured_date' => 'required|date',
+            'measured_by' => 'nullable|string',
 
-            // 👇 ADD THESE (same as update)
             'sewer_manholes' => 'nullable|in:constructed,not_constructed',
             'asphalt_tst' => 'nullable|in:yes,no',
             'overall_status' => 'nullable|in:developed,under_development,not_developed',
-            // 'mortgage_status_at_time' => 'nullable|in:yes,no',
 
             'lop_status' => 'nullable|in:lop,non_lop',
             'is_mortgaged' => 'nullable|in:yes,no',
+
             'possession_status' => 'nullable|in:possessionable,non_lop_possessionable,under_development_possessionable,not_possessionable',
         ]);
 
-        // new add for current user name
+        // Current logged-in user
         $request->merge([
             'measured_by' => auth()->user()->name
         ]);
 
-        // $plot = Plot::with(['developmentStatus', 'lopStatus'])->findOrFail($request->plot_id);
         $plot = Plot::findOrFail($request->plot_id);
-        
 
-        // ✅ Step 1: AreaVariation save
-        $av = AreaVariation::create([
-            'plot_id'        => $plot->id,
-            'previous_area'  => (float) $request->previous_area,
-            'measured_area'  => (float) $request->measured_area,
-            'measured_date'  => $request->measured_date,
-            'measured_by'    => $request->measured_by ?? 'system',
+        /*
+        * ==========================================================
+        * STEP 1: Determine LOP status that will apply to this request
+        * ==========================================================
+        *
+        * If user selected a new LOP status, use that.
+        * Otherwise use existing database LOP status.
+        */
+        $lopStatusForMortgage = $request->lop_status;
 
-            // snapshot
-            'road_status_at_time'  => $request->asphalt_tst === 'yes' ? 'complete' : 'not_complete',
-            'sewer_status_at_time' => $request->sewer_manholes === 'constructed' ? 'constructed' : 'not_constructed',
-            'overall_status_at_time' => $request->overall_status,
-            'mortgage_status_at_time' => $request->is_mortgaged,
-            'possession_status' => $request->possession_status,
-            'lop_status_at_time'   => $request->lop_status,
-            // 'workflow_status' => 'pending',
-            'workflow_status' => 1,
-        ]);
-
-        $plotId = $plot->id;
-
-
-        // ✅ Step 2: Development Status update
-        if ($request->sewer_manholes || $request->asphalt_tst || $request->overall_status) {
-            DevelopmentStatus::updateOrCreate(
-                ['plot_id' => $plotId],
-                [
-                    'sewer_manholes' => $request->sewer_manholes ?? DevelopmentStatus::where('plot_id',$plotId)->value('sewer_manholes'),
-                    'asphalt_tst'    => $request->asphalt_tst ?? DevelopmentStatus::where('plot_id',$plotId)->value('asphalt_tst'),
-                    'overall_status' => $request->overall_status ?? DevelopmentStatus::where('plot_id',$plotId)->value('overall_status'),
-                ]
-            );
+        if ($lopStatusForMortgage === null) {
+            $lopStatusForMortgage = LopStatus::where('plot_id', $plot->id)
+                ->value('lop_status');
         }
 
-        // ✅ Step 3: LOP
-        if ($request->lop_status) {
-            LopStatus::updateOrCreate(
-                ['plot_id' => $plotId],
-                ['lop_status' => $request->lop_status]
-            );
+        /*
+        * ==========================================================
+        * STEP 2: Validate Mortgage rule BEFORE saving anything
+        * ==========================================================
+        *
+        * Mortgage YES is only allowed when LOP = lop.
+        */
+        if (
+            $request->is_mortgaged === 'yes' &&
+            $lopStatusForMortgage !== 'lop'
+        ) {
+            return back()
+                ->withErrors([
+                    'is_mortgaged' =>
+                        'Mortgage YES sirf un plots ke liye allowed hai jinka LOP status "lop" ho.'
+                ])
+                ->withInput();
         }
 
-        // ✅ Step 4: Mortgage
-        if ($request->is_mortgaged) {
-            MortgageStatus::updateOrCreate(
-                ['plot_id' => $plotId],
-                ['is_mortgaged' => $request->is_mortgaged]
-            );
-        }
+        /*
+        * ==========================================================
+        * STEP 3: Save everything inside one database transaction
+        * ==========================================================
+        *
+        * Agar kisi step mein error aaye to tamam changes rollback
+        * ho jayengi.
+        */
+        DB::transaction(function () use ($request, $plot) {
 
-        // ✅ Step 5: Possession
-        if ($request->possession_status) {
-            PossessionStatus::updateOrCreate(
-                ['plot_id' => $plotId],
-                ['possession_status' => $request->possession_status]
-            );
-        }
+            // ------------------------------------------------------
+            // Step 3-A: Area Variation save
+            // ------------------------------------------------------
+            AreaVariation::create([
+                'plot_id' => $plot->id,
+                'previous_area' => (float) $request->previous_area,
+                'measured_area' => (float) $request->measured_area,
+                'measured_date' => $request->measured_date,
+                'measured_by' => $request->measured_by ?? 'system',
+
+                // Snapshot
+                'road_status_at_time' =>
+                    $request->asphalt_tst === 'yes'
+                        ? 'complete'
+                        : 'not_complete',
+
+                'sewer_status_at_time' =>
+                    $request->sewer_manholes === 'constructed'
+                        ? 'constructed'
+                        : 'not_constructed',
+
+                'overall_status_at_time' =>
+                    $request->overall_status,
+
+                'mortgage_status_at_time' =>
+                    $request->is_mortgaged,
+
+                'possession_status' =>
+                    $request->possession_status,
+
+                'lop_status_at_time' =>
+                    $request->lop_status,
+
+                'workflow_status' => 1,
+            ]);
+
+            $plotId = $plot->id;
+
+            // ------------------------------------------------------
+            // Step 3-B: Development Status
+            // ------------------------------------------------------
+            if (
+                $request->sewer_manholes ||
+                $request->asphalt_tst ||
+                $request->overall_status
+            ) {
+                DevelopmentStatus::updateOrCreate(
+                    ['plot_id' => $plotId],
+                    [
+                        'sewer_manholes' =>
+                            $request->sewer_manholes
+                            ?? DevelopmentStatus::where('plot_id', $plotId)
+                                ->value('sewer_manholes'),
+
+                        'asphalt_tst' =>
+                            $request->asphalt_tst
+                            ?? DevelopmentStatus::where('plot_id', $plotId)
+                                ->value('asphalt_tst'),
+
+                        'overall_status' =>
+                            $request->overall_status
+                            ?? DevelopmentStatus::where('plot_id', $plotId)
+                                ->value('overall_status'),
+                    ]
+                );
+            }
+
+            // ------------------------------------------------------
+            // Step 3-C: LOP Status
+            // ------------------------------------------------------
+            if ($request->lop_status) {
+                LopStatus::updateOrCreate(
+                    ['plot_id' => $plotId],
+                    [
+                        'lop_status' => $request->lop_status
+                    ]
+                );
+            }
+
+            // ------------------------------------------------------
+            // Step 3-D: Mortgage Status
+            // ------------------------------------------------------
+            if ($request->is_mortgaged) {
+                MortgageStatus::updateOrCreate(
+                    ['plot_id' => $plotId],
+                    [
+                        'is_mortgaged' => $request->is_mortgaged
+                    ]
+                );
+            }
+
+            // ------------------------------------------------------
+            // Step 3-E: Possession Status
+            // ------------------------------------------------------
+            if ($request->possession_status) {
+                PossessionStatus::updateOrCreate(
+                    ['plot_id' => $plotId],
+                    [
+                        'possession_status' => $request->possession_status
+                    ]
+                );
+            }
+        });
 
         return redirect()
             ->route('plots.show', $plot->id)
-            ->with('success', 'Area variation added successfully + statuses updated');
+            ->with(
+                'success',
+                'Area variation added successfully + statuses updated'
+            );
     }
+
+    // old working but mortgage is not final 
+    // public function store(Request $request)
+    // {
+    //         // dd($request());
+    //     $request->validate([
+    //         'plot_id'           => 'required|exists:plots,id',
+    //         // 'previous_area'     => 'required|numeric',
+    //         'measured_area'     => 'required|numeric',
+    //         'measured_date'     => 'required|date',
+    //         'measured_by'       => 'nullable|string',
+
+    //         // 👇 ADD THESE (same as update)
+    //         'sewer_manholes' => 'nullable|in:constructed,not_constructed',
+    //         'asphalt_tst' => 'nullable|in:yes,no',
+    //         'overall_status' => 'nullable|in:developed,under_development,not_developed',
+    //         // 'mortgage_status_at_time' => 'nullable|in:yes,no',
+
+    //         'lop_status' => 'nullable|in:lop,non_lop',
+    //         'is_mortgaged' => 'nullable|in:yes,no',
+    //         'possession_status' => 'nullable|in:possessionable,non_lop_possessionable,under_development_possessionable,not_possessionable',
+    //     ]);
+
+    //     // new add for current user name
+    //     $request->merge([
+    //         'measured_by' => auth()->user()->name
+    //     ]);
+
+    //     // $plot = Plot::with(['developmentStatus', 'lopStatus'])->findOrFail($request->plot_id);
+    //     $plot = Plot::findOrFail($request->plot_id);
+        
+
+    //     // ✅ Step 1: AreaVariation save
+    //     $av = AreaVariation::create([
+    //         'plot_id'        => $plot->id,
+    //         'previous_area'  => (float) $request->previous_area,
+    //         'measured_area'  => (float) $request->measured_area,
+    //         'measured_date'  => $request->measured_date,
+    //         'measured_by'    => $request->measured_by ?? 'system',
+
+    //         // snapshot
+    //         'road_status_at_time'  => $request->asphalt_tst === 'yes' ? 'complete' : 'not_complete',
+    //         'sewer_status_at_time' => $request->sewer_manholes === 'constructed' ? 'constructed' : 'not_constructed',
+    //         'overall_status_at_time' => $request->overall_status,
+    //         'mortgage_status_at_time' => $request->is_mortgaged,
+    //         'possession_status' => $request->possession_status,
+    //         'lop_status_at_time'   => $request->lop_status,
+    //         // 'workflow_status' => 'pending',
+    //         'workflow_status' => 1,
+    //     ]);
+
+    //     $plotId = $plot->id;
+
+
+    //     // ✅ Step 2: Development Status update
+    //     if ($request->sewer_manholes || $request->asphalt_tst || $request->overall_status) {
+    //         DevelopmentStatus::updateOrCreate(
+    //             ['plot_id' => $plotId],
+    //             [
+    //                 'sewer_manholes' => $request->sewer_manholes ?? DevelopmentStatus::where('plot_id',$plotId)->value('sewer_manholes'),
+    //                 'asphalt_tst'    => $request->asphalt_tst ?? DevelopmentStatus::where('plot_id',$plotId)->value('asphalt_tst'),
+    //                 'overall_status' => $request->overall_status ?? DevelopmentStatus::where('plot_id',$plotId)->value('overall_status'),
+    //             ]
+    //         );
+    //     }
+
+    //     // ✅ Step 3: LOP
+    //     if ($request->lop_status) {
+    //         LopStatus::updateOrCreate(
+    //             ['plot_id' => $plotId],
+    //             ['lop_status' => $request->lop_status]
+    //         );
+    //     }
+
+    //     // ✅ Step 4: Mortgage
+    //     if ($request->is_mortgaged) {
+
+    //         /*
+    //         * Mortgage YES is only allowed when the
+    //         * LOP status for this request is "lop".
+    //         *
+    //         * If LOP is not being changed in this request,
+    //         * check the existing database LOP status.
+    //         */
+    //         $lopStatusForMortgage = $request->lop_status;
+
+    //         if ($lopStatusForMortgage === null) {
+    //             $lopStatusForMortgage = LopStatus::where('plot_id', $plotId)
+    //                 ->value('lop_status');
+    //         }
+
+    //         if (
+    //             $request->is_mortgaged === 'yes' &&
+    //             $lopStatusForMortgage !== 'lop'
+    //         ) {
+    //             return back()
+    //                 ->withErrors([
+    //                     'is_mortgaged' =>
+    //                         'Mortgage YES sirf un plots ke liye allowed hai jinka LOP status "lop" ho.'
+    //                 ])
+    //                 ->withInput();
+    //         }
+
+    //         MortgageStatus::updateOrCreate(
+    //             ['plot_id' => $plotId],
+    //             [
+    //                 'is_mortgaged' => $request->is_mortgaged
+    //             ]
+    //         );
+    //     }
+
+    //     // ✅ Step 5: Possession
+    //     if ($request->possession_status) {
+    //         PossessionStatus::updateOrCreate(
+    //             ['plot_id' => $plotId],
+    //             ['possession_status' => $request->possession_status]
+    //         );
+    //     }
+
+    //     return redirect()
+    //         ->route('plots.show', $plot->id)
+    //         ->with('success', 'Area variation added successfully + statuses updated');
+    // }
 
         // new after filter eleminate -- start --
     // public function store(Request $r)
@@ -779,87 +993,304 @@ class AreaVariationController extends Controller
             'measured_by' => 'nullable|string|max:255',
             'remarks' => 'nullable|string',
 
-            // optional status updates (coming from modal)
             'sewer_manholes' => 'nullable|in:constructed,not_constructed',
             'asphalt_tst' => 'nullable|in:yes,no',
             'overall_status' => 'nullable|in:developed,under_development,not_developed',
 
             'lop_status' => 'nullable|in:lop,non_lop',
             'is_mortgaged' => 'nullable|in:yes,no',
-            'possession_status' => 'nullable|in:possessionable,non_lop_possessionable,under_development_possessionable,not_possessionable',
-        ]);
 
-        // update area variation
-        $av->update([
-            'measured_area' => $data['measured_area'],
-            'measured_date' => $data['measured_date'] ?? $av->measured_date,
-            'measured_by' => $data['measured_by'] ?? $av->measured_by,
-            'remarks' => $data['remarks'] ?? $av->remarks,
-            // save status in areavariation table
-            // 'sewer_status_at_time' => $data['sewer_manholes'] ?? $av->sewer_manholes,
-            'sewer_status_at_time' => $data['sewer_manholes'] ?? $av->sewer_status_at_time,
-            // 'road_status_at_time' => $data['asphalt_tst'] ?? $av->asphalt_tst,
-            'road_status_at_time' => isset($data['asphalt_tst'])
-            ? ($data['asphalt_tst'] === 'yes' ? 'complete' : 'not_complete')
-            : $av->road_status_at_time,
-            'overall_status_at_time' => $data['overall_status']
-                ?? $av->overall_status_at_time,
-            'mortgage_status_at_time' =>$data['is_mortgaged'] ?? $av->mortgage_status_at_time,
-            // 'lop_status_at_time' => $data['lop_status'] ?? $av->lop_status,
-            'lop_status_at_time' => $data['lop_status'] ?? $av->lop_status_at_time,
-            
-            'possession_status' => $data['possession_status']
-                ?? $av->possession_status,
+            'possession_status' =>
+                'nullable|in:possessionable,non_lop_possessionable,under_development_possessionable,not_possessionable',
         ]);
 
         $plotId = $av->plot_id;
 
-        // If development fields provided, updateOrCreate development_statuses
-        if (isset($data['sewer_manholes']) || isset($data['asphalt_tst']) || isset($data['overall_status'])) {
-            DevelopmentStatus::updateOrCreate(
-                ['plot_id' => $plotId],
-                [
-                    'sewer_manholes' => $data['sewer_manholes'] ?? DevelopmentStatus::where('plot_id',$plotId)->value('sewer_manholes'),
-                    'asphalt_tst' => $data['asphalt_tst'] ?? DevelopmentStatus::where('plot_id',$plotId)->value('asphalt_tst'),
-                    'overall_status' => $data['overall_status'] ?? DevelopmentStatus::where('plot_id',$plotId)->value('overall_status'),
-                ]
-            );
+        /*
+        * ==========================================================
+        * STEP 1: Determine LOP status for this update
+        * ==========================================================
+        *
+        * If new LOP status is supplied, use it.
+        * Otherwise use existing database LOP status.
+        */
+        $lopStatusForMortgage = $data['lop_status'] ?? null;
+
+        if ($lopStatusForMortgage === null) {
+            $lopStatusForMortgage = LopStatus::where('plot_id', $plotId)
+                ->value('lop_status');
         }
 
-        // LOP
-        if (isset($data['lop_status'])) {
-            LopStatus::updateOrCreate(
-                ['plot_id' => $plotId],
-                ['lop_status' => $data['lop_status']]
-            );
+        /*
+        * ==========================================================
+        * STEP 2: Validate Mortgage rule BEFORE changing anything
+        * ==========================================================
+        */
+        if (
+            ($data['is_mortgaged'] ?? null) === 'yes' &&
+            $lopStatusForMortgage !== 'lop'
+        ) {
+            return back()
+                ->withErrors([
+                    'is_mortgaged' =>
+                        'Mortgage YES sirf un plots ke liye allowed hai jinka LOP status "lop" ho.'
+                ])
+                ->withInput();
         }
 
-        // Mortgage
-        if (isset($data['is_mortgaged'])) {
-            MortgageStatus::updateOrCreate(
-                ['plot_id' => $plotId],
-                ['is_mortgaged' => $data['is_mortgaged']]
-            );
-        }
+        /*
+        * ==========================================================
+        * STEP 3: Save all changes inside one transaction
+        * ==========================================================
+        */
+        DB::transaction(function () use ($data, $av, $plotId) {
 
-        // Possession
-        if (isset($data['possession_status'])) {
-            PossessionStatus::updateOrCreate(
-                ['plot_id' => $plotId],
-                ['possession_status' => $data['possession_status']]
-            );
-        }
-        // option-1
-        // return back()->with('success', 'Area variation and related statuses updated.');
-        // option-2
+            // ------------------------------------------------------
+            // Step 3-A: Update Area Variation
+            // ------------------------------------------------------
+            $av->update([
+                'measured_area' =>
+                    $data['measured_area'],
+
+                'measured_date' =>
+                    $data['measured_date']
+                    ?? $av->measured_date,
+
+                'measured_by' =>
+                    $data['measured_by']
+                    ?? $av->measured_by,
+
+                'remarks' =>
+                    $data['remarks']
+                    ?? $av->remarks,
+
+                // Snapshot values
+                'sewer_status_at_time' =>
+                    $data['sewer_manholes']
+                    ?? $av->sewer_status_at_time,
+
+                'road_status_at_time' =>
+                    isset($data['asphalt_tst'])
+                        ? (
+                            $data['asphalt_tst'] === 'yes'
+                                ? 'complete'
+                                : 'not_complete'
+                        )
+                        : $av->road_status_at_time,
+
+                'overall_status_at_time' =>
+                    $data['overall_status']
+                    ?? $av->overall_status_at_time,
+
+                'mortgage_status_at_time' =>
+                    $data['is_mortgaged']
+                    ?? $av->mortgage_status_at_time,
+
+                'lop_status_at_time' =>
+                    $data['lop_status']
+                    ?? $av->lop_status_at_time,
+
+                'possession_status' =>
+                    $data['possession_status']
+                    ?? $av->possession_status,
+            ]);
+
+            // ------------------------------------------------------
+            // Step 3-B: Development Status
+            // ------------------------------------------------------
+            if (
+                isset($data['sewer_manholes']) ||
+                isset($data['asphalt_tst']) ||
+                isset($data['overall_status'])
+            ) {
+                DevelopmentStatus::updateOrCreate(
+                    ['plot_id' => $plotId],
+                    [
+                        'sewer_manholes' =>
+                            $data['sewer_manholes']
+                            ?? DevelopmentStatus::where('plot_id', $plotId)
+                                ->value('sewer_manholes'),
+
+                        'asphalt_tst' =>
+                            $data['asphalt_tst']
+                            ?? DevelopmentStatus::where('plot_id', $plotId)
+                                ->value('asphalt_tst'),
+
+                        'overall_status' =>
+                            $data['overall_status']
+                            ?? DevelopmentStatus::where('plot_id', $plotId)
+                                ->value('overall_status'),
+                    ]
+                );
+            }
+
+            // ------------------------------------------------------
+            // Step 3-C: LOP Status
+            // ------------------------------------------------------
+            if (isset($data['lop_status'])) {
+                LopStatus::updateOrCreate(
+                    ['plot_id' => $plotId],
+                    [
+                        'lop_status' => $data['lop_status']
+                    ]
+                );
+            }
+
+            // ------------------------------------------------------
+            // Step 3-D: Mortgage Status
+            // ------------------------------------------------------
+            if (isset($data['is_mortgaged'])) {
+                MortgageStatus::updateOrCreate(
+                    ['plot_id' => $plotId],
+                    [
+                        'is_mortgaged' => $data['is_mortgaged']
+                    ]
+                );
+            }
+
+            // ------------------------------------------------------
+            // Step 3-E: Possession Status
+            // ------------------------------------------------------
+            if (isset($data['possession_status'])) {
+                PossessionStatus::updateOrCreate(
+                    ['plot_id' => $plotId],
+                    [
+                        'possession_status' =>
+                            $data['possession_status']
+                    ]
+                );
+            }
+        });
+
         return redirect()
             ->route('area_variations.index')
-            ->with('success', 'Area variation updated successfully.');
-        // option - 3
-        // return redirect()
-        //     ->route('plots.show', $av->plot_id)
-        //     ->with('success', 'Area variation updated successfully.');
+            ->with(
+                'success',
+                'Area variation updated successfully.'
+            );
     }
+    
+    // final but old due to mortgage status save without DB::trans.....
+    // public function update(Request $request, $id)
+    // {
+    //     $av = AreaVariation::findOrFail($id);
+
+    //     $data = $request->validate([
+    //         'measured_area' => 'required|numeric',
+    //         'measured_date' => 'nullable|date',
+    //         'measured_by' => 'nullable|string|max:255',
+    //         'remarks' => 'nullable|string',
+
+    //         // optional status updates (coming from modal)
+    //         'sewer_manholes' => 'nullable|in:constructed,not_constructed',
+    //         'asphalt_tst' => 'nullable|in:yes,no',
+    //         'overall_status' => 'nullable|in:developed,under_development,not_developed',
+
+    //         'lop_status' => 'nullable|in:lop,non_lop',
+    //         'is_mortgaged' => 'nullable|in:yes,no',
+    //         'possession_status' => 'nullable|in:possessionable,non_lop_possessionable,under_development_possessionable,not_possessionable',
+    //     ]);
+
+    //     // update area variation
+    //     $av->update([
+    //         'measured_area' => $data['measured_area'],
+    //         'measured_date' => $data['measured_date'] ?? $av->measured_date,
+    //         'measured_by' => $data['measured_by'] ?? $av->measured_by,
+    //         'remarks' => $data['remarks'] ?? $av->remarks,
+    //         // save status in areavariation table
+    //         // 'sewer_status_at_time' => $data['sewer_manholes'] ?? $av->sewer_manholes,
+    //         'sewer_status_at_time' => $data['sewer_manholes'] ?? $av->sewer_status_at_time,
+    //         // 'road_status_at_time' => $data['asphalt_tst'] ?? $av->asphalt_tst,
+    //         'road_status_at_time' => isset($data['asphalt_tst'])
+    //         ? ($data['asphalt_tst'] === 'yes' ? 'complete' : 'not_complete')
+    //         : $av->road_status_at_time,
+    //         'overall_status_at_time' => $data['overall_status']
+    //             ?? $av->overall_status_at_time,
+    //         'mortgage_status_at_time' =>$data['is_mortgaged'] ?? $av->mortgage_status_at_time,
+    //         // 'lop_status_at_time' => $data['lop_status'] ?? $av->lop_status,
+    //         'lop_status_at_time' => $data['lop_status'] ?? $av->lop_status_at_time,
+            
+    //         'possession_status' => $data['possession_status']
+    //             ?? $av->possession_status,
+    //     ]);
+
+    //     $plotId = $av->plot_id;
+
+    //     // If development fields provided, updateOrCreate development_statuses
+    //     if (isset($data['sewer_manholes']) || isset($data['asphalt_tst']) || isset($data['overall_status'])) {
+    //         DevelopmentStatus::updateOrCreate(
+    //             ['plot_id' => $plotId],
+    //             [
+    //                 'sewer_manholes' => $data['sewer_manholes'] ?? DevelopmentStatus::where('plot_id',$plotId)->value('sewer_manholes'),
+    //                 'asphalt_tst' => $data['asphalt_tst'] ?? DevelopmentStatus::where('plot_id',$plotId)->value('asphalt_tst'),
+    //                 'overall_status' => $data['overall_status'] ?? DevelopmentStatus::where('plot_id',$plotId)->value('overall_status'),
+    //             ]
+    //         );
+    //     }
+
+    //     // LOP
+    //     if (isset($data['lop_status'])) {
+    //         LopStatus::updateOrCreate(
+    //             ['plot_id' => $plotId],
+    //             ['lop_status' => $data['lop_status']]
+    //         );
+    //     }
+
+    //     // Mortgage
+    //     // ✅ Step 4: Mortgage
+    //     if ($request->is_mortgaged) {
+
+    //         /*
+    //         * Mortgage YES is only allowed when the
+    //         * LOP status for this request is "lop".
+    //         *
+    //         * If LOP is not being changed in this request,
+    //         * check the existing database LOP status.
+    //         */
+    //         $lopStatusForMortgage = $request->lop_status;
+
+    //         if ($lopStatusForMortgage === null) {
+    //             $lopStatusForMortgage = LopStatus::where('plot_id', $plotId)
+    //                 ->value('lop_status');
+    //         }
+
+    //         if (
+    //             $request->is_mortgaged === 'yes' &&
+    //             $lopStatusForMortgage !== 'lop'
+    //         ) {
+    //             return back()
+    //                 ->withErrors([
+    //                     'is_mortgaged' =>
+    //                         'Mortgage YES sirf un plots ke liye allowed hai jinka LOP status "lop" ho.'
+    //                 ])
+    //                 ->withInput();
+    //         }
+
+    //         MortgageStatus::updateOrCreate(
+    //             ['plot_id' => $plotId],
+    //             [
+    //                 'is_mortgaged' => $request->is_mortgaged
+    //             ]
+    //         );
+    //     }
+    //     // Possession
+    //     if (isset($data['possession_status'])) {
+    //         PossessionStatus::updateOrCreate(
+    //             ['plot_id' => $plotId],
+    //             ['possession_status' => $data['possession_status']]
+    //         );
+    //     }
+    //     // option-1
+    //     // return back()->with('success', 'Area variation and related statuses updated.');
+    //     // option-2
+    //     return redirect()
+    //         ->route('area_variations.index')
+    //         ->with('success', 'Area variation updated successfully.');
+    //     // option - 3
+    //     // return redirect()
+    //     //     ->route('plots.show', $av->plot_id)
+    //     //     ->with('success', 'Area variation updated successfully.');
+    // }
 
     // delete
     public function destroy($id)

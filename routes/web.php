@@ -29,6 +29,7 @@ use App\Http\Controllers\PropertyTypeController;
 // use App\Http\Controllers\PropertyTypeController;
 use App\Http\Controllers\PropertyTypeAssignmentController;
 // use App\Models\PlotCategoryType;
+use App\Http\Controllers\LopMortgageStatusController;
 
 
 require __DIR__.'/auth.php';
@@ -61,7 +62,82 @@ Route::middleware('auth')->group(function () {
         // for password change
 
     });
-    
+
+    Route::middleware('permission:role.view')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+        Route::get('/roles/create', [RoleController::class, 'create'])->middleware('permission:role.create')->name('roles.create');
+        Route::post('/roles', [RoleController::class, 'store'])->middleware('permission:role.store')->name('roles.store');
+        Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->middleware('permission:role.edit')->name('roles.edit');
+        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:role.delete')->name('roles.destroy');
+        
+    });
+    Route::middleware('permission:project.view')->prefix('admin')->group(function () {
+        Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+        Route::get('/projects/create', [ProjectController::class, 'create'])->middleware('permission:project.create')->name('projects.create');
+        Route::post('/projects', [ProjectController::class, 'store'])->middleware('permission:project.create')->name('projects.store');
+        Route::get('/projects/{project}/edit', [ProjectController::class, 'edit'])->middleware('permission:project.edit')->name('projects.edit');
+        Route::put('/projects/{project}', [ProjectController::class, 'update'])->middleware('permission:project.update')->name('projects.update');
+        Route::delete('/projects/{project}',[ProjectController::class, 'destroy'])->middleware('permission:project.delete')->name('projects.destroy');
+    });
+
+    Route::middleware(['auth','permission:block.view'])->prefix('admin')->group(function () {
+        Route::get('/blocks', [BlockController::class, 'index'])->name('blocks.index');
+        Route::get('/blocks/create', [BlockController::class, 'create'])->middleware('permission:block.create')->name('blocks.create');    
+        Route::post('/blocks', [BlockController::class, 'store'])->middleware('permission:block.create')->name('blocks.store');
+        Route::get('/blocks/{block}/edit', [BlockController::class, 'edit'])->middleware('permission:block.edit')->name('blocks.edit');
+        Route::put('/blocks/{block}', [BlockController::class, 'update'])->middleware('permission:block.update')->name('blocks.update');
+        Route::delete('/blocks/{block}',[BlockController::class, 'destroy'])->middleware('permission:block.delete')->name('blocks.destroy');
+        Route::get('/projects/{project}/blocks', [BlockController::class, 'index'])->middleware('permission:block.view')->name('projects.blocks.index');
+    });
+
+    Route::middleware('permission:plot.view')->prefix('admin')->group(function () {
+        Route::get('/blocks/{block}/plots/export', [PlotController::class, 'exportBlockPlots'])->middleware('permission:plot.excel')->name('blocks.plots.export');
+        Route::get('/streets/{street}/plots', [PlotController::class, 'indexByStreet'])->middleware('permission:plot.view')->name('streets.plots.index');
+        Route::get('/plot/{id}', [PlotController::class, 'show'])->middleware('permission:plot.view')->name('plots.show');
+        Route::get('/plots', [PlotController::class, 'index'])->name('plots.index');
+        Route::get('/plots/create', [plotController::class, 'create'])->middleware('permission:plot.create')->name('plots.create');    
+        Route::post('/plots', [PlotController::class, 'store'])->middleware('permission:plot.create')->name('plots.store');
+        Route::get('/plots/{plot}/edit', [PlotController::class, 'edit'])->middleware('permission:plot.edit')->name('plots.edit');
+        Route::put('/plots/{plot}', [PlotController::class, 'update'])->middleware('permission:plot.update')->name('plots.update');
+        Route::delete('/plots/{plot}',[PlotController::class, 'destroy'])->middleware('permission:plot.delete')->name('plots.destroy');
+        Route::get('/plots/deleted', [PlotController::class, 'deleted'])->middleware('permission:plot.trashview')->name('plots.deleted');
+        Route::get('/plots/{id}/deleted-view', [PlotController::class, 'deletedView'])->middleware('permission:plot.trashview')->name('plots.deleted.view');
+        Route::put('/plots/{id}/restore', [PlotController::class, 'restore'])->middleware('permission:plot.restore')->name('plots.restore');
+        Route::delete('/plots/{id}/force-delete', [PlotController::class, 'forceDelete'])->middleware('permission:plot.force-delete')->name('plots.forceDelete');
+        Route::get('/get-assigned-sizes/{project_id}/{block_id}/{property_type_id}',[PlotController::class, 'getAssignedSizes'])->name('plots.assigned-sizes');
+    });
+
+    Route::middleware(['auth','permission:plot.view'])->prefix('admin')->group(function () {
+
+    // route for excel exports blockwise plots
+        Route::get('/blocks/{block}/plots/export', [PlotController::class, 'exportBlockPlots'])->middleware('permission:plot.excel')->name('blocks.plots.export');
+        Route::get('/streets/{street}/plots', [PlotController::class, 'indexByStreet'])->middleware('permission:plot.view')->name('streets.plots.index');
+        Route::get('/plot/{id}', [PlotController::class, 'show'])->middleware('permission:plot.view')->name('plots.show');
+        Route::get('/plots', [PlotController::class, 'index'])->name('plots.index');
+        Route::get('/plots/create', [plotController::class, 'create'])->middleware('permission:plot.create')->name('plots.create');    
+        Route::post('/plots', [PlotController::class, 'store'])->middleware('permission:plot.create')->name('plots.store');
+        Route::get('/plots/{plot}/edit', [PlotController::class, 'edit'])->middleware('permission:plot.edit')->name('plots.edit');
+        Route::put('/plots/{plot}', [PlotController::class, 'update'])->middleware('permission:plot.update')->name('plots.update');
+        Route::delete('/plots/{plot}',[PlotController::class, 'destroy'])->middleware('permission:plot.delete')->name('plots.destroy');
+            // deleted plots and restore route
+        Route::get('/plots/deleted', [PlotController::class, 'deleted'])->middleware('permission:plot.trashview')->name('plots.deleted');
+        Route::get('/plots/{id}/deleted-view', [PlotController::class, 'deletedView'])->middleware('permission:plot.trashview')->name('plots.deleted.view');
+        Route::put('/plots/{id}/restore', [PlotController::class, 'restore'])->middleware('permission:plot.restore')->name('plots.restore');
+        Route::delete('/plots/{id}/force-delete', [PlotController::class, 'forceDelete'])->middleware('permission:plot.force-delete')->name('plots.forceDelete');
+        Route::get('/get-assigned-sizes/{project_id}/{block_id}/{property_type_id}', [PlotController::class, 'getAssignedSizes'])->name('plots.assigned-sizes');
+
+    });
+    Route::middleware(['auth'])->prefix('admin')->group(function () {
+        Route::get('/lop-mortgage', [LopMortgageStatusController::class, 'index'])->middleware('permission:lop.view')->name('lop-mortgage.index');
+        Route::get('/lop-mortgage/create', [LopMortgageStatusController::class, 'create'])->middleware('permission:lop.create')->name('lop-mortgage.create');
+        Route::get('/lop-mortgage/search-plots', [LopMortgageStatusController::class, 'searchPlots'])->middleware('permission:lop.create')->name('lop-mortgage.search-plots');        
+        Route::post('/lop-mortgage', [LopMortgageStatusController::class, 'store'])->middleware('permission:lop.create')->name('lop-mortgage.store');
+        Route::get('/lop-mortgage/{plot}/edit', [LopMortgageStatusController::class, 'edit'])->middleware('permission:lop.edit')->name('lop-mortgage.edit');
+        Route::put('/lop-mortgage/{plot}', [LopMortgageStatusController::class, 'update'])->middleware('permission:lop.edit')->name('lop-mortgage.update');
+        Route::delete('/lop-mortgage/{plot}', [LopMortgageStatusController::class, 'destroy'])->middleware('permission:lop.delete')->name('lop-mortgage.destroy');
+
+
+    });
 
 });
 
@@ -71,12 +147,10 @@ Route::middleware('auth')->group(function () {
 
 // new setting of routes -- End -- 
 
-
 // routes to be set
 
-
-
 //
+
 Route::middleware(['auth','role:admin|super-admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/admindashboard', [AdminDashboardController::class, 'index'])
         // ->middleware('permission:user.create')
@@ -120,141 +194,141 @@ Route::middleware(['auth','role:admin|super-admin'])->prefix('admin')->name('adm
 
 
 // Route::middleware(['auth','role:admin|super-admin'])->prefix('admin')->name('admin.')->group(function () {
-Route::middleware(['auth','permission:role.view'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-    Route::get('/roles/create', [RoleController::class, 'create'])
-        ->middleware('permission:role.create')
-        ->name('roles.create');
+// Route::middleware(['auth','permission:role.view'])->prefix('admin')->name('admin.')->group(function () {
+//     Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+//     Route::get('/roles/create', [RoleController::class, 'create'])
+//         ->middleware('permission:role.create')
+//         ->name('roles.create');
 
-    Route::post('/roles', [RoleController::class, 'store'])
-        ->middleware('permission:role.store')
-        // ->name('roles.create');
-        ->name('roles.store');
-    Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])
-        ->middleware('permission:role.edit')
-        ->name('roles.edit');
-    // Route::put('/roles/{role}', [RoleController::class, 'update'])
-    //     ->middleware('permission:role.edit')
-    //     ->name('roles.update'); 
-    // Route::delete('/roles/{role}',[RoleController::class, 'destroy'])
-    //     ->middleware('permission:role.delete')
-    //     ->name('roles.destroy');
-    Route::delete('/roles/{role}', [RoleController::class, 'destroy'])
-        ->middleware('permission:role.delete')
-        ->name('roles.destroy');
+//     Route::post('/roles', [RoleController::class, 'store'])
+//         ->middleware('permission:role.store')
+//         // ->name('roles.create');
+//         ->name('roles.store');
+//     Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])
+//         ->middleware('permission:role.edit')
+//         ->name('roles.edit');
+//     // Route::put('/roles/{role}', [RoleController::class, 'update'])
+//     //     ->middleware('permission:role.edit')
+//     //     ->name('roles.update'); 
+//     // Route::delete('/roles/{role}',[RoleController::class, 'destroy'])
+//     //     ->middleware('permission:role.delete')
+//     //     ->name('roles.destroy');
+//     Route::delete('/roles/{role}', [RoleController::class, 'destroy'])
+//         ->middleware('permission:role.delete')
+//         ->name('roles.destroy');
 
-    // Route::resource('roles', RoleController::class);
-    // old resource route
-    // Route::resource('permissions', PermissionController::class);
+//     // Route::resource('roles', RoleController::class);
+//     // old resource route
+//     // Route::resource('permissions', PermissionController::class);
 
-});
+// });
 
 
 
 // project route change resource into manual
 
 // Route::middleware(['auth','permission:project.view'])->prefix('admin')->name('admin.')->group(function () {
-Route::middleware(['auth','permission:project.view'])->prefix('admin')->group(function () {
-    Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
-    Route::get('/projects/create', [ProjectController::class, 'create'])
-        ->middleware('permission:project.create')
-        ->name('projects.create');
+// Route::middleware(['auth','permission:project.view'])->prefix('admin')->group(function () {
+//     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+//     Route::get('/projects/create', [ProjectController::class, 'create'])
+//         ->middleware('permission:project.create')
+//         ->name('projects.create');
     
-    Route::post('/projects', [ProjectController::class, 'store'])
-        ->middleware('permission:project.create')
-        ->name('projects.store');
-    Route::get('/projects/{project}/edit', [ProjectController::class, 'edit'])
-        ->middleware('permission:project.edit')
-        ->name('projects.edit');
-    Route::put('/projects/{project}', [ProjectController::class, 'update'])
-        ->middleware('permission:project.update')
-        ->name('projects.update');
-    Route::delete('/projects/{project}',[ProjectController::class, 'destroy'])
-        ->middleware('permission:project.delete')
-        ->name('projects.destroy');
-});
+//     Route::post('/projects', [ProjectController::class, 'store'])
+//         ->middleware('permission:project.create')
+//         ->name('projects.store');
+//     Route::get('/projects/{project}/edit', [ProjectController::class, 'edit'])
+//         ->middleware('permission:project.edit')
+//         ->name('projects.edit');
+//     Route::put('/projects/{project}', [ProjectController::class, 'update'])
+//         ->middleware('permission:project.update')
+//         ->name('projects.update');
+//     Route::delete('/projects/{project}',[ProjectController::class, 'destroy'])
+//         ->middleware('permission:project.delete')
+//         ->name('projects.destroy');
+// });
 
 // block route from resource to genral routes
-Route::middleware(['auth','permission:block.view'])->prefix('admin')->group(function () {
-    Route::get('/blocks', [BlockController::class, 'index'])->name('blocks.index');
-    Route::get('/blocks/create', [BlockController::class, 'create'])
-        ->middleware('permission:block.create')
-        ->name('blocks.create');    
-    Route::post('/blocks', [BlockController::class, 'store'])
-        ->middleware('permission:block.create')
-        ->name('blocks.store');
-    Route::get('/blocks/{block}/edit', [BlockController::class, 'edit'])
-        ->middleware('permission:block.edit')
-        ->name('blocks.edit');
-    Route::put('/blocks/{block}', [BlockController::class, 'update'])
-        ->middleware('permission:block.update')
-        ->name('blocks.update');
-    Route::delete('/blocks/{block}',[BlockController::class, 'destroy'])
-        ->middleware('permission:block.delete')
-        ->name('blocks.destroy');
-// index of blocks of selected project
-    Route::get('/projects/{project}/blocks', [BlockController::class, 'index'])
-        ->middleware('permission:block.view')
-        ->name('projects.blocks.index');
-});
+// Route::middleware(['auth','permission:block.view'])->prefix('admin')->group(function () {
+//     Route::get('/blocks', [BlockController::class, 'index'])->name('blocks.index');
+//     Route::get('/blocks/create', [BlockController::class, 'create'])
+//         ->middleware('permission:block.create')
+//         ->name('blocks.create');    
+//     Route::post('/blocks', [BlockController::class, 'store'])
+//         ->middleware('permission:block.create')
+//         ->name('blocks.store');
+//     Route::get('/blocks/{block}/edit', [BlockController::class, 'edit'])
+//         ->middleware('permission:block.edit')
+//         ->name('blocks.edit');
+//     Route::put('/blocks/{block}', [BlockController::class, 'update'])
+//         ->middleware('permission:block.update')
+//         ->name('blocks.update');
+//     Route::delete('/blocks/{block}',[BlockController::class, 'destroy'])
+//         ->middleware('permission:block.delete')
+//         ->name('blocks.destroy');
+// // index of blocks of selected project
+//     Route::get('/projects/{project}/blocks', [BlockController::class, 'index'])
+//         ->middleware('permission:block.view')
+//         ->name('projects.blocks.index');
+// });
 
 // routes for plotcontroller 
-Route::middleware(['auth','permission:plot.view'])->prefix('admin')->group(function () {
+// Route::middleware(['auth','permission:plot.view'])->prefix('admin')->group(function () {
 
-// route for excel exports blockwise plots
-    Route::get('/blocks/{block}/plots/export', [PlotController::class, 'exportBlockPlots'])
-            ->middleware('permission:plot.excel')
-            ->name('blocks.plots.export');
-    Route::get('/streets/{street}/plots', [PlotController::class, 'indexByStreet'])
-            ->middleware('permission:plot.view')
-            ->name('streets.plots.index');
-    Route::get('/plot/{id}', [PlotController::class, 'show'])
-            ->middleware('permission:plot.view')
-            ->name('plots.show');
-    Route::get('/plots', [PlotController::class, 'index'])->name('plots.index');
-    Route::get('/plots/create', [plotController::class, 'create'])
-        ->middleware('permission:plot.create')
-        ->name('plots.create');    
-    Route::post('/plots', [PlotController::class, 'store'])
-        ->middleware('permission:plot.create')
-        ->name('plots.store');
-    Route::get('/plots/{plot}/edit', [PlotController::class, 'edit'])
-        ->middleware('permission:plot.edit')
-        ->name('plots.edit');
-    Route::put('/plots/{plot}', [PlotController::class, 'update'])
-        ->middleware('permission:plot.update')
-        ->name('plots.update');
-    Route::delete('/plots/{plot}',[PlotController::class, 'destroy'])
-        ->middleware('permission:plot.delete')
-        ->name('plots.destroy');
-        // deleted plots and restore route
-    Route::get('/plots/deleted', [PlotController::class, 'deleted'])
-        ->middleware('permission:plot.trashview')
-        ->name('plots.deleted');
+// // route for excel exports blockwise plots
+//     Route::get('/blocks/{block}/plots/export', [PlotController::class, 'exportBlockPlots'])
+//             ->middleware('permission:plot.excel')
+//             ->name('blocks.plots.export');
+//     Route::get('/streets/{street}/plots', [PlotController::class, 'indexByStreet'])
+//             ->middleware('permission:plot.view')
+//             ->name('streets.plots.index');
+//     Route::get('/plot/{id}', [PlotController::class, 'show'])
+//             ->middleware('permission:plot.view')
+//             ->name('plots.show');
+//     Route::get('/plots', [PlotController::class, 'index'])->name('plots.index');
+//     Route::get('/plots/create', [plotController::class, 'create'])
+//         ->middleware('permission:plot.create')
+//         ->name('plots.create');    
+//     Route::post('/plots', [PlotController::class, 'store'])
+//         ->middleware('permission:plot.create')
+//         ->name('plots.store');
+//     Route::get('/plots/{plot}/edit', [PlotController::class, 'edit'])
+//         ->middleware('permission:plot.edit')
+//         ->name('plots.edit');
+//     Route::put('/plots/{plot}', [PlotController::class, 'update'])
+//         ->middleware('permission:plot.update')
+//         ->name('plots.update');
+//     Route::delete('/plots/{plot}',[PlotController::class, 'destroy'])
+//         ->middleware('permission:plot.delete')
+//         ->name('plots.destroy');
+//         // deleted plots and restore route
+//     Route::get('/plots/deleted', [PlotController::class, 'deleted'])
+//         ->middleware('permission:plot.trashview')
+//         ->name('plots.deleted');
 
-    Route::get('/plots/{id}/deleted-view', [PlotController::class, 'deletedView'])
-        ->middleware('permission:plot.trashview')
-        ->name('plots.deleted.view');
+//     Route::get('/plots/{id}/deleted-view', [PlotController::class, 'deletedView'])
+//         ->middleware('permission:plot.trashview')
+//         ->name('plots.deleted.view');
 
-    Route::put('/plots/{id}/restore', [PlotController::class, 'restore'])
-        ->middleware('permission:plot.restore')
-        ->name('plots.restore');
+//     Route::put('/plots/{id}/restore', [PlotController::class, 'restore'])
+//         ->middleware('permission:plot.restore')
+//         ->name('plots.restore');
 
-    Route::delete('/plots/{id}/force-delete', [PlotController::class, 'forceDelete'])
-        ->middleware('permission:plot.force-delete')
-        ->name('plots.forceDelete');
+//     Route::delete('/plots/{id}/force-delete', [PlotController::class, 'forceDelete'])
+//         ->middleware('permission:plot.force-delete')
+//         ->name('plots.forceDelete');
 
-    // getassigned size
+//     // getassigned size
 
-    // Route::get(
-    //     '/get-assigned-sizes/{project_id}/{block_id}/{property_type_id}',
-    //     [PlotController::class, 'getAssignedSizes']
-    // )->name('plots.assigned-sizes');
-    Route::get(
-        '/get-assigned-sizes/{project_id}/{block_id}/{property_type_id}',
-        [PlotController::class, 'getAssignedSizes']
-    )->name('plots.assigned-sizes');
-});
+//     // Route::get(
+//     //     '/get-assigned-sizes/{project_id}/{block_id}/{property_type_id}',
+//     //     [PlotController::class, 'getAssignedSizes']
+//     // )->name('plots.assigned-sizes');
+//     Route::get(
+//         '/get-assigned-sizes/{project_id}/{block_id}/{property_type_id}',
+//         [PlotController::class, 'getAssignedSizes']
+//     )->name('plots.assigned-sizes');
+// });
 
 Route::middleware(['auth','permission:areavariation.view'])->prefix('admin')->group(function () {
 
@@ -266,92 +340,46 @@ Route::middleware(['auth','permission:areavariation.view'])->prefix('admin')->gr
     // AJAX endpoints (controller methods described below)
 // Route::middleware(['auth','permission:areavariation.view'])->prefix('admin')->group(function () {
 Route::middleware(['auth'])->prefix('admin')->group(function () {
-    Route::post('/plots/{plot}/lop', [PlotController::class, 'updateLop'])
-        ->middleware('permission:lop.edit')
-        ->name('plots.updateLop');
-    Route::get('/plots/{plot}/lop', [PlotController::class, 'getLop'])
-        ->middleware('permission:lop.view')
-        ->name('plots.getLop');
+    Route::post('/plots/{plot}/lop', [PlotController::class, 'updateLop'])->middleware('permission:lop.edit')->name('plots.updateLop');
+    Route::get('/plots/{plot}/lop', [PlotController::class, 'getLop'])->middleware('permission:lop.view')->name('plots.getLop');
+
 });
 
 // Route::middleware(['auth'])->prefix('admin')->group(function () {
 Route::middleware(['auth'])->prefix('admin')->group(function () {
-    Route::post('/plots/{plot}/development', [PlotController::class, 'updateDevelopment'])
-        // ->middleware('permission:development.create'|'development.update')
-        ->middleware('permission:development.edit')
-        ->name('plots.updateDevelopment');
-    Route::get('/plots/{plot}/development', [PlotController::class, 'getDevelopment'])
-        // ->middleware('permission::development.view')
-        ->name('plots.getDevelopment');
+    Route::post('/plots/{plot}/development', [PlotController::class, 'updateDevelopment'])->middleware('permission:development.edit')->name('plots.updateDevelopment');
+    Route::get('/plots/{plot}/development', [PlotController::class, 'getDevelopment'])->name('plots.getDevelopment');
 });
 
 // street controller resource into auth system
 Route::middleware(['auth','permission:street.view'])->prefix('admin')->group(function () {
 
-// route for excel exports blockwise plots
-    // Route::get('/blocks/{block}/plots/export', [PlotController::class, 'exportBlockPlots'])
-    //         ->middleware('permission:plot.excel')
-    //         ->name('blocks.plots.export');
-    // Route::get('streets/{street}/plots', [PlotController::class, 'indexByStreet'])
-    //         ->middleware('permission:plot.view')
-    //         ->name('streets.plots.index');
-    // Route::get('/plot/{id}', [PlotController::class, 'show'])
-    //         ->middleware('permission:plot.view')
-    //         ->name('plots.show');
-    Route::get('/streets', [StreetController::class, 'index'])
-        ->name('streets.index');
+    Route::get('/streets', [StreetController::class, 'index'])->name('streets.index');
     // for special streets index
-    Route::get('/blocks/{block}/streets', [StreetController::class, 'index'])
-        ->name('blocks.streets.index');
-    Route::get('/streets/create', [StreetController::class, 'create'])
-        ->middleware('permission:street.create')
-        ->name('streets.create');    
-    Route::post('/streets', [StreetController::class, 'store'])
-        ->middleware('permission:street.create')
-        ->name('streets.store');
-    Route::get('/streets/{street}/edit', [StreetController::class, 'edit'])
-        ->middleware('permission:street.edit')
-        ->name('streets.edit');
-    Route::put('/streets/{street}', [StreetController::class, 'update'])
-        ->middleware('permission:street.update')
-        ->name('streets.update');
-    Route::delete('/streets/{street}',[streetController::class, 'destroy'])
-        ->middleware('permission:street.delete')
-        ->name('streets.destroy');
+    Route::get('/blocks/{block}/streets', [StreetController::class, 'index'])->name('blocks.streets.index');
+    Route::get('/streets/create', [StreetController::class, 'create'])->middleware('permission:street.create')->name('streets.create');    
+    Route::post('/streets', [StreetController::class, 'store'])->middleware('permission:street.create')->name('streets.store');
+    Route::get('/streets/{street}/edit', [StreetController::class, 'edit'])->middleware('permission:street.edit')->name('streets.edit');
+    Route::put('/streets/{street}', [StreetController::class, 'update'])->middleware('permission:street.update')->name('streets.update');
+    Route::delete('/streets/{street}',[streetController::class, 'destroy'])->middleware('permission:street.delete')->name('streets.destroy');
 });
 // size routes resource into authsystem
 Route::middleware(['auth','permission:size.view'])->prefix('admin')->group(function () {
  
     Route::get('/sizes', [PlotsizeController::class, 'index'])->name('sizes.index');
-    Route::get('/sizes/create', [PlotsizeController::class, 'create'])
-        ->middleware('permission:size.create')
-        ->name('sizes.create');    
-    Route::post('/ssizes', [PlotsizeController::class, 'store'])
-        ->middleware('permission:size.create')
-        ->name('sizes.store');
-    Route::get('/sizes/{size}/edit', [PlotsizeController::class, 'edit'])
-        ->middleware('permission:size.edit')
-        ->name('sizes.edit');
-    Route::put('/sizes/{size}', [PlotsizeController::class, 'update'])
-        ->middleware('permission:size.update')
-        ->name('sizes.update');
-    Route::delete('/sizes/{size}',[PlotsizeController::class, 'destroy'])
-        ->middleware('permission:size.delete')
-        ->name('sizes.destroy');
+    Route::get('/sizes/create', [PlotsizeController::class, 'create'])->middleware('permission:size.create')->name('sizes.create');    
+    Route::post('/ssizes', [PlotsizeController::class, 'store'])->middleware('permission:size.create')->name('sizes.store');
+    Route::get('/sizes/{size}/edit', [PlotsizeController::class, 'edit'])->middleware('permission:size.edit')->name('sizes.edit');
+    Route::put('/sizes/{size}', [PlotsizeController::class, 'update'])->middleware('permission:size.update')->name('sizes.update');
+    Route::delete('/sizes/{size}',[PlotsizeController::class, 'destroy'])->middleware('permission:size.delete')->name('sizes.destroy');
     
     // Trash / Deleted Sizes
-    Route::get('sizes-trash', [PlotsizeController::class, 'trash'])
-        ->middleware('permission:size.trashview')
-        ->name('sizes.trash');
+    Route::get('sizes-trash', [PlotsizeController::class, 'trash'])->middleware('permission:size.trashview')->name('sizes.trash');
 
     // Restore Deleted Size
-    Route::post('sizes/{id}/restore', [PlotsizeController::class, 'restore'])
-        ->middleware('permission:size.trashrestore')
-        ->name('sizes.restore');
+    Route::post('sizes/{id}/restore', [PlotsizeController::class, 'restore'])->middleware('permission:size.trashrestore')->name('sizes.restore');
 
-    Route::delete('/sizes/{id}/force-delete', [PlotsizeController::class, 'forceDelete'])
-        ->middleware('permission:size.delete')
-        ->name('sizes.forceDelete');
+    Route::delete('/sizes/{id}/force-delete', [PlotsizeController::class, 'forceDelete'])->middleware('permission:size.delete')->name('sizes.forceDelete');
 });
 
 Route::middleware(['auth'])->group(function () {

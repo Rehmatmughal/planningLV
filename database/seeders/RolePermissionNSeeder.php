@@ -131,11 +131,22 @@ class RolePermissionNSeeder extends Seeder
             'lop.create',
             'lop.update',
             'lop.edit',
+            'lop.delete',
+            'lop.excel',
+
+            'mortgage.view',
+            'mortgage.create',
+            'mortgage.update',
+            'mortgage.edit',
+            'mortgage.delete',
+            'mortgage.excel',
 
             'development.view',
             'development.edit',
             'development.create',
             'development.update',
+            'development.delete',
+            'development.excel',
 
             'area.view',
 
@@ -228,11 +239,22 @@ class RolePermissionNSeeder extends Seeder
             'lop.create',
             'lop.update',
             'lop.edit',
+            'lop.delete',
+            'lop.excel',
+            
+            'mortgage.view',
+            'mortgage.create',
+            'mortgage.update',
+            'mortgage.edit',
+            'mortgage.delete',
+            'mortgage.excel',
 
             'development.view',
             'development.edit',
             'development.create',
             'development.update',
+            'development.delete',
+            'development.excel',
 
             'area.view',
 
