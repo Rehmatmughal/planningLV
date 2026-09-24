@@ -147,6 +147,7 @@ class RolePermissionNSeeder extends Seeder
             'development.update',
             'development.delete',
             'development.excel',
+            'development.delete',
 
             'area.view',
 
@@ -255,6 +256,7 @@ class RolePermissionNSeeder extends Seeder
             'development.update',
             'development.delete',
             'development.excel',
+            'development.delete',
 
             'area.view',
 

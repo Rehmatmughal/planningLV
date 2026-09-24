@@ -32,6 +32,7 @@ use App\Http\Controllers\PropertyTypeAssignmentController;
 use App\Http\Controllers\LopMortgageStatusController;
 
 
+
 require __DIR__.'/auth.php';
 
 // new setting of routes -- Start --
@@ -137,7 +138,17 @@ Route::middleware('auth')->group(function () {
         Route::put('/lop-mortgage/{plot}', [LopMortgageStatusController::class, 'update'])->middleware('permission:lop.edit')->name('lop-mortgage.update');
         Route::delete('/lop-mortgage/{plot}', [LopMortgageStatusController::class, 'destroy'])->middleware('permission:lop.delete')->name('lop-mortgage.destroy');
         Route::get('/lop-mortgage/export-excel', [LopMortgageStatusController::class, 'exportExcel'])->middleware('permission:lop.excel')->name('lop-mortgage.export-excel');
+    });
 
+    Route::middleware(['auth'])->prefix('admin')->group(function () {
+        Route::get('/development', [DevelopmentStatusController::class, 'index'])->middleware('permission:development.view')->name('development.index');
+        Route::get('/development/create', [DevelopmentStatusController::class, 'create'])->middleware('permission:development.create')->name('development.create');
+        Route::get('/development/search-plots', [DevelopmentStatusController::class, 'searchPlots'])->middleware('permission:development.create')->name('development.search-plots');
+        Route::post('/development', [DevelopmentStatusController::class, 'store'])->middleware('permission:development.create')->name('development.store');
+        Route::get('/development/export-excel', [DevelopmentStatusController::class, 'exportExcel'])->middleware('permission:development.view')->name('development.export-excel');
+        Route::get('/development/{plot}/edit', [DevelopmentStatusController::class, 'edit'])->middleware('permission:development.edit')->name('development.edit');
+        Route::put('/development/{plot}', [DevelopmentStatusController::class, 'update'])->middleware('permission:development.edit')->name('development.update');
+        Route::delete('/development/{plot}', [DevelopmentStatusController::class, 'destroy'])->middleware('permission:development.edit')->name('development.destroy');
     });
 
 });
