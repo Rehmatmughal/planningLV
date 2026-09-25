@@ -218,7 +218,8 @@
                             {{-- LOP column --}}
 
                             @if(auth()->user()->canany(['lop.view','lop.edit']))
-                            <td class="align-middle">
+                            <td class="align-middle lop-status-cell">
+                            {{-- <td class="align-middle"> --}}
                                 @if(auth()->user()->can('lop.view'))
                                 @php $lop = $plot->lopStatus->lop_status ?? null; @endphp
  
@@ -688,42 +689,156 @@ document.addEventListener('DOMContentLoaded', function(){
             fetch(`/admin/plots/${id}/lop`, { headers: {'X-CSRF-TOKEN': csrfToken} })
                 .then(r => r.json())
                 .then(data => {
+
                     console.log('LOP DATA:', data);
+
                     document.getElementById('lop_plot_id').value = id;
-                    document.getElementById('lop_status').value = data.lop_status ?? '';
-                    document.getElementById('lop_remarks').value = data.remarks ?? '';
-                    new bootstrap.Modal(document.getElementById('lopModal')).show();
+
+                    document.getElementById('lop_status').value =
+                        data.lop_status ?? '';
+
+                    document.getElementById('lop_remarks').value =
+                        data.remarks ?? '';
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Current Mortgage Status
+                    |--------------------------------------------------------------------------
+                    | Is value ko hum LOP save karte waqt warning ke liye use karenge.
+                    |--------------------------------------------------------------------------
+                    */
+
+                    window.currentPlotIsMortgaged =
+                        data.is_mortgaged === 'yes';
+
+                    new bootstrap.Modal(
+                        document.getElementById('lopModal')
+                    ).show();
                 });
+
         });
     });
 
     // Submit LOP form
-    document.getElementById('lopForm').addEventListener('submit', function(e){
+
+    // Submit LOP form
+    document.getElementById('lopForm').addEventListener('submit', function(e) {
+
         e.preventDefault();
+
         let id = document.getElementById('lop_plot_id').value;
+        let selectedLop = document.getElementById('lop_status').value;
+
+        /*
+        |--------------------------------------------------------------------------
+        | IMPORTANT:
+        | Agar user Non-LOP select kar raha hai to pehle check karein
+        | ke plot Mortgage hai ya nahi.
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            selectedLop === 'non_lop' &&
+            window.currentPlotIsMortgaged === true
+        ) {
+
+            const confirmMessage =
+                'This plot is currently Mortgaged.\n\n' +
+                'If you change this plot to Non-LOP, ' +
+                'its Mortgage status will also be changed to No.\n\n' +
+                'Do you want to continue?';
+
+            const confirmed = confirm(confirmMessage);
+
+            // User ne Cancel kar diya
+            if (!confirmed) {
+                return;
+            }
+        }
+
         let formData = new FormData(this);
 
         fetch(`/admin/plots/${id}/lop`, {
             method: 'POST',
-            headers: {'X-CSRF-TOKEN': csrfToken},
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
             body: formData
         })
-        .then(r => r.json())
+        .then(r => {
+
+            if (!r.ok) {
+                throw new Error('Server returned an error.');
+            }
+
+            return r.json();
+        })
         .then(res => {
-            // update LOP badge in row
-            const row = document.getElementById('plot-row-'+id);
-            const lopCell = row.querySelector('td:nth-child(5)');
-            lopCell.innerHTML = ''; // clear then set
-            if(res.lop_status === 'lop') lopCell.innerHTML = '<span class="badge bg-success">LOP</span>';
-            else if(res.lop_status === 'mortgaged') lopCell.innerHTML = '<span class="badge" style="background:#6f42c1;color:#fff">Mortgaged</span>';
-            else if(res.lop_status === 'non_lop') lopCell.innerHTML = '<span class="badge bg-danger">Non-LOP</span>';
-            lopCell.innerHTML += ' <button class="btn btn-sm btn-outline-primary ms-2 btn-lop" data-id="'+id+'"><i class="bi bi-pencil-square"></i></button>';
-            bootstrap.Modal.getInstance(document.getElementById('lopModal')).hide();
-            attachDynamicButtons(); // reattach handlers
+
+            // Row find karein
+            const row = document.getElementById('plot-row-' + id);
+
+            /*
+            |--------------------------------------------------------------------------
+            | LOP cell
+            |--------------------------------------------------------------------------
+            */
+
+            // LOP column ko class ke through identify karna safer hai.
+            const lopCell = row.querySelector('.lop-status-cell');
+
+            if (lopCell) {
+
+                let html = '';
+
+                if (res.lop_status === 'lop') {
+
+                    html =
+                        '<span class="badge bg-success">LOP</span>';
+
+                } else if (res.lop_status === 'non_lop') {
+
+                    html =
+                        '<span class="badge bg-danger">Non-LOP</span>';
+                }
+
+                html +=
+                    ' <button ' +
+                    'class="btn btn-sm btn-outline-primary ms-2 btn-lop" ' +
+                    'data-id="' + id + '" ' +
+                    'title="Update LOP">' +
+                    '<i class="bi bi-pencil-square"></i>' +
+                    '</button>';
+
+                lopCell.innerHTML = html;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Modal close
+            |--------------------------------------------------------------------------
+            */
+
+            bootstrap.Modal
+                .getInstance(document.getElementById('lopModal'))
+                .hide();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Dynamic button dobara attach
+            |--------------------------------------------------------------------------
+            */
+
+            attachDynamicButtons();
+
         })
         .catch(err => {
+
             alert('Error saving LOP');
+
             console.error(err);
+
         });
 
     });
@@ -850,14 +965,14 @@ document.addEventListener('DOMContentLoaded', function(){
                 })
                 .then(r => r.json())
                 .then(data => {
-
                     console.log('LOP DATA:', data);
-
                     document.getElementById('lop_plot_id').value = id;
                     document.getElementById('lop_status').value = data.lop_status ?? '';
                     document.getElementById('lop_remarks').value = data.remarks ?? '';
-
-                    new bootstrap.Modal(document.getElementById('lopModal')).show();
+                    window.currentPlotIsMortgaged = data.is_mortgaged === 'yes';
+                    new bootstrap.Modal(
+                        document.getElementById('lopModal')
+                    ).show();
                 });
             };
         });

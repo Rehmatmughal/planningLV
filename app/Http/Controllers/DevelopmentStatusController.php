@@ -10,7 +10,6 @@ use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DevelopmentExport;
 
-
 class DevelopmentStatusController extends Controller
 {
     /**
@@ -109,78 +108,149 @@ class DevelopmentStatusController extends Controller
     /**
      * Store new Development status
      */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'plot_id' => [
-                'required',
-                'exists:plots,id',
-            ],
+    /**
 
-            'sewer_manholes' => [
-                'required',
-                Rule::in([
-                    'constructed',
-                    'not_constructed',
-                ]),
-            ],
+    * Create or Update Development status
+    */
+    public function store(Request $request){
 
-            'asphalt_tst' => [
-                'required',
-                Rule::in([
-                    'yes',
-                    'no',
-                ]),
-            ],
+    $validated = $request->validate([
+    'plot_id' => ['required', 'exists:plots,id',],
+    'sewer_manholes' => ['required',
+        Rule::in([
+            'constructed',
+            'not_constructed',
+        ]),
+    ],
 
-            'overall_status' => [
-                'required',
-                Rule::in([
-                    'developed',
-                    'under_development',
-                    'not_developed',
-                ]),
-            ],
+    'asphalt_tst' => ['required',
+        Rule::in([
+            'yes',
+            'no',
+        ]),
+    ],
 
-            'remarks' => [
-                'nullable',
-                'string',
-            ],
-        ]);
+    'overall_status' => ['required',
+        Rule::in([
+            'developed',
+            'under_development',
+            'not_developed',
+        ]),
+    ],
 
+    'remarks' => [
+        'nullable',
+        'string',
+    ],
 
-        // Ek plot ka sirf ek Development Status allowed hai.
-        $alreadyExists = DevelopmentStatus::where(
-            'plot_id',
-            $validated['plot_id']
-        )->exists();
+    ]);
 
-        if ($alreadyExists) {
-            return back()
-                ->withErrors([
-                    'plot_id' =>
-                        'This plot already has a Development status. Please use Edit instead.',
-                ])
-                ->withInput();
-        }
+    // | /*                                                                         |
+    // | -------------------------------------------------------------------------- |
+    // | Create OR Update                                                           |
+    // | -------------------------------------------------------------------------- |
+    // |                                                                            |
+    // | Agar is plot ka Development Status already exist karta hai:                |
+    // | -> existing record UPDATE hoga                                             |
+    // |                                                                            |
+    // | Agar status exist nahi karta:                                              |
+    // | -> new record CREATE hoga                                                  |
+    // |                                                                            |
+    // | */                                                                         |
 
+    DevelopmentStatus::updateOrCreate(
+    [
+    'plot_id' => $validated['plot_id'],
+    ],
+    [
+    'sewer_manholes' => $validated['sewer_manholes'],
+    'asphalt_tst' => $validated['asphalt_tst'],
+    'overall_status' => $validated['overall_status'],
+    'remarks' => $validated['remarks'] ?? null,
+    ]
+    );
 
-        DevelopmentStatus::create([
-            'plot_id' => $validated['plot_id'],
-            'sewer_manholes' => $validated['sewer_manholes'],
-            'asphalt_tst' => $validated['asphalt_tst'],
-            'overall_status' => $validated['overall_status'],
-            'remarks' => $validated['remarks'] ?? null,
-        ]);
-
-
-        return redirect()
-            ->route('development.index')
-            ->with(
-                'success',
-                'Development status saved successfully!'
-            );
+    return redirect()
+    ->route('development.index')
+    ->with(
+    'success',
+    'Development status saved successfully!'
+    );
     }
+
+    // old store method with create not updateorcreate
+    // public function store(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'plot_id' => [
+    //             'required',
+    //             'exists:plots,id',
+    //         ],
+
+    //         'sewer_manholes' => [
+    //             'required',
+    //             Rule::in([
+    //                 'constructed',
+    //                 'not_constructed',
+    //             ]),
+    //         ],
+
+    //         'asphalt_tst' => [
+    //             'required',
+    //             Rule::in([
+    //                 'yes',
+    //                 'no',
+    //             ]),
+    //         ],
+
+    //         'overall_status' => [
+    //             'required',
+    //             Rule::in([
+    //                 'developed',
+    //                 'under_development',
+    //                 'not_developed',
+    //             ]),
+    //         ],
+
+    //         'remarks' => [
+    //             'nullable',
+    //             'string',
+    //         ],
+    //     ]);
+
+
+    //     // Ek plot ka sirf ek Development Status allowed hai.
+    //     $alreadyExists = DevelopmentStatus::where(
+    //         'plot_id',
+    //         $validated['plot_id']
+    //     )->exists();
+
+    //     if ($alreadyExists) {
+    //         return back()
+    //             ->withErrors([
+    //                 'plot_id' =>
+    //                     'This plot already has a Development status. Please use Edit instead.',
+    //             ])
+    //             ->withInput();
+    //     }
+
+
+    //     DevelopmentStatus::create([
+    //         'plot_id' => $validated['plot_id'],
+    //         'sewer_manholes' => $validated['sewer_manholes'],
+    //         'asphalt_tst' => $validated['asphalt_tst'],
+    //         'overall_status' => $validated['overall_status'],
+    //         'remarks' => $validated['remarks'] ?? null,
+    //     ]);
+
+
+    //     return redirect()
+    //         ->route('development.index')
+    //         ->with(
+    //             'success',
+    //             'Development status saved successfully!'
+    //         );
+    // }
 
 
     /**
@@ -302,59 +372,59 @@ class DevelopmentStatusController extends Controller
     /**
      * Search plots for Development create page
      */
-    public function searchPlots(Request $request)
-    {
+    /**
+
+    * Search plots for Development create/update page
+    */
+    public function searchPlots(Request $request){
         $request->validate([
-            'project_id' => 'required|exists:projects,id',
-            'property_type_id' => 'required|exists:property_types,id',
-            'block_id' => 'required|exists:blocks,id',
-            'street_id' => 'nullable|exists:streets,id',
-            'plot_number' => 'required|string|max:100',
-        ]);
+        'project_id' => 'required|exists:projects,id',
+        'property_type_id' => 'required|exists:property_types,id',
+        'block_id' => 'required|exists:blocks,id',
+        'street_id' => 'nullable|exists:streets,id',
+        'plot_number' => 'required|string|max:100',
+    ]);
+    
+    $query = Plot::with([
+        'project',
+        'block',
+        'street',
+        'propertyType',
+        'size',
+        'developmentStatus',
+    ])
+    ->where(            
+        'project_id',            
+        $request->project_id
+    )
+    ->where(
+        'property_type_id',
+        $request->property_type_id
+    )
+    ->where(
+        'block_id',
+        $request->block_id
+    )
+    ->where(
+        'plot_number',
+        'like',
+        '%' . $request->plot_number . '%'
+    );
 
-
-        $query = Plot::with([
-            'project',
-            'block',
-            'street',
-            'propertyType',
-            'size',
-        ])
-            ->where(
-                'project_id',
-                $request->project_id
-            )
-            ->where(
-                'property_type_id',
-                $request->property_type_id
-            )
-            ->where(
-                'block_id',
-                $request->block_id
-            )
-            ->where(
-                'plot_number',
-                'like',
-                '%' . $request->plot_number . '%'
-            );
-
-
-        if ($request->filled('street_id')) {
-            $query->where(
-                'street_id',
-                $request->street_id
-            );
-        }
-
-
+    if ($request->filled('street_id')) {
+        $query->where(                
+            'street_id',
+            $request->street_id
+        );
+    }
         $plots = $query
             ->orderBy('plot_number')
             ->limit(50)
             ->get();
 
+            return response()->json(            
+                $plots->map(function ($plot) {
 
-        return response()->json(
-            $plots->map(function ($plot) {
                 return [
                     'id' => $plot->id,
                     'plot_number' => $plot->plot_number,
@@ -364,10 +434,102 @@ class DevelopmentStatusController extends Controller
                     'property_type' => $plot->propertyType?->name,
                     'size' => $plot->size?->title,
                     'size_area' => $plot->size?->size_area,
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Existing Development Status
+                    |--------------------------------------------------------------------------
+                    |
+                    | Agar status already hai to uski values Create page
+                    | ko bhej di jayengi.
+                    |
+                    */
+
+                    'development_status' => $plot->developmentStatus ? [
+                        'exists' => true,
+                        'sewer_manholes' => $plot->developmentStatus->sewer_manholes,
+                        'asphalt_tst' => $plot->developmentStatus->asphalt_tst,
+                        'overall_status' => $plot->developmentStatus->overall_status,
+                        'remarks' => $plot->developmentStatus->remarks,
+                    ] : [
+                        'exists' => false,
+                        'sewer_manholes' => null,
+                        'asphalt_tst' => null,
+                        'overall_status' => null,
+                        'remarks' => null,
+                    ],
                 ];
             })
+
         );
     }
+
+    // old search plot without updateorcreate
+    // public function searchPlots(Request $request)
+    // {
+    //     $request->validate([
+    //         'project_id' => 'required|exists:projects,id',
+    //         'property_type_id' => 'required|exists:property_types,id',
+    //         'block_id' => 'required|exists:blocks,id',
+    //         'street_id' => 'nullable|exists:streets,id',
+    //         'plot_number' => 'required|string|max:100',
+    //     ]);
+
+
+    //     $query = Plot::with([
+    //         'project',
+    //         'block',
+    //         'street',
+    //         'propertyType',
+    //         'size',
+    //     ])
+    //         ->where(
+    //             'project_id',
+    //             $request->project_id
+    //         )
+    //         ->where(
+    //             'property_type_id',
+    //             $request->property_type_id
+    //         )
+    //         ->where(
+    //             'block_id',
+    //             $request->block_id
+    //         )
+    //         ->where(
+    //             'plot_number',
+    //             'like',
+    //             '%' . $request->plot_number . '%'
+    //         );
+
+
+    //     if ($request->filled('street_id')) {
+    //         $query->where(
+    //             'street_id',
+    //             $request->street_id
+    //         );
+    //     }
+
+
+    //     $plots = $query
+    //         ->orderBy('plot_number')
+    //         ->limit(50)
+    //         ->get();
+
+
+    //     return response()->json(
+    //         $plots->map(function ($plot) {
+    //             return [
+    //                 'id' => $plot->id,
+    //                 'plot_number' => $plot->plot_number,
+    //                 'project' => $plot->project?->project_name,
+    //                 'block' => $plot->block?->block_name,
+    //                 'street' => $plot->street?->street_name,
+    //                 'property_type' => $plot->propertyType?->name,
+    //                 'size' => $plot->size?->title,
+    //                 'size_area' => $plot->size?->size_area,
+    //             ];
+    //         })
+    //     );
+    // }
 
 
     /**

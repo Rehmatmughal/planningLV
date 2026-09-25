@@ -722,22 +722,6 @@ class PossessionCaseController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Next Possession Sequence
-            |--------------------------------------------------------------------------
-            |
-            | First:
-            | 1
-            |
-            | Second:
-            | 2
-            |
-            | Third:
-            | 3
-            |
-            */
             $nextSequence =
                 // soft delete ko b sath mn find kryga awr uska number b dekhy ga
                 ((int) PossessionCase::withTrashed()
@@ -780,21 +764,6 @@ class PossessionCaseController extends Controller
             }
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Final Possession Number
-            |--------------------------------------------------------------------------
-            |
-            | First:
-            | 250
-            |
-            | Second:
-            | 250-T1
-            |
-            | Third:
-            | 250-T2
-            |
-            */
             if ($nextSequence === 1) {
 
                 $possessionNo =

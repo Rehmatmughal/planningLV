@@ -8,13 +8,21 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
 
         <div>
-            <h4 class="mb-1">
+            {{-- <h4 class="mb-1">
                 Add Development Status
             </h4>
 
             <p class="text-muted mb-0">
                 Add development status for a plot.
+            </p> --}}
+            <h4 class="mb-1">
+                Development Status
+            </h4>
+
+            <p class="text-muted mb-0">
+                Select a plot to create or update its development status.
             </p>
+
         </div>
 
         <a href="{{ route('development.index') }}"
@@ -307,15 +315,28 @@
 
         {{-- Development Status Card --}}
         <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <strong>
+                    <i class="bi bi-building me-1"></i>
+                    Development Status
+                </strong>
 
-            <div class="card-header bg-light">
+                <span id="statusMode"
+                    class="badge bg-secondary">
+                    Select a Plot
+                </span>
+
+            </div>
+
+
+            {{-- <div class="card-header bg-light">
 
                 <strong>
                     <i class="bi bi-building me-1"></i>
                     Development Status
                 </strong>
 
-            </div>
+            </div> --}}
 
 
             <div class="card-body">
@@ -491,6 +512,7 @@
             </button>
 
             <button type="submit"
+                    id="saveDevelopmentBtn"
                     class="btn btn-success">
 
                 <i class="bi bi-check-circle me-1"></i>
@@ -498,14 +520,20 @@
 
             </button>
 
+            {{-- <button type="submit"
+                    class="btn btn-success">
+
+                <i class="bi bi-check-circle me-1"></i>
+                Save Development Status
+
+            </button> --}}
+
         </div>
 
     </form>
 
 </div>
-
 @endsection
-
 
 @section('scripts')
 
@@ -580,7 +608,7 @@ $(document).ready(function () {
 
                     loadStreets(
                         selectedBlockId,
-                        selectedStreet
+                        oldStreet
                     );
 
                 }
@@ -682,6 +710,37 @@ $(document).ready(function () {
 
         $('#selectedPlotInfo').hide();
 
+        clearDevelopmentStatus();
+
+        $('#statusMode')
+            .removeClass('bg-success bg-primary bg-warning')
+            .addClass('bg-secondary')
+            .text('Select a Plot');
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Property Type Change
+    |--------------------------------------------------------------------------
+    */
+
+    $('#property_type_id').on('change', function () {
+
+        $('#plot_id').html(
+            '<option value="">Search plots first</option>'
+        );
+
+        $('#selectedPlotInfo').hide();
+
+        clearDevelopmentStatus();
+
+        $('#statusMode')
+            .removeClass('bg-success bg-primary bg-warning')
+            .addClass('bg-secondary')
+            .text('Select a Plot');
+
     });
 
 
@@ -703,6 +762,13 @@ $(document).ready(function () {
 
         $('#selectedPlotInfo').hide();
 
+        clearDevelopmentStatus();
+
+        $('#statusMode')
+            .removeClass('bg-success bg-primary bg-warning')
+            .addClass('bg-secondary')
+            .text('Select a Plot');
+
     });
 
 
@@ -723,7 +789,7 @@ $(document).ready(function () {
 
         $('#searchMessage')
             .hide()
-            .removeClass('alert-danger alert-success')
+            .removeClass('alert alert-danger alert-success')
             .html('');
 
 
@@ -731,8 +797,14 @@ $(document).ready(function () {
             '<option value="">Searching...</option>'
         );
 
-
         $('#selectedPlotInfo').hide();
+
+        clearDevelopmentStatus();
+
+        $('#statusMode')
+            .removeClass('bg-success bg-primary bg-warning')
+            .addClass('bg-secondary')
+            .text('Select a Plot');
 
 
         if (!projectId) {
@@ -814,49 +886,119 @@ $(document).ready(function () {
 
                 $.each(data, function (key, plot) {
 
+                    let status =
+                        plot.development_status || {};
+
+                    let statusExists =
+                        status.exists === true ? '1' : '0';
+
+
                     $('#plot_id').append(
 
                         '<option value="' +
                         plot.id +
-                        '" ' +
-                        'data-plot-number="' +
-                        (plot.plot_number ?? '') +
-                        '" ' +
-                        'data-project="' +
-                        (plot.project ?? '') +
-                        '" ' +
-                        'data-block="' +
-                        (plot.block ?? '') +
-                        '" ' +
-                        'data-street="' +
-                        (plot.street ?? '') +
-                        '" ' +
-                        'data-property-type="' +
-                        (plot.property_type ?? '') +
-                        '" ' +
-                        'data-size="' +
-                        (plot.size ?? '') +
-                        '">' +
+                        '"' +
 
-                        plot.plot_number +
+                        ' data-plot-number="' +
+                        escapeHtml(
+                            plot.plot_number ?? ''
+                        ) +
+                        '"' +
+
+                        ' data-project="' +
+                        escapeHtml(
+                            plot.project ?? ''
+                        ) +
+                        '"' +
+
+                        ' data-block="' +
+                        escapeHtml(
+                            plot.block ?? ''
+                        ) +
+                        '"' +
+
+                        ' data-street="' +
+                        escapeHtml(
+                            plot.street ?? ''
+                        ) +
+                        '"' +
+
+                        ' data-property-type="' +
+                        escapeHtml(
+                            plot.property_type ?? ''
+                        ) +
+                        '"' +
+
+                        ' data-size="' +
+                        escapeHtml(
+                            plot.size ?? ''
+                        ) +
+                        '"' +
+
+                        ' data-status-exists="' +
+                        statusExists +
+                        '"' +
+
+                        ' data-sewer-manholes="' +
+                        escapeHtml(
+                            status.sewer_manholes ?? ''
+                        ) +
+                        '"' +
+
+                        ' data-asphalt-tst="' +
+                        escapeHtml(
+                            status.asphalt_tst ?? ''
+                        ) +
+                        '"' +
+
+                        ' data-overall-status="' +
+                        escapeHtml(
+                            status.overall_status ?? ''
+                        ) +
+                        '"' +
+
+                        ' data-remarks="' +
+                        escapeHtml(
+                            status.remarks ?? ''
+                        ) +
+                        '"' +
+
+                        '>' +
+
+                        escapeHtml(
+                            plot.plot_number ?? ''
+                        ) +
+
                         ' — ' +
-                        (plot.street ?? 'No Street') +
+
+                        escapeHtml(
+                            plot.street ?? 'No Street'
+                        ) +
+
                         ' — ' +
-                        (plot.size ?? 'No Size') +
+
+                        escapeHtml(
+                            plot.size ?? 'No Size'
+                        ) +
 
                         '</option>'
-
                     );
 
                 });
 
 
                 showSearchSuccess(
-                    data.length + ' matching plot(s) found.'
+                    data.length +
+                    ' matching plot(s) found.'
                 );
 
 
-                // Restore old plot after validation error
+                /*
+                |--------------------------------------------------------------------------
+                | Restore Old Plot After Validation Error
+                |--------------------------------------------------------------------------
+                */
+
                 if (oldPlotId) {
 
                     $('#plot_id').val(oldPlotId);
@@ -906,40 +1048,145 @@ $(document).ready(function () {
         let selected = $(this).find(':selected');
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | No Plot Selected
+        |--------------------------------------------------------------------------
+        */
+
         if (!selected.val()) {
 
             $('#selectedPlotInfo').hide();
+
+            clearDevelopmentStatus();
+
+            $('#statusMode')
+                .removeClass(
+                    'bg-success bg-primary bg-warning'
+                )
+                .addClass('bg-secondary')
+                .text('Select a Plot');
+
+
+            $('#saveDevelopmentBtn')
+                .html(
+                    '<i class="bi bi-check-circle me-1"></i>' +
+                    'Save Development Status'
+                );
 
             return;
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Selected Plot Information
+        |--------------------------------------------------------------------------
+        */
+
         $('#infoPlotNumber').text(
-            selected.data('plot-number') || '-'
+            selected.attr('data-plot-number') || '-'
         );
 
         $('#infoProject').text(
-            selected.data('project') || '-'
+            selected.attr('data-project') || '-'
         );
 
         $('#infoBlock').text(
-            selected.data('block') || '-'
+            selected.attr('data-block') || '-'
         );
 
         $('#infoStreet').text(
-            selected.data('street') || '-'
+            selected.attr('data-street') || '-'
         );
 
         $('#infoPropertyType').text(
-            selected.data('property-type') || '-'
+            selected.attr('data-property-type') || '-'
         );
 
         $('#infoSize').text(
-            selected.data('size') || '-'
+            selected.attr('data-size') || '-'
         );
 
-
         $('#selectedPlotInfo').show();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Existing Development Status
+        |--------------------------------------------------------------------------
+        */
+
+        let statusExists =
+            selected.attr('data-status-exists') === '1';
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Existing Status -> Update Mode
+        |--------------------------------------------------------------------------
+        */
+
+        if (statusExists) {
+
+            $('#sewer_manholes').val(
+                selected.attr('data-sewer-manholes') || ''
+            );
+
+            $('#asphalt_tst').val(
+                selected.attr('data-asphalt-tst') || ''
+            );
+
+            $('#overall_status').val(
+                selected.attr('data-overall-status') || ''
+            );
+
+            $('#remarks').val(
+                selected.attr('data-remarks') || ''
+            );
+
+
+            $('#statusMode')
+                .removeClass(
+                    'bg-secondary bg-success bg-warning'
+                )
+                .addClass('bg-primary')
+                .text('Existing Status — Update');
+
+
+            $('#saveDevelopmentBtn')
+                .html(
+                    '<i class="bi bi-pencil-square me-1"></i>' +
+                    'Update Development Status'
+                );
+
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | No Status -> Create Mode
+        |--------------------------------------------------------------------------
+        */
+
+        else {
+
+            clearDevelopmentStatus();
+
+
+            $('#statusMode')
+                .removeClass(
+                    'bg-secondary bg-primary bg-warning'
+                )
+                .addClass('bg-success')
+                .text('New Status — Create');
+
+
+            $('#saveDevelopmentBtn')
+                .html(
+                    '<i class="bi bi-check-circle me-1"></i>' +
+                    'Create Development Status'
+                );
+        }
 
     });
 
@@ -965,7 +1212,41 @@ $(document).ready(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Helper Functions
+    | Clear Development Status
+    |--------------------------------------------------------------------------
+    */
+
+    function clearDevelopmentStatus() {
+
+        $('#sewer_manholes').val('');
+
+        $('#asphalt_tst').val('');
+
+        $('#overall_status').val('');
+
+        $('#remarks').val('');
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Escape HTML
+    |--------------------------------------------------------------------------
+    */
+
+    function escapeHtml(value) {
+
+        return $('<div>')
+            .text(value ?? '')
+            .html();
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Search Error
     |--------------------------------------------------------------------------
     */
 
@@ -983,6 +1264,12 @@ $(document).ready(function () {
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Search Success
+    |--------------------------------------------------------------------------
+    */
+
     function showSearchSuccess(message) {
 
         $('#searchMessage')
@@ -999,7 +1286,7 @@ $(document).ready(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Restore Old Values
+    | Restore Old Values After Validation Error
     |--------------------------------------------------------------------------
     */
 
@@ -1024,3 +1311,4 @@ $(document).ready(function () {
 </script>
 
 @endsection
+

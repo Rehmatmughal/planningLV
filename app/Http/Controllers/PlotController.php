@@ -78,15 +78,34 @@ class PlotController extends Controller
     /**
      * --- GET LOP STATUS ---
      */
+
+    /**
+     * --- GET LOP STATUS ---
+     */
     public function getLop(Plot $plot)
     {
         return response()->json([
             'lop_status' => $plot->lopStatus->lop_status ?? null,
             'remarks'    => $plot->lopStatus->remarks ?? null,
+
+            'is_mortgaged' => $plot->mortgageStatus->is_mortgaged ?? 'no',
         ]);
     }
 
+    // get lop only
+    // public function getLop(Plot $plot)
+    // {
+    //     return response()->json([
+    //         'lop_status' => $plot->lopStatus->lop_status ?? null,
+    //         'remarks'    => $plot->lopStatus->remarks ?? null,
+    //     ]);
+    // }
 
+
+    /**
+     * --- UPDATE / CREATE LOP STATUS ---
+     */
+    
     /**
      * --- UPDATE / CREATE LOP STATUS ---
      */
@@ -97,17 +116,71 @@ class PlotController extends Controller
             'remarks'    => 'nullable|string',
         ]);
 
-        $saved = LopStatus::updateOrCreate(
-            ['plot_id' => $plot->id],
-            [
-                'lop_status' => $r->lop_status,
-                'remarks'    => $r->remarks,
-            ]
-        );
+        /*
+        |--------------------------------------------------------------------------
+        | LOP + Mortgage Rule
+        |--------------------------------------------------------------------------
+        | Agar plot ko Non-LOP kiya ja raha hai aur wo currently mortgaged hai,
+        | to Mortgage bhi automatically No ho jayega.
+        */
 
-        return response()->json(['lop_status' => $saved->lop_status]);
+        DB::transaction(function () use ($r, $plot, &$saved) {
+
+            // Agar Non-LOP ho raha hai aur Mortgage = Yes hai
+            if ($r->lop_status === 'non_lop') {
+
+                $mortgage = MortgageStatus::where(
+                    'plot_id',
+                    $plot->id
+                )->first();
+
+                if ($mortgage && $mortgage->is_mortgaged === 'yes') {
+
+                    // Mortgage automatically No
+                    $mortgage->update([
+                        'is_mortgaged' => 'no',
+                    ]);
+                }
+            }
+
+            // LOP status save/update
+            $saved = LopStatus::updateOrCreate(
+                [
+                    'plot_id' => $plot->id,
+                ],
+                [
+                    'lop_status' => $r->lop_status,
+                    'remarks'    => $r->remarks,
+                ]
+            );
+        });
+
+        return response()->json([
+            'lop_status' => $saved->lop_status,
+            'mortgage_changed' => $r->lop_status === 'non_lop',
+        ]);
     }
+    
 
+    // updatelop without touch mortgage
+    // public function updateLop(Request $r, Plot $plot)
+    // {
+    //     $r->validate([
+    //         'lop_status' => 'required|in:lop,non_lop',
+    //         'remarks'    => 'nullable|string',
+    //     ]);
+
+    //     $saved = LopStatus::updateOrCreate(
+    //         ['plot_id' => $plot->id],
+    //         [
+    //             'lop_status' => $r->lop_status,
+    //             'remarks'    => $r->remarks,
+    //         ]
+    //     );
+
+    //     return response()->json(['lop_status' => $saved->lop_status]);
+    // }
+ 
 
     /**
      * --- GET DEVELOPMENT STATUS ---
