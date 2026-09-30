@@ -557,7 +557,17 @@ Route::middleware(['auth','permission:permission.view'])->prefix('admin')->name(
         [PossessionCaseController::class, 'searchPlots']
     )->name('possession-cases.ajax.search-plots');
 
+
 Route::resource('possession-cases', PossessionCaseController::class);
+    // imports possession case
+
+// upload possession case
+    Route::post('/possession-cases/import/validate', [PossessionCaseController::class, 'validateImport'])->name('possession-cases.import.validate');
+    Route::post('/possession-cases/import', [PossessionCaseController::class, 'import'])->name('possession-cases.import');
+    Route::get('/possession-cases/import/preview', [PossessionCaseController::class, 'importPreview'])->name('possession-cases.import.preview');
+    Route::get('/possession-cases/import/validation-result', [PossessionCaseController::class, 'importValidationResult'])->name('possession-cases.import.validation-result');
+    Route::post('/possession-cases/import/execute', [PossessionCaseController::class, 'executeImport'])->name('possession-cases.import.execute');
+    
 // property type Assignment routes
 Route::resource('property-types', PropertyTypeController::class);
 Route::get(

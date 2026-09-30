@@ -16,6 +16,16 @@
                 Manage possession cases and their current status
             </small>
         </div>
+        <button type="button"
+                class="btn btn-success"
+                data-bs-toggle="modal"
+                data-bs-target="#uploadPossessionModal">
+
+            <i class="bi bi-upload"></i>
+            Upload Possession
+
+        </button>
+
 
         <a href="{{ route('possession-cases.create') }}"
            class="btn btn-primary">
@@ -538,13 +548,38 @@
                                             There are currently no possession cases matching your search.
                                         </p>
 
-                                        <a href="{{ route('possession-cases.create') }}"
+                                        <div class="d-flex gap-2">
+
+                                            {{-- Upload Historical Possession --}}
+                                            <button type="button"
+                                                    class="btn btn-success"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#uploadPossessionModal">
+
+                                                <i class="bi bi-upload"></i>
+                                                Upload Possession
+
+                                            </button>
+
+
+                                            {{-- New Possession --}}
+                                            <a href="{{ route('possession-cases.create') }}"
+                                            class="btn btn-primary">
+
+                                                <i class="bi bi-plus-circle"></i>
+                                                New Possession Case
+
+                                            </a>
+
+                                        </div>
+
+                                        {{-- <a href="{{ route('possession-cases.create') }}"
                                            class="btn btn-primary">
 
                                             <i class="bi bi-plus-circle"></i>
                                             Create First Case
 
-                                        </a>
+                                        </a> --}}
 
                                     </div>
 
@@ -573,6 +608,321 @@
             </div>
 
         @endif
+
+    </div>
+
+</div>
+{{-- =========================================================
+    UPLOAD HISTORICAL POSSESSION MODAL
+========================================================= --}}
+<div class="modal fade"
+     id="uploadPossessionModal"
+     tabindex="-1"
+     aria-labelledby="uploadPossessionModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
+        <div class="modal-content">
+
+
+            {{-- =====================================================
+                MODAL HEADER
+            ====================================================== --}}
+            <div class="modal-header bg-success text-white">
+
+                <div>
+                    <h5 class="modal-title mb-1"
+                        id="uploadPossessionModalLabel">
+
+                        <i class="bi bi-cloud-upload me-2"></i>
+                        Upload Historical Possession
+
+                    </h5>
+
+                    <small class="opacity-75">
+                        Import old possession records from CSV or Excel
+                    </small>
+                </div>
+
+
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+
+            </div>
+
+
+            {{-- =====================================================
+                MODAL BODY
+            ====================================================== --}}
+            <div class="modal-body">
+
+
+                {{-- Information --}}
+                <div class="alert alert-info">
+
+                    <div class="d-flex">
+
+                        <div class="me-3">
+                            <i class="bi bi-info-circle-fill fs-4"></i>
+                        </div>
+
+                        <div>
+
+                            <strong>Historical Possession Import</strong>
+
+                            <p class="mb-0 mt-1">
+
+                                Possession records will be imported from the
+                                selected file. Owner records will be matched
+                                using <strong>CNIC</strong>.
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                {{-- =================================================
+                    IMPORTANT RULES
+                ================================================== --}}
+                <div class="card border-0 bg-light mb-4">
+
+                    <div class="card-body">
+
+                        <h6 class="fw-bold mb-3">
+
+                            <i class="bi bi-shield-check me-1"></i>
+                            Import Rules
+
+                        </h6>
+
+
+                        <ul class="mb-0">
+
+                            <li class="mb-2">
+                                <strong>CNIC</strong> will be used to find
+                                the owner in the Owners table.
+                            </li>
+
+                            <li class="mb-2">
+                                If the CNIC already exists, the existing
+                                owner record can be updated from the file.
+                            </li>
+
+                            <li class="mb-2">
+                                If the CNIC does not exist, a new owner
+                                record will be created.
+                            </li>
+
+                            <li class="mb-2">
+                                Multiple owners can be attached to the
+                                same possession.
+                            </li>
+
+                            <li class="mb-2">
+                                Historical possession status will be
+                                imported as <strong>Completed</strong>.
+                            </li>
+
+                            <li>
+                                Invalid or missing CNIC records will be
+                                shown as errors before final import.
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+                </div>
+
+                {{-- =================================================
+                    FILE UPLOAD FORM
+                ================================================== --}}
+                <form method="POST"
+                      action="{{ route('possession-cases.import') }}"
+                      enctype="multipart/form-data"
+                      id="possessionImportForm">
+
+                    @csrf
+
+                    <div class="mb-3">
+
+                        <label for="possession_import_project"
+                            class="form-label fw-bold">
+
+                            <i class="bi bi-building me-1"></i>
+                            Project
+
+                        </label>
+
+                        <select name="project_id"
+                                id="possession_import_project"
+                                class="form-select"
+                                required>
+
+                            <option value="">
+                                -- Select Project --
+                            </option>
+
+                            @foreach(\App\Models\Project::orderBy('project_name')->get() as $project)
+
+                                <option value="{{ $project->id }}">
+                                    {{ $project->project_name }}
+                                </option>
+
+                            @endforeach
+
+                        </select>
+
+                        <div class="form-text">
+                            The uploaded CSV does not contain a Project column.
+                            Please select the project to which these historical possessions belong.
+                        </div>
+
+                    </div>
+                    {{-- File --}}
+                    <div class="mb-3">
+
+                        <label for="possession_import_file"
+                               class="form-label fw-bold">
+
+                            <i class="bi bi-file-earmark-spreadsheet me-1"></i>
+                            Select Possession File
+
+                        </label>
+
+
+                        <input type="file"
+                               name="file"
+                               id="possession_import_file"
+                               class="form-control"
+                               accept=".csv,.xlsx,.xls"
+                               required>
+
+
+                        <div class="form-text">
+
+                            Allowed files:
+                            <strong>CSV, XLSX, XLS</strong>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- =================================================
+                        EXISTING OWNER DATA OPTION
+                    ================================================== --}}
+                    <div class="mb-3">
+
+                        <label class="form-label fw-bold">
+
+                            <i class="bi bi-person-check me-1"></i>
+                            Existing Owner CNIC Found
+
+                        </label>
+
+
+                        <select name="owner_action"
+                                class="form-select"
+                                required>
+
+                            <option value="update" selected>
+
+                                Update existing owner with file data
+
+                            </option>
+
+                            <option value="keep">
+
+                                Keep existing owner data
+
+                            </option>
+
+                        </select>
+
+
+                        <div class="form-text">
+
+                            CNIC will always be used for matching.
+                            This option decides what to do when that
+                            CNIC already exists in the Owners table.
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- =================================================
+                        WARNING
+                    ================================================== --}}
+                    <div class="alert alert-warning mb-0">
+
+                        <div class="d-flex">
+
+                            <div class="me-3">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            </div>
+
+                            <div>
+
+                                <strong>Please review the file first.</strong>
+
+                                <div class="mt-1">
+
+                                    The system will validate the file
+                                    before creating historical possession
+                                    records.
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                </form>
+
+            </div>
+
+
+            {{-- =====================================================
+                MODAL FOOTER
+            ====================================================== --}}
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+
+                    <i class="bi bi-x-circle me-1"></i>
+                    Cancel
+
+                </button>
+
+
+                <button type="submit"
+                        form="possessionImportForm"
+                        class="btn btn-success">
+
+                    <i class="bi bi-cloud-upload me-1"></i>
+                    Upload & Validate
+
+                </button>
+
+            </div>
+
+
+        </div>
 
     </div>
 
