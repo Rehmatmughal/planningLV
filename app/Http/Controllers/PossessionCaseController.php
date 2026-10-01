@@ -3262,8 +3262,6 @@ class PossessionCaseController extends Controller
                     'cnic',
                     $cnic
                 )->first();
-
-
                 /*
                 |--------------------------------------------------------------------------
                 | Existing CNIC
@@ -3272,7 +3270,9 @@ class PossessionCaseController extends Controller
                 if ($ownerByCnic) {
 
                     /*
+                    |--------------------------------------------------------------------------
                     | Selected owner ID different hai
+                    |--------------------------------------------------------------------------
                     */
                     if (
                         $owner &&
@@ -3317,12 +3317,97 @@ class PossessionCaseController extends Controller
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Existing owner use karein
+                    | Update Existing Owner
                     |--------------------------------------------------------------------------
+                    |
+                    | CNIC already exists, so this is the master owner record.
+                    | We update the latest owner information from the form.
+                    |
                     */
+                    $ownerByCnic->update([
+
+                        'owner_name' =>
+                            $ownerData['owner_name'],
+
+                        'relative_name' =>
+                            $ownerData['relative_name']
+                            ?? null,
+
+                        /*
+                        | CNIC is the unique identity.
+                        | Keep the normalized/current CNIC.
+                        */
+                        'cnic' =>
+                            $cnic,
+
+                        'address' =>
+                            $ownerData['address']
+                            ?? null,
+
+                        'contact_no' =>
+                            $ownerData['contact_no']
+                            ?? null,
+                    ]);
+
+                    // | Use Updated Owner
                     $owner =
                         $ownerByCnic;
                 }
+
+                // if ($ownerByCnic) {
+
+                //     /*
+                //     | Selected owner ID different hai
+                //     */
+                //     if (
+                //         $owner &&
+                //         $owner->id !== $ownerByCnic->id
+                //     ) {
+
+                //         throw \Illuminate\Validation\ValidationException::withMessages([
+                //             'owners' =>
+                //                 "CNIC {$cnic} is already registered with another owner: {$ownerByCnic->owner_name}. Please verify the CNIC.",
+                //         ]);
+                //     }
+
+
+                //     /*
+                //     |--------------------------------------------------------------------------
+                //     | Name safety check
+                //     |--------------------------------------------------------------------------
+                //     */
+                //     $enteredName =
+                //         trim(
+                //             $ownerData['owner_name']
+                //         );
+
+                //     $existingName =
+                //         trim(
+                //             $ownerByCnic->owner_name
+                //         );
+
+                //     if (
+                //         strcasecmp(
+                //             $enteredName,
+                //             $existingName
+                //         ) !== 0
+                //     ) {
+
+                //         throw \Illuminate\Validation\ValidationException::withMessages([
+                //             'owners' =>
+                //                 "This CNIC is already registered with the name '{$existingName}'. Please verify the CNIC and owner name.",
+                //         ]);
+                //     }
+
+
+                //     /*
+                //     |--------------------------------------------------------------------------
+                //     | Existing owner use karein
+                //     |--------------------------------------------------------------------------
+                //     */
+                //     $owner =
+                //         $ownerByCnic;
+                // }
 
 
                 /*
