@@ -45,8 +45,8 @@ class ImportPlotsNew extends Command
     public function handle()
     {
         // CSV file path
-        $path = storage_path('app/V-1&2_List_of_plots-all-incPropertytype-temp1.csv');
-        // $path = storage_path('app/V-1&2_List_of_plots-all-incPropertytype.csv');
+        // $path = storage_path('app/V-1&2_List_of_plots-all-incPropertytype-temp1.csv');
+        $path = storage_path('app/V-1&2_List_of_plots-all-incPropertytype.csv');
         // $path = storage_path('app/test/V-1&2_List_of_plots-all-incPropertytype (2).csv');
         // $path = storage_path('app/test/V-1&2_List_of_plots-all-incPropertytype (3).csv');
         // $path = storage_path('app/test/V-1&2_List_of_plots-all-incPropertytype (4).csv');

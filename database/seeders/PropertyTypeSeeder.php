@@ -11,7 +11,7 @@ class PropertyTypeSeeder extends Seeder
     {
         $types = [
             'Residencia Plot',
-            // 'Greens Plot',
+            'Greens Plot',
             'Commercial Plot',
             'Apartment Site',
             'School',
