@@ -26,7 +26,6 @@
 
         </button>
 
-
         <a href="{{ route('possession-cases.create') }}"
            class="btn btn-primary">
             <i class="bi bi-plus-circle"></i>
@@ -758,7 +757,7 @@
                             class="form-label fw-bold">
 
                             <i class="bi bi-building me-1"></i>
-                            Project
+                            Project 1
 
                         </label>
 
@@ -784,6 +783,54 @@
                         <div class="form-text">
                             The uploaded CSV does not contain a Project column.
                             Please select the project to which these historical possessions belong.
+                        </div>
+
+                    </div>
+
+                    {{-- property type --}}
+                    <div class="mb-3">
+                        <label for="possession_import_property_type"
+                            class="form-label fw-bold">
+
+                            <i class="bi bi-tags me-1"></i>
+
+                            Property Type
+
+                        </label>
+
+                        <select name="property_type_id"
+                                id="possession_import_property_type"
+                                class="form-select"
+                                required>
+
+                            <option value="">
+                                -- Select Property Type --
+                            </option>
+
+                            @foreach(
+                                \App\Models\PropertyType::orderBy('name')->get()
+                                as $propertyType
+                            )
+
+                                <option value="{{ $propertyType->id }}">
+
+                                    {{ $propertyType->name }}
+
+                                </option>
+
+                            @endforeach
+
+                        </select>
+
+                        <div class="form-text">
+
+                            Select the property type contained in this historical
+                            possession file.
+
+                            If the file contains multiple property types, they must
+                            be imported separately unless the CSV includes a
+                            Property Type column.
+
                         </div>
 
                     </div>

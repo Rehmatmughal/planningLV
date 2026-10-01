@@ -50,6 +50,12 @@ class PossessionCaseController extends Controller
                 'exists:projects,id',
             ],
 
+            'property_type_id' => [
+                'required',
+                'integer',
+                'exists:property_types,id',
+            ],
+
             'owner_action' => [
                 'required',
                 Rule::in([
@@ -92,20 +98,13 @@ class PossessionCaseController extends Controller
         */
 
         session([
-            'possession_import' => [
-                'path' => $path,
-
-                'original_name' =>
-                    $file->getClientOriginalName(),
-
-                'owner_action' =>
-                    $validated['owner_action'],
-
-                'project_id' =>
-                    $validated['project_id'],
+            'possession_import' => ['path' => $path,
+                'original_name' => $file->getClientOriginalName(),
+                'owner_action' => $validated['owner_action'],
+                'project_id' => $validated['project_id'],
+                'property_type_id' => $validated['property_type_id'],
             ],
         ]);
-
         /*
         |--------------------------------------------------------------------------
         | Go to preview
@@ -345,11 +344,9 @@ class PossessionCaseController extends Controller
                         'No possession import file was found. Please upload the file again.',
                 ]);
         }
-        /*
-        |--------------------------------------------------------------------------
-        | Check uploaded file
-        |--------------------------------------------------------------------------
-        */
+        // |--------------------------------------------------------------------------
+        // | Check uploaded file
+        // |--------------------------------------------------------------------------
         if (!Storage::disk('local')->exists($import['path'])) {
 
             session()->forget('possession_import');
@@ -361,11 +358,9 @@ class PossessionCaseController extends Controller
                         'The uploaded possession file is no longer available. Please upload it again.',
                 ]);
         }
-        /*
-        |--------------------------------------------------------------------------
-        | Project
-        |--------------------------------------------------------------------------
-        */
+        // |--------------------------------------------------------------------------
+        // | Project
+        // |--------------------------------------------------------------------------
         $projectId = $import['project_id'] ?? null;
         if (!$projectId) {
             return redirect()
@@ -375,6 +370,16 @@ class PossessionCaseController extends Controller
                         'Project was not selected for the possession import.',
                 ]);
         }
+        $propertyTypeId = $import['property_type_id'] ?? null;
+        if (!$propertyTypeId) {
+            return redirect()
+                ->route('possession-cases.index')
+                ->withErrors([
+                    'property_type_id' =>
+                        'Property Type was not selected for this possession import.',
+                ]);
+        }
+
         $project = Project::find($projectId);
         if (!$project) {
             return redirect()
@@ -384,27 +389,25 @@ class PossessionCaseController extends Controller
                         'Selected project was not found.',
                 ]);
         }
-        /*
-        |--------------------------------------------------------------------------
-        | Load Spreadsheet
-        |--------------------------------------------------------------------------
-        */
+        // |--------------------------------------------------------------------------
+        // | Load Spreadsheet
+        // |--------------------------------------------------------------------------
         $fullPath = Storage::disk('local')
             ->path($import['path']);
         $spreadsheet = IOFactory::load($fullPath);
         $worksheet = $spreadsheet->getActiveSheet();
-        /*
-        |--------------------------------------------------------------------------
-        | Spreadsheet information
-        |--------------------------------------------------------------------------
-        */
+
+        // |--------------------------------------------------------------------------
+        // | Spreadsheet information
+        // |--------------------------------------------------------------------------
+
         $highestColumn =
             $worksheet->getHighestColumn();
         $highestRow =
             $worksheet->getHighestRow();
         /*
         |--------------------------------------------------------------------------
-        | Read complete file
+        // | Read complete file
         |--------------------------------------------------------------------------
         |
         | Unlike preview, here we intentionally read all rows because
@@ -552,18 +555,16 @@ class PossessionCaseController extends Controller
                 )
             );
         };
-        /*
-        |--------------------------------------------------------------------------
-        | Load all project plots
-        |--------------------------------------------------------------------------
-        |
-        | We load them once instead of running a database query for
-        | every single CSV row.
-        |
-        */
+        // | Load all project plots
+        // | We load them once instead of running a database query for
+        // | every single CSV row.
         $plots = Plot::where(
             'project_id',
             $projectId
+        )
+        ->where(
+            'property_type_id',
+            $propertyTypeId
         )
             ->get([
                 'id',
@@ -572,21 +573,10 @@ class PossessionCaseController extends Controller
                 'property_type_id',
             ]);
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Plot lookup map
-        |--------------------------------------------------------------------------
-        */
-
+        // | Plot lookup map
         $plotMap = [];
 
         foreach ($plots as $plot) {
-
-            $blockKey =
-                mb_strtoupper(
-                    trim((string) $plot->block_id)
-                );
 
             $plotNumberKey =
                 mb_strtoupper(
@@ -594,17 +584,16 @@ class PossessionCaseController extends Controller
                 );
 
             $plotMap[
-                $plot->block_id . '|' . $plotNumberKey
+                $plot->block_id
+                . '|'
+                . $plot->property_type_id
+                . '|'
+                . $plotNumberKey
             ] = $plot;
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Load Blocks
-        |--------------------------------------------------------------------------
-        */
-
+        // | Load Blocks
+        
         $blocks = Block::where(
             'project_id',
             $projectId
@@ -626,18 +615,9 @@ class PossessionCaseController extends Controller
             ] = $block;
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Existing possession records
-        |--------------------------------------------------------------------------
-        |
-        | withTrashed() is important.
-        |
-        | A soft-deleted possession number must also remain reserved.
-        |
-        */
-
+        // | Existing possession records
+        // | withTrashed() is important.
+        // | A soft-deleted possession number must also remain reserved.
         $existingPossessions = PossessionCase::withTrashed()
             ->whereHas('plot', function ($query) use ($projectId) {
 
@@ -652,12 +632,8 @@ class PossessionCaseController extends Controller
                 'plot_id',
                 'possession_no',
             ]);
-
-
         $existingPossessionMap = [];
-
         foreach ($existingPossessions as $case) {
-
             $existingPossessionMap[
                 $case->plot_id . '|' .
                 mb_strtoupper(
@@ -665,13 +641,7 @@ class PossessionCaseController extends Controller
                 )
             ] = true;
         }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Collect all CNICs first
-        |--------------------------------------------------------------------------
-        */
+        // | Collect all CNICs first
 
         $allCnics = [];
 
@@ -706,20 +676,12 @@ class PossessionCaseController extends Controller
                 }
             }
         }
-
-
         $allCnics =
             array_values(
                 array_unique($allCnics)
             );
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Load existing owners in ONE query
-        |--------------------------------------------------------------------------
-        */
-
+        // | Load existing owners in ONE query
         $owners = collect();
 
         if (!empty($allCnics)) {
@@ -729,8 +691,6 @@ class PossessionCaseController extends Controller
                 $allCnics
             )->get();
         }
-
-
         $ownerMap = [];
 
         foreach ($owners as $owner) {
@@ -741,43 +701,21 @@ class PossessionCaseController extends Controller
                 )
             ] = $owner;
         }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Validation result containers
-        |--------------------------------------------------------------------------
-        */
+        // | Validation result containers
 
         $validationRows = [];
 
         $validCount = 0;
         $warningCount = 0;
         $errorCount = 0;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Duplicate tracker inside uploaded file
-        |--------------------------------------------------------------------------
-        */
-
+        // | Duplicate tracker inside uploaded file
         $fileDuplicateMap = [];
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Validate every row
-        |--------------------------------------------------------------------------
-        */
+        // | Validate every row
 
         foreach ($rows as $rowNumber => $row) {
 
-            /*
-            |--------------------------------------------------------------------------
-            | Header
-            |--------------------------------------------------------------------------
-            */
+            // | Header
             if ($rowNumber === 1) {
                 continue;
             }
@@ -798,18 +736,10 @@ class PossessionCaseController extends Controller
                     break;
                 }
             }
-
-
             if (!$hasData) {
                 continue;
             }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Basic values
-            |--------------------------------------------------------------------------
-            */
+            // | Basic values
 
             $possessionNo =
                 $getCell(
@@ -1128,21 +1058,20 @@ class PossessionCaseController extends Controller
                         "Block '{$blockName}' was not found in the selected project.";
                 }
             }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Plot validation
-            |--------------------------------------------------------------------------
-            */
+            // |--------------------------------------------------------------------------
+            // | Plot validation
+            // |--------------------------------------------------------------------------
 
             $plot = null;
 
             if ($block && $plotNumber !== '') {
 
                 $plotKey =
-                    $block->id . '|' .
-                    mb_strtoupper(
+                    $block->id
+                    . '|'
+                    . $propertyTypeId
+                    . '|'
+                    . mb_strtoupper(
                         trim($plotNumber)
                     );
 
@@ -1154,7 +1083,8 @@ class PossessionCaseController extends Controller
                 if (!$plot) {
 
                     $errors[] =
-                        "Plot '{$plotNumber}' was not found in Block '{$blockName}'.";
+                        "Plot '{$plotNumber}' was not found in Block '{$blockName}' for the selected Property Type.";
+
                 }
 
             } elseif ($plotNumber === '') {
@@ -1162,7 +1092,6 @@ class PossessionCaseController extends Controller
                 $errors[] =
                     'Plot Number is missing.';
             }
-
 
             /*
             |--------------------------------------------------------------------------
@@ -1392,6 +1321,9 @@ class PossessionCaseController extends Controller
 
                 'plot_id' =>
                     $plot?->id,
+
+                'property_type_id' =>
+                    $propertyTypeId,
 
                 'block_id' =>
                     $block?->id,
