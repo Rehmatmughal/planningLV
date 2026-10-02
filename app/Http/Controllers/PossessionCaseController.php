@@ -1623,660 +1623,1261 @@ class PossessionCaseController extends Controller
     {
         /*
         |--------------------------------------------------------------------------
-        | Get validation result
+        | Get validated import data
         |--------------------------------------------------------------------------
         */
+        $validation = session('possession_import_validation');
 
-        $validation = session(
-            'possession_import_validation'
-        );
-
-        if (
-            !$validation ||
-            empty($validation['path'])
-        ) {
+        if (!$validation || empty($validation['path'])) {
             return redirect()
                 ->route('possession-cases.index')
                 ->withErrors([
-                    'file' =>
-                        'No validated possession import was found. Please upload and validate the file again.',
+                    'file' => 'No validated possession import was found. Please validate the file again.',
                 ]);
         }
 
+        $validationPath = $validation['path'];
 
-        /*
-        |--------------------------------------------------------------------------
-        | Check validation JSON
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            !Storage::disk('local')->exists(
-                $validation['path']
-            )
-        ) {
-            session()->forget(
-                'possession_import_validation'
-            );
-
+        if (!Storage::disk('local')->exists($validationPath)) {
             return redirect()
                 ->route('possession-cases.index')
                 ->withErrors([
-                    'file' =>
-                        'The possession validation result is no longer available. Please validate the file again.',
+                    'file' => 'The validation file could not be found. Please validate the import again.',
                 ]);
         }
-
 
         /*
         |--------------------------------------------------------------------------
         | Read validation JSON
         |--------------------------------------------------------------------------
         */
+        $validationData = json_decode(
+            Storage::disk('local')->get($validationPath),
+            true
+        );
 
-        $json =
-            Storage::disk('local')->get(
-                $validation['path']
-            );
-
-
-        $validationData =
-            json_decode(
-                $json,
-                true
-            );
-
-
-        if (
-            !is_array($validationData)
-        ) {
+        if (!is_array($validationData)) {
             return redirect()
                 ->route('possession-cases.index')
                 ->withErrors([
-                    'file' =>
-                        'The possession validation result could not be read.',
+                    'file' => 'The validation data is invalid. Please validate the file again.',
                 ]);
         }
 
-
         /*
         |--------------------------------------------------------------------------
-        | Do NOT import if validation contains errors
+        | Stop if validation contains errors
         |--------------------------------------------------------------------------
         */
-
-        $errorCount =
-            (int) (
-                $validationData['error_count']
-                ?? 0
-            );
-
+        $errorCount = (int) ($validationData['error_count'] ?? 0);
 
         if ($errorCount > 0) {
-
             return redirect()
-                ->route(
-                    'possession-cases.import.validation-result'
-                )
+                ->route('possession-cases.import.validation-result')
                 ->withErrors([
-                    'file' =>
-                        'Import cannot continue because the validation result contains errors.',
+                    'file' => "Import cannot continue because {$errorCount} validation error(s) were found.",
                 ]);
         }
 
+        $rows = $validationData['rows'] ?? [];
 
-        /*
-        |--------------------------------------------------------------------------
-        | Basic validation information
-        |--------------------------------------------------------------------------
-        */
-
-        $projectId =
-            $validationData['project_id']
-            ?? null;
-
-
-        $ownerAction =
-            $validationData['owner_action']
-            ?? 'keep';
-
-
-        $rows =
-            $validationData['rows']
-            ?? [];
-
-
-        if (!$projectId) {
-
+        if (empty($rows)) {
             return redirect()
                 ->route('possession-cases.index')
                 ->withErrors([
-                    'project_id' =>
-                        'Project information was not found in the validation result.',
+                    'file' => 'No valid possession records were found to import.',
                 ]);
         }
 
+        $projectId = $validationData['project_id'] ?? null;
+        $ownerAction = $validationData['owner_action'] ?? 'keep';
 
         /*
         |--------------------------------------------------------------------------
         | Counters
         |--------------------------------------------------------------------------
         */
-
         $importedCount = 0;
-
         $createdOwnerCount = 0;
-
         $updatedOwnerCount = 0;
-
         $existingOwnerCount = 0;
-
 
         /*
         |--------------------------------------------------------------------------
-        | Import
+        | CHUNK SIZE
         |--------------------------------------------------------------------------
         |
-        | IMPORTANT:
-        | Entire import is inside one DB transaction.
-        |
-        | Agar serious error aaye to partial import nahi hoga.
+        | 500 records will be processed in one chunk.
         |
         */
+        $chunkSize = 500;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Keep only rows that actually need importing
+        |--------------------------------------------------------------------------
+        */
+        $validRows = array_values(
+            array_filter($rows, function ($row) {
+                return !empty($row['plot_id'])
+                    && !empty($row['possession_no']);
+            })
+        );
+
+        if (empty($validRows)) {
+            return redirect()
+                ->route('possession-cases.index')
+                ->withErrors([
+                    'file' => 'No valid possession records were found to import.',
+                ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | PRELOAD ALL PLOTS
+        |--------------------------------------------------------------------------
+        |
+        | Before:
+        |     Plot query was running for every row.
+        |
+        | Now:
+        |     All required plots are loaded once.
+        |
+        */
+        $plotIds = collect($validRows)
+            ->pluck('plot_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $allPlots = Plot::whereIn('id', $plotIds)
+            ->get()
+            ->keyBy('id');
+
+        /*
+        |--------------------------------------------------------------------------
+        | PRELOAD EXISTING POSSESSION CASES
+        |--------------------------------------------------------------------------
+        |
+        | Before:
+        |     duplicate check was running for every row.
+        |
+        | Now:
+        |     existing possession numbers are loaded once.
+        |
+        */
+        $existingPossessions = PossessionCase::withTrashed()
+            ->whereIn('plot_id', $plotIds)
+            ->get([
+                'id',
+                'plot_id',
+                'possession_no',
+            ]);
+
+        $possessionMap = [];
+
+        foreach ($existingPossessions as $existingPossession) {
+            $key =
+                $existingPossession->plot_id .
+                '|' .
+                mb_strtoupper(trim((string) $existingPossession->possession_no));
+
+            $possessionMap[$key] = true;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | PRELOAD ALL OWNERS
+        |--------------------------------------------------------------------------
+        |
+        | Collect all CNICs from validation data first.
+        | Then load owners in ONE query instead of querying owner table
+        | for every owner of every possession.
+        |
+        */
+        $allCnics = [];
+
+        foreach ($validRows as $row) {
+
+            $owners = $row['owners'] ?? [];
+
+            foreach ($owners as $ownerData) {
+
+                $cnic = $this->normalizeImportCnic(
+                    $ownerData['cnic'] ?? null
+                );
+
+                if ($cnic !== '') {
+                    $allCnics[] = $cnic;
+                }
+            }
+        }
+
+        $allCnics = array_values(array_unique($allCnics));
+
+        $ownerMap = [];
+
+        if (!empty($allCnics)) {
+
+            $existingOwners = Owner::whereIn('cnic', $allCnics)
+                ->get();
+
+            foreach ($existingOwners as $owner) {
+
+                $normalizedCnic = $this->normalizeImportCnic(
+                    $owner->cnic
+                );
+
+                if ($normalizedCnic !== '') {
+                    $ownerMap[$normalizedCnic] = $owner;
+                }
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Process import in chunks
+        |--------------------------------------------------------------------------
+        */
+        $chunks = array_chunk($validRows, $chunkSize);
+
+        $totalChunks = count($chunks);
+        $currentChunk = 0;
 
         try {
 
-            DB::transaction(function () use (
-                $projectId,
-                $ownerAction,
-                $rows,
-                &$importedCount,
-                &$createdOwnerCount,
-                &$updatedOwnerCount,
-                &$existingOwnerCount
-            ) {
+            foreach ($chunks as $chunk) {
+
+                $currentChunk++;
 
                 /*
                 |--------------------------------------------------------------------------
-                | Process every validated row
+                | One transaction per chunk
                 |--------------------------------------------------------------------------
+                |
+                | This is different from the old code.
+                |
+                | OLD:
+                |     One giant transaction for all 5,364 records.
+                |
+                | NEW:
+                |     500 records = one transaction.
+                |
                 */
-
-                foreach ($rows as $validationRow) {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Only valid / warning rows
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (
-                        !in_array(
-                            $validationRow['status'] ?? null,
-                            [
-                                'valid',
-                                'warning',
-                            ],
-                            true
-                        )
-                    ) {
-                        continue;
-                    }
-
+                DB::transaction(function () use (
+                    $chunk,
+                    &$importedCount,
+                    &$createdOwnerCount,
+                    &$updatedOwnerCount,
+                    &$existingOwnerCount,
+                    &$ownerMap,
+                    &$possessionMap,
+                    $ownerAction,
+                    $allPlots
+                ) {
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Required validated values
+                    | Lock plots required by this chunk
                     |--------------------------------------------------------------------------
+                    |
+                    | Instead of locking one plot on every row,
+                    | lock all plots required by this chunk in one query.
+                    |
                     */
+                    $chunkPlotIds = collect($chunk)
+                        ->pluck('plot_id')
+                        ->filter()
+                        ->unique()
+                        ->values();
 
-                    $plotId =
-                        $validationRow['plot_id']
-                        ?? null;
+                    $lockedPlots = Plot::whereIn('id', $chunkPlotIds)
+                        ->lockForUpdate()
+                        ->get()
+                        ->keyBy('id');
 
+                    foreach ($chunk as $row) {
 
-                    $possessionNo =
-                        $validationRow['possession_no']
-                        ?? null;
-
-
-                    if (
-                        !$plotId ||
-                        !$possessionNo
-                    ) {
-
-                        throw new \RuntimeException(
-                            'A validated row is missing plot or possession number. Row: '
-                            . (
-                                $validationRow['row_number']
-                                ?? '?'
-                            )
+                        $plotId = $row['plot_id'];
+                        $possessionNo = trim(
+                            (string) ($row['possession_no'] ?? '')
                         );
-                    }
 
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Get plot
+                        |--------------------------------------------------------------------------
+                        */
+                        $plot = $lockedPlots->get($plotId);
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Lock plot
-                    |--------------------------------------------------------------------------
-                    |
-                    | Prevent simultaneous import / creation against same plot.
-                    |
-                    */
-
-                    $plot =
-                        Plot::whereKey($plotId)
-                            ->lockForUpdate()
-                            ->first();
-
-
-                    if (!$plot) {
-
-                        throw new \RuntimeException(
-                            'Plot ID '
-                            . $plotId
-                            . ' was not found during import.'
-                        );
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Duplicate protection
-                    |--------------------------------------------------------------------------
-                    |
-                    | withTrashed() means soft-deleted possession numbers
-                    | are also considered reserved.
-                    |
-                    */
-
-                    $alreadyExists =
-                        PossessionCase::withTrashed()
-                            ->where(
-                                'plot_id',
-                                $plot->id
-                            )
-                            ->where(
-                                'possession_no',
-                                $possessionNo
-                            )
-                            ->exists();
-
-
-                    if ($alreadyExists) {
-
-                        throw new \RuntimeException(
-                            "Possession '{$possessionNo}' already exists for Plot '{$plot->plot_number}'."
-                        );
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Create Possession Case
-                    |--------------------------------------------------------------------------
-                    |
-                    | Historical numbering comes directly from validation.
-                    | We DO NOT generate a new number here.
-                    |
-                    */
-
-                    $case =
-                        PossessionCase::create([
-
-                            'plot_id' =>
-                                $plot->id,
-
-                            'possession_no' =>
-                                $possessionNo,
-
-                            'reference_no' =>
-                                $validationRow[
-                                    'reference_no'
-                                ]
-                                ?? null,
-
-                            'possession_sequence' =>
-                                $validationRow[
-                                    'possession_sequence'
-                                ],
-
-                            'revision_no' =>
-                                $validationRow[
-                                    'revision_no'
-                                ],
-
-                            'need_approval' =>
-                                $validationRow[
-                                    'need_approval'
-                                ]
-                                ?? false,
-
-                            /*
-                            | Historical possession is already completed.
-                            */
-                            'current_status' =>
-                                'completed',
-
-                            'current_holder_type' =>
-                                null,
-
-                            'current_holder_id' =>
-                                null,
-
-                            'current_holder_name' =>
-                                null,
-
-                            'received_at' =>
-                                $validationRow[
-                                    'received_at'
-                                ]
-                                ?? null,
-
-                            /*
-                            | Historical completion / handover date.
-                            */
-                            'completed_at' =>
-                                $validationRow[
-                                    'received_at'
-                                ]
-                                ?? null,
-
-                            'handed_over_at' =>
-                                $validationRow[
-                                    'received_at'
-                                ]
-                                ?? null,
-
-                            'remarks' =>
-                                'Historical possession imported from '
-                                . (
-                                    $validationData[
-                                        'source_file'
-                                    ]
-                                    ?? 'CSV/Excel'
-                                ),
-
-                            /*
-                            | Completed historical cases are inactive.
-                            */
-                            'is_active' =>
-                                false,
-
-                            'created_by' =>
-                                Auth::id(),
-
-                            'updated_by' =>
-                                Auth::id(),
-                        ]);
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Process Owners
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $owners =
-                        $validationRow['owners']
-                        ?? [];
-
-
-                    foreach ($owners as $ownerData) {
-
-                        $cnic =
-                            trim(
-                                $ownerData['cnic']
-                                ?? ''
+                        if (!$plot) {
+                            throw new \RuntimeException(
+                                "Plot ID {$plotId} was not found while importing possession."
                             );
+                        }
 
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Duplicate possession check
+                        |--------------------------------------------------------------------------
+                        */
+                        $possessionKey =
+                            $plot->id .
+                            '|' .
+                            mb_strtoupper($possessionNo);
 
-                        $ownerName =
-                            trim(
-                                $ownerData['owner_name']
-                                ?? ''
-                            );
-
-
-                        if (
-                            $cnic === '' ||
-                            $ownerName === ''
-                        ) {
+                        if (isset($possessionMap[$possessionKey])) {
 
                             throw new \RuntimeException(
-                                'A validated owner is missing Name or CNIC. '
-                                . 'Import row: '
-                                . (
-                                    $validationRow[
-                                        'row_number'
-                                    ]
-                                    ?? '?'
-                                )
+                                "Duplicate possession found: {$possessionNo} for Plot {$plot->plot_number}."
                             );
                         }
 
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Historical possession information
+                        |--------------------------------------------------------------------------
+                        */
+                        $possessionNumberData =
+                            $this->parseHistoricalPossessionNumber(
+                                $possessionNo
+                            );
+
+                        if (!$possessionNumberData) {
+
+                            throw new \RuntimeException(
+                                "Invalid possession number: {$possessionNo}."
+                            );
+                        }
 
                         /*
                         |--------------------------------------------------------------------------
-                        | Find Owner by CNIC
+                        | Date
                         |--------------------------------------------------------------------------
                         */
-
-                        $owner =
-                            Owner::where(
-                                'cnic',
-                                $cnic
-                            )->first();
-
+                        $handoverDate = $row['received_at'] ?? null;
+                        // $handoverDate = $row['date_possession_hand_over']
+                        //     ?? $row['date']
+                        //     ?? null;
 
                         /*
                         |--------------------------------------------------------------------------
-                        | Existing Owner
+                        | Create possession case
                         |--------------------------------------------------------------------------
                         */
+                        $case = PossessionCase::create([
+                            'plot_id' => $plot->id,
 
-                        if ($owner) {
+                            'possession_no' =>
+                                $possessionNumberData['possession_no'],
 
-                            $existingOwnerCount++;
+                            'reference_no' =>
+                                $row['reference_no'] ?? null,
 
+                            'possession_sequence' =>
+                                $possessionNumberData['possession_sequence'],
+
+                            'revision_no' =>
+                                $possessionNumberData['revision_no'],
+
+                            'need_approval' =>
+                                $row['need_approval'] ?? null,
+
+                            /*
+                            | Historical imported possessions are already completed.
+                            */
+                            'current_status' => 'completed',
+
+                            'is_active' => false,
+
+                            'received_at' => $handoverDate,
+
+                            'completed_at' => $handoverDate,
+
+                            'handed_over_at' => $handoverDate,
+
+                            'created_by' => auth()->id(),
+
+                            'updated_by' => auth()->id(),
+                        ]);
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Mark possession as already imported
+                        |--------------------------------------------------------------------------
+                        |
+                        | This is important because another row in the same
+                        | import may otherwise create the same possession again.
+                        |
+                        */
+                        $possessionMap[$possessionKey] = true;
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Owners
+                        |--------------------------------------------------------------------------
+                        */
+                        $owners = $row['owners'] ?? [];
+
+                        /*
+                        | Prevent duplicate owner IDs inside the same possession.
+                        */
+                        $attachedOwnerIds = [];
+
+                        foreach ($owners as $ownerData) {
+
+                            $cnic = $this->normalizeImportCnic(
+                                $ownerData['cnic'] ?? null
+                            );
+
+                            $ownerName = trim(
+                                (string) ($ownerData['owner_name'] ?? '')
+                            );
 
                             /*
                             |--------------------------------------------------------------------------
-                            | Update existing owner
+                            | Required owner data
                             |--------------------------------------------------------------------------
                             */
+                            if ($cnic === '' || $ownerName === '') {
 
-                            if (
-                                $ownerAction === 'update'
-                            ) {
-
-                                $owner->update([
-
-                                    'owner_name' =>
-                                        $ownerName,
-
-                                    'relative_name' =>
-                                        $ownerData[
-                                            'relative_name'
-                                        ]
-                                        ?? null,
-
-                                    'address' =>
-                                        $ownerData[
-                                            'address'
-                                        ]
-                                        ?? null,
-
-                                    'contact_no' =>
-                                        $ownerData[
-                                            'contact_no'
-                                        ]
-                                        ?? null,
-                                ]);
-
-
-                                $updatedOwnerCount++;
+                                throw new \RuntimeException(
+                                    "Owner name and CNIC are required for possession {$possessionNo}."
+                                );
                             }
-                        }
 
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Find owner from PRELOADED MAP
+                            |--------------------------------------------------------------------------
+                            |
+                            | No database query here.
+                            |
+                            */
+                            $owner = $ownerMap[$cnic] ?? null;
 
-                        /*
-                        |--------------------------------------------------------------------------
-                        | New Owner
-                        |--------------------------------------------------------------------------
-                        */
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Existing owner
+                            |--------------------------------------------------------------------------
+                            */
+                            if ($owner) {
 
-                        else {
+                                $existingOwnerCount++;
 
-                            $owner =
-                                Owner::create([
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Update owner if selected
+                                |--------------------------------------------------------------------------
+                                */
+                                if ($ownerAction === 'update') {
 
+                                    $owner->update([
+                                        'owner_name' =>
+                                            $ownerName,
+
+                                        'relative_name' =>
+                                            $ownerData['relative_name']
+                                                ?? null,
+
+                                        'cnic' =>
+                                            $cnic,
+
+                                        'address' =>
+                                            $ownerData['address']
+                                                ?? null,
+
+                                        'contact_no' =>
+                                            $ownerData['contact_no']
+                                                ?? null,
+                                    ]);
+
+                                    $updatedOwnerCount++;
+                                }
+                            }
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Create new owner
+                            |--------------------------------------------------------------------------
+                            */
+                            else {
+
+                                $owner = Owner::create([
                                     'owner_name' =>
                                         $ownerName,
 
                                     'relative_name' =>
-                                        $ownerData[
-                                            'relative_name'
-                                        ]
-                                        ?? null,
+                                        $ownerData['relative_name']
+                                            ?? null,
 
                                     'cnic' =>
                                         $cnic,
 
                                     'address' =>
-                                        $ownerData[
-                                            'address'
-                                        ]
-                                        ?? null,
+                                        $ownerData['address']
+                                            ?? null,
 
                                     'contact_no' =>
-                                        $ownerData[
-                                            'contact_no'
-                                        ]
-                                        ?? null,
+                                        $ownerData['contact_no']
+                                            ?? null,
                                 ]);
 
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Add newly created owner to map
+                                |--------------------------------------------------------------------------
+                                |
+                                | If the same CNIC appears again later in the
+                                | import, no new Owner will be created.
+                                |
+                                */
+                                $ownerMap[$cnic] = $owner;
 
-                            $createdOwnerCount++;
+                                $createdOwnerCount++;
+                            }
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Attach owner to possession
+                            |--------------------------------------------------------------------------
+                            */
+                            if (!isset($attachedOwnerIds[$owner->id])) {
+
+                                $addressSnapshot =
+                                    $ownerData['address']
+                                        ?? $owner->address;
+
+                                $case->owners()->attach(
+                                    $owner->id,
+                                    [
+                                        'address_snapshot' =>
+                                            $addressSnapshot,
+                                    ]
+                                );
+
+                                $attachedOwnerIds[$owner->id] = true;
+                            }
                         }
-
 
                         /*
                         |--------------------------------------------------------------------------
-                        | Attach Owner to Possession
+                        | Imported successfully
                         |--------------------------------------------------------------------------
                         */
-
-                        $case
-                            ->owners()
-                            ->syncWithoutDetaching([
-
-                                $owner->id => [
-
-                                    'address_snapshot' =>
-                                        $ownerData[
-                                            'address'
-                                        ]
-                                        ?? $owner->address,
-
-                                ],
-
-                            ]);
+                        $importedCount++;
                     }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Imported row count
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $importedCount++;
-                }
-            });
-
+                });
+            }
 
         } catch (\Throwable $e) {
 
             /*
             |--------------------------------------------------------------------------
-            | Import failed
+            | Log exact import error
             |--------------------------------------------------------------------------
-            |
-            | DB transaction automatically rolls back.
-            |
             */
-
-            report($e);
+            Log::error('Possession import failed.', [
+                'chunk' => $currentChunk,
+                'total_chunks' => $totalChunks,
+                'imported_count' => $importedCount,
+                'error' => $e->getMessage(),
+                'file' => $validationData['source_file'] ?? null,
+            ]);
 
             return redirect()
-                ->route(
-                    'possession-cases.import.validation-result'
-                )
+                ->route('possession-cases.import.validation-result')
                 ->withErrors([
-
                     'file' =>
-                        'Possession import failed. No records were imported. '
-                        . 'Please check the Laravel log for details.',
-
+                        "Import stopped at chunk {$currentChunk} of {$totalChunks}. "
+                        . "Records imported before this chunk remain saved. "
+                        . "Error: {$e->getMessage()}",
                 ]);
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Delete validation data after successful import
+        |--------------------------------------------------------------------------
+        */
+        Storage::disk('local')->delete($validationPath);
+
+        session()->forget('possession_import_validation');
+        session()->forget('possession_import');
 
         /*
         |--------------------------------------------------------------------------
-        | Clean temporary validation/session data
+        | Success
         |--------------------------------------------------------------------------
         */
-
-        $sourceFile =
-            $validationData[
-                'source_file'
-            ]
-            ?? 'historical file';
-
-
-        $validationPath =
-            $validation['path'];
-
-
-        Storage::disk('local')->delete(
-            $validationPath
-        );
-
-
-        session()->forget([
-            'possession_import',
-            'possession_import_validation',
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Final success message
-        |--------------------------------------------------------------------------
-        */
-
         return redirect()
-            ->route(
-                'possession-cases.index'
-            )
-            ->with(
-                'success',
-
-                'Historical possession import completed successfully. '
-                . $importedCount
-                . ' possession record(s) imported. '
-                . $createdOwnerCount
-                . ' new owner(s) created, '
-                . $updatedOwnerCount
-                . ' existing owner(s) updated, and '
-                . $existingOwnerCount
-                . ' existing owner record(s) reused. '
-                . 'Source: '
-                . $sourceFile
+            ->route('possession-cases.index')
+            ->with('success',
+                "Possession import completed successfully. "
+                . "{$importedCount} possession record(s) imported, "
+                . "{$createdOwnerCount} owner(s) created, "
+                . "{$updatedOwnerCount} owner(s) updated, "
+                . "{$existingOwnerCount} existing owner occurrence(s) processed."
             );
     }
+    // public function executeImport()
+    // {
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Get validation result
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     $validation = session(
+    //         'possession_import_validation'
+    //     );
+
+    //     if (
+    //         !$validation ||
+    //         empty($validation['path'])
+    //     ) {
+    //         return redirect()
+    //             ->route('possession-cases.index')
+    //             ->withErrors([
+    //                 'file' =>
+    //                     'No validated possession import was found. Please upload and validate the file again.',
+    //             ]);
+    //     }
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Check validation JSON
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     if (
+    //         !Storage::disk('local')->exists(
+    //             $validation['path']
+    //         )
+    //     ) {
+    //         session()->forget(
+    //             'possession_import_validation'
+    //         );
+
+    //         return redirect()
+    //             ->route('possession-cases.index')
+    //             ->withErrors([
+    //                 'file' =>
+    //                     'The possession validation result is no longer available. Please validate the file again.',
+    //             ]);
+    //     }
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Read validation JSON
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     $json =
+    //         Storage::disk('local')->get(
+    //             $validation['path']
+    //         );
+
+
+    //     $validationData =
+    //         json_decode(
+    //             $json,
+    //             true
+    //         );
+
+
+    //     if (
+    //         !is_array($validationData)
+    //     ) {
+    //         return redirect()
+    //             ->route('possession-cases.index')
+    //             ->withErrors([
+    //                 'file' =>
+    //                     'The possession validation result could not be read.',
+    //             ]);
+    //     }
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Do NOT import if validation contains errors
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     $errorCount =
+    //         (int) (
+    //             $validationData['error_count']
+    //             ?? 0
+    //         );
+
+
+    //     if ($errorCount > 0) {
+
+    //         return redirect()
+    //             ->route(
+    //                 'possession-cases.import.validation-result'
+    //             )
+    //             ->withErrors([
+    //                 'file' =>
+    //                     'Import cannot continue because the validation result contains errors.',
+    //             ]);
+    //     }
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Basic validation information
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     $projectId =
+    //         $validationData['project_id']
+    //         ?? null;
+
+
+    //     $ownerAction =
+    //         $validationData['owner_action']
+    //         ?? 'keep';
+
+
+    //     $rows =
+    //         $validationData['rows']
+    //         ?? [];
+
+
+    //     if (!$projectId) {
+
+    //         return redirect()
+    //             ->route('possession-cases.index')
+    //             ->withErrors([
+    //                 'project_id' =>
+    //                     'Project information was not found in the validation result.',
+    //             ]);
+    //     }
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Counters
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     $importedCount = 0;
+
+    //     $createdOwnerCount = 0;
+
+    //     $updatedOwnerCount = 0;
+
+    //     $existingOwnerCount = 0;
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Import
+    //     |--------------------------------------------------------------------------
+    //     |
+    //     | IMPORTANT:
+    //     | Entire import is inside one DB transaction.
+    //     |
+    //     | Agar serious error aaye to partial import nahi hoga.
+    //     |
+    //     */
+
+    //     try {
+
+    //         DB::transaction(function () use (
+    //             $projectId,
+    //             $ownerAction,
+    //             $rows,
+    //             &$importedCount,
+    //             &$createdOwnerCount,
+    //             &$updatedOwnerCount,
+    //             &$existingOwnerCount
+    //         ) {
+
+    //             /*
+    //             |--------------------------------------------------------------------------
+    //             | Process every validated row
+    //             |--------------------------------------------------------------------------
+    //             */
+
+    //             foreach ($rows as $validationRow) {
+
+    //                 /*
+    //                 |--------------------------------------------------------------------------
+    //                 | Only valid / warning rows
+    //                 |--------------------------------------------------------------------------
+    //                 */
+
+    //                 if (
+    //                     !in_array(
+    //                         $validationRow['status'] ?? null,
+    //                         [
+    //                             'valid',
+    //                             'warning',
+    //                         ],
+    //                         true
+    //                     )
+    //                 ) {
+    //                     continue;
+    //                 }
+
+
+    //                 /*
+    //                 |--------------------------------------------------------------------------
+    //                 | Required validated values
+    //                 |--------------------------------------------------------------------------
+    //                 */
+
+    //                 $plotId =
+    //                     $validationRow['plot_id']
+    //                     ?? null;
+
+
+    //                 $possessionNo =
+    //                     $validationRow['possession_no']
+    //                     ?? null;
+
+
+    //                 if (
+    //                     !$plotId ||
+    //                     !$possessionNo
+    //                 ) {
+
+    //                     throw new \RuntimeException(
+    //                         'A validated row is missing plot or possession number. Row: '
+    //                         . (
+    //                             $validationRow['row_number']
+    //                             ?? '?'
+    //                         )
+    //                     );
+    //                 }
+
+
+    //                 /*
+    //                 |--------------------------------------------------------------------------
+    //                 | Lock plot
+    //                 |--------------------------------------------------------------------------
+    //                 |
+    //                 | Prevent simultaneous import / creation against same plot.
+    //                 |
+    //                 */
+
+    //                 $plot =
+    //                     Plot::whereKey($plotId)
+    //                         ->lockForUpdate()
+    //                         ->first();
+
+
+    //                 if (!$plot) {
+
+    //                     throw new \RuntimeException(
+    //                         'Plot ID '
+    //                         . $plotId
+    //                         . ' was not found during import.'
+    //                     );
+    //                 }
+
+
+    //                 /*
+    //                 |--------------------------------------------------------------------------
+    //                 | Duplicate protection
+    //                 |--------------------------------------------------------------------------
+    //                 |
+    //                 | withTrashed() means soft-deleted possession numbers
+    //                 | are also considered reserved.
+    //                 |
+    //                 */
+
+    //                 $alreadyExists =
+    //                     PossessionCase::withTrashed()
+    //                         ->where(
+    //                             'plot_id',
+    //                             $plot->id
+    //                         )
+    //                         ->where(
+    //                             'possession_no',
+    //                             $possessionNo
+    //                         )
+    //                         ->exists();
+
+
+    //                 if ($alreadyExists) {
+
+    //                     throw new \RuntimeException(
+    //                         "Possession '{$possessionNo}' already exists for Plot '{$plot->plot_number}'."
+    //                     );
+    //                 }
+
+
+    //                 /*
+    //                 |--------------------------------------------------------------------------
+    //                 | Create Possession Case
+    //                 |--------------------------------------------------------------------------
+    //                 |
+    //                 | Historical numbering comes directly from validation.
+    //                 | We DO NOT generate a new number here.
+    //                 |
+    //                 */
+
+    //                 $case =
+    //                     PossessionCase::create([
+
+    //                         'plot_id' =>
+    //                             $plot->id,
+
+    //                         'possession_no' =>
+    //                             $possessionNo,
+
+    //                         'reference_no' =>
+    //                             $validationRow[
+    //                                 'reference_no'
+    //                             ]
+    //                             ?? null,
+
+    //                         'possession_sequence' =>
+    //                             $validationRow[
+    //                                 'possession_sequence'
+    //                             ],
+
+    //                         'revision_no' =>
+    //                             $validationRow[
+    //                                 'revision_no'
+    //                             ],
+
+    //                         'need_approval' =>
+    //                             $validationRow[
+    //                                 'need_approval'
+    //                             ]
+    //                             ?? false,
+
+    //                         /*
+    //                         | Historical possession is already completed.
+    //                         */
+    //                         'current_status' =>
+    //                             'completed',
+
+    //                         'current_holder_type' =>
+    //                             null,
+
+    //                         'current_holder_id' =>
+    //                             null,
+
+    //                         'current_holder_name' =>
+    //                             null,
+
+    //                         'received_at' =>
+    //                             $validationRow[
+    //                                 'received_at'
+    //                             ]
+    //                             ?? null,
+
+    //                         /*
+    //                         | Historical completion / handover date.
+    //                         */
+    //                         'completed_at' =>
+    //                             $validationRow[
+    //                                 'received_at'
+    //                             ]
+    //                             ?? null,
+
+    //                         'handed_over_at' =>
+    //                             $validationRow[
+    //                                 'received_at'
+    //                             ]
+    //                             ?? null,
+
+    //                         'remarks' =>
+    //                             'Historical possession imported from '
+    //                             . (
+    //                                 $validationData[
+    //                                     'source_file'
+    //                                 ]
+    //                                 ?? 'CSV/Excel'
+    //                             ),
+
+    //                         /*
+    //                         | Completed historical cases are inactive.
+    //                         */
+    //                         'is_active' =>
+    //                             false,
+
+    //                         'created_by' =>
+    //                             Auth::id(),
+
+    //                         'updated_by' =>
+    //                             Auth::id(),
+    //                     ]);
+
+
+    //                 /*
+    //                 |--------------------------------------------------------------------------
+    //                 | Process Owners
+    //                 |--------------------------------------------------------------------------
+    //                 */
+
+    //                 $owners =
+    //                     $validationRow['owners']
+    //                     ?? [];
+
+
+    //                 foreach ($owners as $ownerData) {
+
+    //                     $cnic =
+    //                         trim(
+    //                             $ownerData['cnic']
+    //                             ?? ''
+    //                         );
+
+
+    //                     $ownerName =
+    //                         trim(
+    //                             $ownerData['owner_name']
+    //                             ?? ''
+    //                         );
+
+
+    //                     if (
+    //                         $cnic === '' ||
+    //                         $ownerName === ''
+    //                     ) {
+
+    //                         throw new \RuntimeException(
+    //                             'A validated owner is missing Name or CNIC. '
+    //                             . 'Import row: '
+    //                             . (
+    //                                 $validationRow[
+    //                                     'row_number'
+    //                                 ]
+    //                                 ?? '?'
+    //                             )
+    //                         );
+    //                     }
+
+
+    //                     /*
+    //                     |--------------------------------------------------------------------------
+    //                     | Find Owner by CNIC
+    //                     |--------------------------------------------------------------------------
+    //                     */
+
+    //                     $owner =
+    //                         Owner::where(
+    //                             'cnic',
+    //                             $cnic
+    //                         )->first();
+
+
+    //                     /*
+    //                     |--------------------------------------------------------------------------
+    //                     | Existing Owner
+    //                     |--------------------------------------------------------------------------
+    //                     */
+
+    //                     if ($owner) {
+
+    //                         $existingOwnerCount++;
+
+
+    //                         /*
+    //                         |--------------------------------------------------------------------------
+    //                         | Update existing owner
+    //                         |--------------------------------------------------------------------------
+    //                         */
+
+    //                         if (
+    //                             $ownerAction === 'update'
+    //                         ) {
+
+    //                             $owner->update([
+
+    //                                 'owner_name' =>
+    //                                     $ownerName,
+
+    //                                 'relative_name' =>
+    //                                     $ownerData[
+    //                                         'relative_name'
+    //                                     ]
+    //                                     ?? null,
+
+    //                                 'address' =>
+    //                                     $ownerData[
+    //                                         'address'
+    //                                     ]
+    //                                     ?? null,
+
+    //                                 'contact_no' =>
+    //                                     $ownerData[
+    //                                         'contact_no'
+    //                                     ]
+    //                                     ?? null,
+    //                             ]);
+
+
+    //                             $updatedOwnerCount++;
+    //                         }
+    //                     }
+
+
+    //                     /*
+    //                     |--------------------------------------------------------------------------
+    //                     | New Owner
+    //                     |--------------------------------------------------------------------------
+    //                     */
+
+    //                     else {
+
+    //                         $owner =
+    //                             Owner::create([
+
+    //                                 'owner_name' =>
+    //                                     $ownerName,
+
+    //                                 'relative_name' =>
+    //                                     $ownerData[
+    //                                         'relative_name'
+    //                                     ]
+    //                                     ?? null,
+
+    //                                 'cnic' =>
+    //                                     $cnic,
+
+    //                                 'address' =>
+    //                                     $ownerData[
+    //                                         'address'
+    //                                     ]
+    //                                     ?? null,
+
+    //                                 'contact_no' =>
+    //                                     $ownerData[
+    //                                         'contact_no'
+    //                                     ]
+    //                                     ?? null,
+    //                             ]);
+
+
+    //                         $createdOwnerCount++;
+    //                     }
+
+
+    //                     /*
+    //                     |--------------------------------------------------------------------------
+    //                     | Attach Owner to Possession
+    //                     |--------------------------------------------------------------------------
+    //                     */
+
+    //                     $case
+    //                         ->owners()
+    //                         ->syncWithoutDetaching([
+
+    //                             $owner->id => [
+
+    //                                 'address_snapshot' =>
+    //                                     $ownerData[
+    //                                         'address'
+    //                                     ]
+    //                                     ?? $owner->address,
+
+    //                             ],
+
+    //                         ]);
+    //                 }
+
+
+    //                 /*
+    //                 |--------------------------------------------------------------------------
+    //                 | Imported row count
+    //                 |--------------------------------------------------------------------------
+    //                 */
+
+    //                 $importedCount++;
+    //             }
+    //         });
+
+
+    //     } catch (\Throwable $e) {
+
+    //         /*
+    //         |--------------------------------------------------------------------------
+    //         | Import failed
+    //         |--------------------------------------------------------------------------
+    //         |
+    //         | DB transaction automatically rolls back.
+    //         |
+    //         */
+
+    //         report($e);
+
+    //         return redirect()
+    //             ->route(
+    //                 'possession-cases.import.validation-result'
+    //             )
+    //             ->withErrors([
+
+    //                 'file' =>
+    //                     'Possession import failed. No records were imported. '
+    //                     . 'Please check the Laravel log for details.',
+
+    //             ]);
+    //     }
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Clean temporary validation/session data
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     $sourceFile =
+    //         $validationData[
+    //             'source_file'
+    //         ]
+    //         ?? 'historical file';
+
+
+    //     $validationPath =
+    //         $validation['path'];
+
+
+    //     Storage::disk('local')->delete(
+    //         $validationPath
+    //     );
+
+
+    //     session()->forget([
+    //         'possession_import',
+    //         'possession_import_validation',
+    //     ]);
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Final success message
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     return redirect()
+    //         ->route(
+    //             'possession-cases.index'
+    //         )
+    //         ->with(
+    //             'success',
+
+    //             'Historical possession import completed successfully. '
+    //             . $importedCount
+    //             . ' possession record(s) imported. '
+    //             . $createdOwnerCount
+    //             . ' new owner(s) created, '
+    //             . $updatedOwnerCount
+    //             . ' existing owner(s) updated, and '
+    //             . $existingOwnerCount
+    //             . ' existing owner record(s) reused. '
+    //             . 'Source: '
+    //             . $sourceFile
+    //         );
+    // }
     /**
      * Parse historical possession number.
      *
