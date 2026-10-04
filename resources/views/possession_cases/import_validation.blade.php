@@ -113,6 +113,39 @@
 
     </div>
 
+    {{-- test only --}}
+                @if(($validation['error_count'] ?? 0) == 0)
+                <form method="POST"
+                    action="{{ route('possession-cases.import.execute') }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Are you sure you want to import these historical possession records? This action will create possession and owner records in the database.');">
+                    @csrf
+                    <button type="submit"
+                            class="btn btn-success">
+
+                        <i class="bi bi-database-add me-1"></i>
+
+                        Final Import
+                        ({{ $validation['total_count'] ?? 0 }} Records)
+
+                    </button>
+
+                </form>
+
+            @else
+
+                <button type="button"
+                        class="btn btn-secondary"
+                        disabled>
+
+                    <i class="bi bi-lock me-1"></i>
+
+                    Final Import Disabled
+
+                </button>
+
+            @endif
+
 
     {{-- =========================================================
         SUMMARY CARDS

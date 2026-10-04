@@ -166,7 +166,33 @@
 
     </div>
 
+{{-- test --}}
+        @if(!empty($headers) && $totalRows > 0)
 
+            {{-- <button type="button"
+                    class="btn btn-success"
+                    disabled>
+
+                <i class="bi bi-check-circle me-1"></i>
+                Validate & Import
+
+            </button> --}}
+            <form method="POST"
+                action="{{ route('possession-cases.import.validate') }}">
+
+                @csrf
+
+                <button type="submit"
+                        class="btn btn-primary">
+
+                    <i class="bi bi-shield-check me-1"></i>
+                    Validate File
+
+                </button>
+
+            </form>
+
+        @endif
     {{-- =========================================================
         PREVIEW INFORMATION
     ========================================================== --}}

@@ -3390,14 +3390,25 @@ class PossessionCaseController extends Controller
     /**
      * Generate next base possession number.
      *
-     * Numbering project + property type ke hisaab se hogi.
+     * Numbering rule:
      *
-     * Example:
-     * 250
-     * 251
-     * 252
+     * 1. Commercial Plot
+     *    -> Project-wise separate sequence
+     *
+     * 2. All other Property Types
+     *    -> Project-wise common sequence
+     *
+     * General sequence includes:
+     * Residential Plot
+     * Public Building
+     * School
+     * Mosque
+     * Farmhouse
+     * Apartment Site
+     *
+     * Historical possession numbers are NOT changed.
+     * Soft-deleted possession numbers are also reserved.
      */
-
     private function generateBasePossessionNumber(Plot $plot): string
     {
         /*
@@ -3405,14 +3416,41 @@ class PossessionCaseController extends Controller
         | Lock Project
         |--------------------------------------------------------------------------
         |
-        | Same Project + Property Type mein agar 2 different plots par
-        | simultaneously new possession create ho rahi ho,
-        | to dono ko same MAX number milne se prevent karta hai.
+        | Same project mein agar simultaneously 2 new possessions create hon,
+        | to dono ko same number milne se prevent karta hai.
         |
         */
         Project::whereKey($plot->project_id)
             ->lockForUpdate()
             ->firstOrFail();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Determine Numbering Group
+        |--------------------------------------------------------------------------
+        |
+        | Sirf Commercial Plot ki separate numbering hogi.
+        |
+        | Baqi tamam Property Types ek common sequence share karenge.
+        |
+        */
+        $propertyTypeName =
+            $plot->propertyType?->name
+            ?? null;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Commercial or General?
+        |--------------------------------------------------------------------------
+        */
+        $isCommercial =
+            $propertyTypeName !== null
+            && strcasecmp(
+                trim($propertyTypeName),
+                'Commercial Plot'
+            ) === 0;
 
 
         /*
@@ -3429,11 +3467,15 @@ class PossessionCaseController extends Controller
             ->whereRaw(
                 "possession_no REGEXP '^[0-9]+$'"
             )
-            ->whereHas('plot', function ($q) use ($plot) {
+            ->whereHas('plot', function ($q) use (
+                $plot,
+                $isCommercial
+            ) {
 
                 /*
-                | Soft-deleted plot ke possession records bhi
-                | numbering mein count honge.
+                |--------------------------------------------------------------------------
+                | Soft-deleted plots bhi numbering mein count honge.
+                |--------------------------------------------------------------------------
                 */
                 $q->withTrashed()
                     ->where(
@@ -3441,21 +3483,69 @@ class PossessionCaseController extends Controller
                         $plot->project_id
                     );
 
+
                 /*
-                | Property Type ke hisaab se separate numbering.
+                |--------------------------------------------------------------------------
+                | COMMERCIAL
+                |--------------------------------------------------------------------------
+                |
+                | Commercial Plot ke liye sirf Commercial Plot records
+                | numbering mein count honge.
+                |
                 */
-                if ($plot->property_type_id !== null) {
+                if ($isCommercial) {
 
-                    $q->where(
-                        'property_type_id',
-                        $plot->property_type_id
+                    $q->whereHas(
+                        'propertyType',
+                        function ($propertyTypeQuery) {
+                            $propertyTypeQuery->where(
+                                'name',
+                                'Commercial Plot'
+                            );
+                        }
                     );
 
-                } else {
+                }
 
-                    $q->whereNull(
-                        'property_type_id'
-                    );
+                /*
+                |--------------------------------------------------------------------------
+                | GENERAL
+                |--------------------------------------------------------------------------
+                |
+                | Agar current plot Commercial nahi hai,
+                | to Commercial ko exclude kar dein.
+                |
+                | Is tarah:
+                |
+                | Residential
+                | Public Building
+                | School
+                | Mosque
+                | Farmhouse
+                | Apartment Site
+                |
+                | sab ek common sequence share karenge.
+                |
+                */
+                else {
+
+                    $q->where(function ($propertyTypeQuery) {
+
+                        $propertyTypeQuery
+                            ->whereDoesntHave(
+                                'propertyType'
+                            )
+                            ->orWhereHas(
+                                'propertyType',
+                                function ($typeQuery) {
+                                    $typeQuery->where(
+                                        'name',
+                                        '!=',
+                                        'Commercial Plot'
+                                    );
+                                }
+                            );
+                    });
                 }
             });
 
@@ -3466,10 +3556,14 @@ class PossessionCaseController extends Controller
         |--------------------------------------------------------------------------
         |
         | Example:
-        | 1, 2, 3, 7, 9
         |
-        | MAX = 9
-        | Next = 10
+        | 100
+        | 101
+        | 105
+        | 110
+        |
+        | MAX = 110
+        | Next = 111
         |
         | Gaps reuse nahi honge.
         |
@@ -3490,6 +3584,111 @@ class PossessionCaseController extends Controller
             ((int) $maxNumber) + 1
         );
     }
+    
+    // project + property type numbering -- har 1 alag alag numbering --Old
+    // /**
+    //  * Generate next base possession number.
+    //  *
+    //  * Numbering project + property type ke hisaab se hogi.
+    //  *
+    //  * Example:
+    //  * 250
+    //  * 251
+    //  * 252
+    //  */
+
+    // private function generateBasePossessionNumber(Plot $plot): string
+    // {
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Lock Project
+    //     |--------------------------------------------------------------------------
+    //     |
+    //     | Same Project + Property Type mein agar 2 different plots par
+    //     | simultaneously new possession create ho rahi ho,
+    //     | to dono ko same MAX number milne se prevent karta hai.
+    //     |
+    //     */
+    //     Project::whereKey($plot->project_id)
+    //         ->lockForUpdate()
+    //         ->firstOrFail();
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Find Existing Base Possession Numbers
+    //     |--------------------------------------------------------------------------
+    //     |
+    //     | withTrashed() is liye use ho raha hai taake soft-deleted
+    //     | possession cases ke numbers bhi dobara reuse na hon.
+    //     |
+    //     */
+    //     $query = PossessionCase::withTrashed()
+    //         ->whereNotNull('possession_no')
+    //         ->whereRaw(
+    //             "possession_no REGEXP '^[0-9]+$'"
+    //         )
+    //         ->whereHas('plot', function ($q) use ($plot) {
+
+    //             /*
+    //             | Soft-deleted plot ke possession records bhi
+    //             | numbering mein count honge.
+    //             */
+    //             $q->withTrashed()
+    //                 ->where(
+    //                     'project_id',
+    //                     $plot->project_id
+    //                 );
+
+    //             /*
+    //             | Property Type ke hisaab se separate numbering.
+    //             */
+    //             if ($plot->property_type_id !== null) {
+
+    //                 $q->where(
+    //                     'property_type_id',
+    //                     $plot->property_type_id
+    //                 );
+
+    //             } else {
+
+    //                 $q->whereNull(
+    //                     'property_type_id'
+    //                 );
+    //             }
+    //         });
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Get Highest Existing Base Number
+    //     |--------------------------------------------------------------------------
+    //     |
+    //     | Example:
+    //     | 1, 2, 3, 7, 9
+    //     |
+    //     | MAX = 9
+    //     | Next = 10
+    //     |
+    //     | Gaps reuse nahi honge.
+    //     |
+    //     */
+    //     $maxNumber = $query->max(
+    //         DB::raw(
+    //             'CAST(possession_no AS UNSIGNED)'
+    //         )
+    //     );
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Next Number
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     return (string) (
+    //         ((int) $maxNumber) + 1
+    //     );
+    // }
 
 
     /**

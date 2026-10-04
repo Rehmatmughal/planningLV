@@ -467,7 +467,7 @@ class AreaVariationController extends Controller
             return back()
                 ->withErrors([
                     'is_mortgaged' =>
-                        'Mortgage YES sirf un plots ke liye allowed hai jinka LOP status "lop" ho.'
+                        'Mortgage YES sirf un plots ke liye allowed hai jo LOP mn clear ho.'
                 ])
                 ->withInput();
         }
