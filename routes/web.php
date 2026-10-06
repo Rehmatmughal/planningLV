@@ -108,27 +108,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/get-assigned-sizes/{project_id}/{block_id}/{property_type_id}',[PlotController::class, 'getAssignedSizes'])->name('plots.assigned-sizes');
     });
 
-    Route::middleware(['auth','permission:plot.view'])->prefix('admin')->group(function () {
-
-    // route for excel exports blockwise plots
-        Route::get('/blocks/{block}/plots/export', [PlotController::class, 'exportBlockPlots'])->middleware('permission:plot.excel')->name('blocks.plots.export');
-        Route::get('/streets/{street}/plots', [PlotController::class, 'indexByStreet'])->middleware('permission:plot.view')->name('streets.plots.index');
-        Route::get('/plot/{id}', [PlotController::class, 'show'])->middleware('permission:plot.view')->name('plots.show');
-        Route::get('/plots', [PlotController::class, 'index'])->name('plots.index');
-        Route::get('/plots/create', [plotController::class, 'create'])->middleware('permission:plot.create')->name('plots.create');    
-        Route::post('/plots', [PlotController::class, 'store'])->middleware('permission:plot.create')->name('plots.store');
-        Route::get('/plots/{plot}/edit', [PlotController::class, 'edit'])->middleware('permission:plot.edit')->name('plots.edit');
-        Route::put('/plots/{plot}', [PlotController::class, 'update'])->middleware('permission:plot.update')->name('plots.update');
-        Route::delete('/plots/{plot}',[PlotController::class, 'destroy'])->middleware('permission:plot.delete')->name('plots.destroy');
-            // deleted plots and restore route
-        Route::get('/plots/deleted', [PlotController::class, 'deleted'])->middleware('permission:plot.trashview')->name('plots.deleted');
-        Route::get('/plots/{id}/deleted-view', [PlotController::class, 'deletedView'])->middleware('permission:plot.trashview')->name('plots.deleted.view');
-        Route::put('/plots/{id}/restore', [PlotController::class, 'restore'])->middleware('permission:plot.restore')->name('plots.restore');
-        Route::delete('/plots/{id}/force-delete', [PlotController::class, 'forceDelete'])->middleware('permission:plot.force-delete')->name('plots.forceDelete');
-        Route::get('/get-assigned-sizes/{project_id}/{block_id}/{property_type_id}', [PlotController::class, 'getAssignedSizes'])->name('plots.assigned-sizes');
-
-    });
-
     Route::middleware(['auth'])->prefix('admin')->group(function () {
         Route::get('/lop-mortgage', [LopMortgageStatusController::class, 'index'])->middleware('permission:lop.view')->name('lop-mortgage.index');
         Route::get('/lop-mortgage/create', [LopMortgageStatusController::class, 'create'])->middleware('permission:lop.create')->name('lop-mortgage.create');
@@ -454,7 +433,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/lop/store', [LopStatusController::class, 'storeOrUpdate'])->name('lop.store');
     Route::post('/mortgage/store', [MortgageStatusController::class, 'storeOrUpdate'])->name('mortgage.store');
     Route::post('/possession/store', [PossessionStatusController::class, 'storeOrUpdate'])->name('possession.store');
-
     // new
 
     Route::get('/area-variations', [AreaVariationController::class, 'index'])->name('area_variations.index');
@@ -541,22 +519,12 @@ Route::middleware(['auth','permission:permission.view'])->prefix('admin')->name(
 
 });
 
-// AJAX routes
-    Route::get(
-        'possession-cases/ajax/blocks/{projectId}',
-        [PossessionCaseController::class, 'getBlocks']
-    )->name('possession-cases.ajax.blocks');
+// AJAX routes of possession-case
 
-    Route::get(
-        'possession-cases/ajax/streets/{blockId}',
-        [PossessionCaseController::class, 'getStreets']
-    )->name('possession-cases.ajax.streets');
-
-    Route::get(
-        'possession-cases/ajax/search-plots',
-        [PossessionCaseController::class, 'searchPlots']
-    )->name('possession-cases.ajax.search-plots');
-
+Route::get('possession-cases/ajax/blocks/{projectId}', [PossessionCaseController::class, 'getBlocks'])->name('possession-cases.ajax.blocks');
+Route::get('possession-cases/ajax/streets/{blockId}', [PossessionCaseController::class, 'getStreets'])->name('possession-cases.ajax.streets');
+Route::get('possession-cases/ajax/search-plots', [PossessionCaseController::class, 'searchPlots'])->name('possession-cases.ajax.search-plots');
+Route::get('possession-cases/ajax/property-types/{projectId}', [PossessionCaseController::class, 'getPropertyTypes'])->name('possession-cases.ajax.property-types');
 
 Route::resource('possession-cases', PossessionCaseController::class);
     // imports possession case

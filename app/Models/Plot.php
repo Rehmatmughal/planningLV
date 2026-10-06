@@ -150,14 +150,13 @@ class Plot extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->useLogName('Development_status')
-            // ->logFillable()
-            ->logAll()
+            ->useLogName('plot')
+            ->logFillable()
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
-            ->setDescriptionForEvent(fn(string $eventName) => 
-                "Plot Status has been {$eventName}"
-            );
+            ->setDescriptionForEvent(function (string $eventName) {
+                return "Plot has been {$eventName}";
+            });
     }
 
     public function tapActivity(Activity $activity, string $eventName)
@@ -166,13 +165,64 @@ class Plot extends Model
             $activity->causer_id = auth()->id();
         }
 
+        // Load required relationships for readable log details
+        $this->loadMissing([
+            'project',
+            'block',
+            'street',
+            'propertyType',
+            'size',
+        ]);
+
         $activity->properties = $activity->properties->merge([
-            'project_id' => $this->project_id,
-            'projet_name' => $this->project_name,
-            'block_name' => $this->block_name,
-            'block_id' => $this->block_id,
-            'street_id' => $this->street_id,
+            'plot_context' => [
+                'project_id' => $this->project_id,
+                'project_name' => $this->project?->name,
+
+                'block_id' => $this->block_id,
+                'block_name' => $this->block?->name,
+
+                'street_id' => $this->street_id,
+                'street_name' => $this->street?->name,
+
+                'plot_id' => $this->id,
+                'plot_number' => $this->plot_number,
+
+                'property_type_id' => $this->property_type_id,
+                'property_type' => $this->propertyType?->name,
+
+                'size_id' => $this->size_id,
+                'size' => $this->size?->name,
+            ],
         ]);
     }
+    
+    // public function getActivitylogOptions(): LogOptions
+    // {
+    //     return LogOptions::defaults()
+    //         ->useLogName('Development_status')
+    //         // ->logFillable()
+    //         ->logAll()
+    //         ->logOnlyDirty()
+    //         ->dontSubmitEmptyLogs()
+    //         ->setDescriptionForEvent(fn(string $eventName) => 
+    //             "Plot Status has been {$eventName}"
+    //         );
+    // }
+ 
+    // public function tapActivity(Activity $activity, string $eventName)
+    // {
+    //     if (auth()->check()) {
+    //         $activity->causer_id = auth()->id();
+    //     }
+
+    //     $activity->properties = $activity->properties->merge([
+    //         'project_id' => $this->project_id,
+    //         'projet_name' => $this->project_name,
+    //         'block_name' => $this->block_name,
+    //         'block_id' => $this->block_id,
+    //         'street_id' => $this->street_id,
+    //     ]);
+    // }
 
 }

@@ -3015,15 +3015,62 @@ class PossessionCaseController extends Controller
             'plot.propertyType',
             'owners',
             'creator',
-            // test
             'plot.latestAreavariation',
         ])->latest();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Search by possession number
-        |--------------------------------------------------------------------------
-        */
+        // Filter by Project
+
+        if ($request->filled('project_id')) {
+            $query->whereHas('plot', function ($q) use ($request) {
+                $q->where(
+                    'project_id',
+                    $request->project_id
+                );
+            });
+        }
+
+        //  Filter by Property Type
+        if ($request->filled('property_type_id')) {
+            $query->whereHas('plot', function ($q) use ($request) {
+                $q->where(
+                    'property_type_id',
+                    $request->property_type_id
+                );
+            });
+        }
+
+        // | Filter by Block
+        if ($request->filled('block_id')) {
+            $query->whereHas('plot', function ($q) use ($request) {
+                $q->where(
+                    'block_id',
+                    $request->block_id
+                );
+            });
+        }
+
+        // Filter by Street
+
+        if ($request->filled('street_id')) {
+            $query->whereHas('plot', function ($q) use ($request) {
+                $q->where(
+                    'street_id',
+                    $request->street_id
+                );
+            });
+        }
+        //  Search by Plot Number
+        if ($request->filled('plot_number')) {
+            $query->whereHas('plot', function ($q) use ($request) {
+                $q->where(
+                    'plot_number',
+                    'like',
+                    '%' . $request->plot_number . '%'
+                );
+            });
+        }
+        // Search by Possession Number
+        
         if ($request->filled('possession_no')) {
             $query->where(
                 'possession_no',
@@ -3032,11 +3079,8 @@ class PossessionCaseController extends Controller
             );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Search by reference number
-        |--------------------------------------------------------------------------
-        */
+        // Search by Reference Number
+
         if ($request->filled('reference_no')) {
             $query->where(
                 'reference_no',
@@ -3045,74 +3089,80 @@ class PossessionCaseController extends Controller
             );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Filter by status
-        |--------------------------------------------------------------------------
-        */
+        // Search by Owner Name
+
+        if ($request->filled('owner_name')) {
+            $query->whereHas('owners', function ($q) use ($request) {
+                // $q->where(
+                //     'owner_name',
+                //     'like',
+                //     '%' . $request->owner_name . '%'
+                // );
+                $q->where('owners.owner_name', 'like', '%' . $request->owner_name . '%');
+            });
+        }
+
+        //  Search by CNIC
+
+        if ($request->filled('cnic')) {
+            $query->whereHas('owners', function ($q) use ($request) {
+                // $q->where(
+                //     'cnic',
+                //     'like',
+                //     '%' . $request->cnic . '%'
+                // );
+                $q->where('owners.cnic', 'like', '%' . $request->cnic . '%');
+            });
+        }
+
+        // Filter by Status
+
         if ($request->filled('status')) {
             $query->where(
                 'current_status',
                 $request->status
             );
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Filter active/inactive
-        |--------------------------------------------------------------------------
-        */
+        //  Filter by Active / Inactive
+        
         if ($request->filled('is_active')) {
             $query->where(
                 'is_active',
                 $request->is_active
             );
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Search by owner name
-        |--------------------------------------------------------------------------
-        */
-        if ($request->filled('owner_name')) {
-            $query->whereHas('owners', function ($q) use ($request) {
-                $q->where(
-                    'owner_name',
-                    'like',
-                    '%' . $request->owner_name . '%'
-                );
-            });
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Search by CNIC
-        |--------------------------------------------------------------------------
-        */
-        if ($request->filled('cnic')) {
-            $query->whereHas('owners', function ($q) use ($request) {
-                $q->where(
-                    'cnic',
-                    'like',
-                    '%' . $request->cnic . '%'
-                );
-            });
-        }
-
+        // | Pagination
         $possessionCases = $query
             ->paginate(20)
             ->withQueryString();
+        //  Projects
+
+        $projects = Project::select(
+                'id',
+                'project_name'
+            )
+            ->orderBy('project_name')
+            ->get();
+
+        // | Property Types
+        $propertyTypes = PropertyType::select('id','name')
+            ->orderBy('name')
+            ->get();
 
         return view(
             'possession_cases.index',
-            compact('possessionCases')
+            compact(
+                'possessionCases',
+                'projects',
+                'propertyTypes'
+            )
         );
     }
 
-
     /**
-     * Show form for creating a new possession case.
-     */
+    * Show form for creating a new possession case.
+    */
+
     public function create(Request $request)
     {
         $projects = Project::select('id', 'project_name')
@@ -3143,6 +3193,701 @@ class PossessionCaseController extends Controller
             'selectedPlot'
         ));
     }
+    /**
+     * Store a new possession case.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+
+            /*
+            |--------------------------------------------------------------------------
+            | Plot
+            |--------------------------------------------------------------------------
+            */
+            'plot_id' => [
+                'required',
+                'integer',
+                Rule::exists('plots', 'id')
+                    ->where(function ($query) {
+                        $query->whereNull('deleted_at');
+                    }),
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Reference Number
+            |--------------------------------------------------------------------------
+            */
+            'reference_no' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Approval
+            |--------------------------------------------------------------------------
+            */
+            'need_approval' => [
+                'nullable',
+                'boolean',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Current Holder
+            |--------------------------------------------------------------------------
+            */
+            'current_holder_type' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'current_holder_id' => [
+                'nullable',
+                'integer',
+            ],
+
+            'current_holder_name' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Received Date
+            |--------------------------------------------------------------------------
+            */
+            'received_at' => [
+                'nullable',
+                'date',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Remarks
+            |--------------------------------------------------------------------------
+            */
+            'remarks' => [
+                'nullable',
+                'string',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Owners
+            |--------------------------------------------------------------------------
+            */
+            'owners' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+
+            'owners.*.owner_id' => [
+                'nullable',
+                'integer',
+                'exists:owners,id',
+            ],
+
+            'owners.*.owner_name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'owners.*.relative_name' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'owners.*.cnic' => [
+                'required',
+                'string',
+                'max:30',
+            ],
+
+            'owners.*.address' => [
+                'nullable',
+                'string',
+            ],
+
+            'owners.*.contact_no' => [
+                'nullable',
+                'string',
+                'max:50',
+            ],
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Transaction
+        |--------------------------------------------------------------------------
+        */
+        DB::transaction(function () use ($validated) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Lock Plot
+            |--------------------------------------------------------------------------
+            |
+            | Same plot par agar simultaneously possession create ho
+            | to sequence control mein rahe.
+            |
+            */
+            $plot = Plot::whereKey(
+                $validated['plot_id']
+            )
+                ->lockForUpdate()
+                ->firstOrFail();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Find Previous Possession
+            |--------------------------------------------------------------------------
+            */
+
+            // soft delete k sath wala code is mn soft delete ka possession no b reserve he ho ga resue nae hoga 
+            // yani previouse possession find krty howay softdelete kia howa possession b find hoga
+            $previousCase = PossessionCase::withTrashed()
+                ->where(
+                    'plot_id',
+                    $plot->id
+                )
+                ->orderBy(
+                    'possession_sequence',
+                    'desc'
+                )
+                ->lockForUpdate()
+                ->first();
+
+            $nextSequence =
+                // soft delete ko b sath mn find kryga awr uska number b dekhy ga
+                ((int) PossessionCase::withTrashed()
+                    ->where(
+                // soft delete ko find nae krny ka code 
+                // ((int) PossessionCase::where(
+                    'plot_id',
+                    $plot->id
+                )->max('possession_sequence')) + 1;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Base Possession Number
+            |--------------------------------------------------------------------------
+            */
+            $basePossessionNo = null;
+
+            if ($previousCase) {
+                $basePossessionNo =
+                    $this->getBasePossessionNumber(
+                        $previousCase->possession_no
+                    );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Agar previous case ka base number available nahi
+            |--------------------------------------------------------------------------
+            */
+            if (
+                !$basePossessionNo ||
+                !ctype_digit($basePossessionNo)
+            ) {
+                $basePossessionNo =
+                    $this->generateBasePossessionNumber(
+                        $plot
+                    );
+            }
+
+
+            if ($nextSequence === 1) {
+
+                $possessionNo =
+                    $basePossessionNo;
+
+            } else {
+
+                $possessionNo =
+                    $basePossessionNo
+                    . '-T'
+                    . ($nextSequence - 1);
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Create Possession Case
+            |--------------------------------------------------------------------------
+            */
+            $case = PossessionCase::create([
+
+                'plot_id' =>
+                    $plot->id,
+
+                'possession_no' =>
+                    $possessionNo,
+
+                'reference_no' =>
+                    $validated['reference_no']
+                    ?? null,
+
+                'possession_sequence' =>
+                    $nextSequence,
+
+                /*
+                | Initial creation always revision 0.
+                */
+                'revision_no' =>
+                    0,
+
+                'need_approval' =>
+                    $validated['need_approval']
+                    ?? false,
+
+                'current_status' =>
+                    'received',
+
+                'current_holder_type' =>
+                    $validated['current_holder_type']
+                    ?? null,
+
+                'current_holder_id' =>
+                    $validated['current_holder_id']
+                    ?? null,
+
+                'current_holder_name' =>
+                    $validated['current_holder_name']
+                    ?? null,
+
+                'received_at' =>
+                    $validated['received_at']
+                    ?? now()->toDateString(),
+
+                'remarks' =>
+                    $validated['remarks']
+                    ?? null,
+
+                'is_active' =>
+                    true,
+
+                'created_by' =>
+                    Auth::id(),
+            ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Save Owners
+            |--------------------------------------------------------------------------
+            */
+            foreach (
+                $validated['owners']
+                as $ownerData
+            ) {
+
+                $owner = null;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Owner ID
+                |--------------------------------------------------------------------------
+                */
+                if (!empty($ownerData['owner_id'])) {
+
+                    $owner = Owner::find(
+                        $ownerData['owner_id']
+                    );
+
+                    if (!$owner) {
+
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'owners' =>
+                                'Selected owner record was not found.',
+                        ]);
+                    }
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | CNIC
+                |--------------------------------------------------------------------------
+                */
+                $cnic = trim(
+                    $ownerData['cnic']
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Search owner by CNIC
+                |--------------------------------------------------------------------------
+                */
+                $ownerByCnic = Owner::where(
+                    'cnic',
+                    $cnic
+                )->first();
+                /*
+                |--------------------------------------------------------------------------
+                | Existing CNIC
+                |--------------------------------------------------------------------------
+                */
+                if ($ownerByCnic) {
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Selected owner ID different hai
+                    |--------------------------------------------------------------------------
+                    */
+                    if (
+                        $owner &&
+                        $owner->id !== $ownerByCnic->id
+                    ) {
+
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'owners' =>
+                                "CNIC {$cnic} is already registered with another owner: {$ownerByCnic->owner_name}. Please verify the CNIC.",
+                        ]);
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Name safety check
+                    |--------------------------------------------------------------------------
+                    */
+                    $enteredName =
+                        trim(
+                            $ownerData['owner_name']
+                        );
+
+                    $existingName =
+                        trim(
+                            $ownerByCnic->owner_name
+                        );
+
+                    if (
+                        strcasecmp(
+                            $enteredName,
+                            $existingName
+                        ) !== 0
+                    ) {
+
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'owners' =>
+                                "This CNIC is already registered with the name '{$existingName}'. Please verify the CNIC and owner name.",
+                        ]);
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Update Existing Owner
+                    |--------------------------------------------------------------------------
+                    |
+                    | CNIC already exists, so this is the master owner record.
+                    | We update the latest owner information from the form.
+                    |
+                    */
+                    $ownerByCnic->update([
+
+                        'owner_name' =>
+                            $ownerData['owner_name'],
+
+                        'relative_name' =>
+                            $ownerData['relative_name']
+                            ?? null,
+
+                        /*
+                        | CNIC is the unique identity.
+                        | Keep the normalized/current CNIC.
+                        */
+                        'cnic' =>
+                            $cnic,
+
+                        'address' =>
+                            $ownerData['address']
+                            ?? null,
+
+                        'contact_no' =>
+                            $ownerData['contact_no']
+                            ?? null,
+                    ]);
+
+                    // | Use Updated Owner
+                    $owner =
+                        $ownerByCnic;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | New CNIC
+                |--------------------------------------------------------------------------
+                */
+                else {
+
+                    if ($owner) {
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Existing selected owner
+                        |--------------------------------------------------------------------------
+                        */
+                        $owner->update([
+
+                            'owner_name' =>
+                                $ownerData['owner_name'],
+
+                            'relative_name' =>
+                                $ownerData['relative_name']
+                                ?? null,
+
+                            'cnic' =>
+                                $cnic,
+
+                            'address' =>
+                                $ownerData['address']
+                                ?? null,
+
+                            'contact_no' =>
+                                $ownerData['contact_no']
+                                ?? null,
+                        ]);
+
+                    } else {
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Completely new owner
+                        |--------------------------------------------------------------------------
+                        */
+                        $owner = Owner::create([
+
+                            'owner_name' =>
+                                $ownerData['owner_name'],
+
+                            'relative_name' =>
+                                $ownerData['relative_name']
+                                ?? null,
+
+                            'cnic' =>
+                                $cnic,
+
+                            'address' =>
+                                $ownerData['address']
+                                ?? null,
+
+                            'contact_no' =>
+                                $ownerData['contact_no']
+                                ?? null,
+                        ]);
+                    }
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Attach Owner
+                |--------------------------------------------------------------------------
+                */
+                $case->owners()->attach(
+                    $owner->id,
+                    [
+                        'address_snapshot' =>
+                            $ownerData['address']
+                            ?? $owner->address,
+                    ]
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | First History Record
+            |--------------------------------------------------------------------------
+            */
+            $case->histories()->create([
+
+                'plot_id' =>
+                    $case->plot_id,
+
+                'action' =>
+                    'Case Received',
+
+                'old_status' =>
+                    null,
+
+                'new_status' =>
+                    'received',
+
+                'old_holder' =>
+                    null,
+
+                'new_holder' =>
+                    $case->current_holder_name,
+
+                'handed_over_to' =>
+                    null,
+
+                'remarks' =>
+                    'Possession case created. Possession No: '
+                    . $case->possession_no,
+
+                'user_id' =>
+                    Auth::id(),
+            ]);
+        });
+
+
+        return redirect()
+            ->route('possession-cases.index')
+            ->with(
+                'success',
+                'Possession case created successfully.'
+            );
+    }
+
+
+
+    // get propertytype for index
+    public function getPropertyTypes($projectId)
+    {
+        $propertyTypeIds = Plot::where(
+                'project_id',
+                $projectId
+            )
+            ->whereNotNull('property_type_id')
+            ->pluck('property_type_id')
+            ->unique();
+
+        return PropertyType::whereIn(
+                'id',
+                $propertyTypeIds
+            )
+            ->orderBy('name')
+            ->get([
+                'id',
+                'name',
+            ]);
+    }
+    // old index
+
+    // public function index(Request $request)
+    // {
+    //     $query = PossessionCase::with([
+    //         'plot.project',
+    //         'plot.block',
+    //         'plot.street',
+    //         'plot.size',
+    //         'plot.propertyType',
+    //         'owners',
+    //         'creator',
+    //         // test
+    //         'plot.latestAreavariation',
+    //     ])->latest();
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Search by possession number
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     if ($request->filled('possession_no')) {
+    //         $query->where(
+    //             'possession_no',
+    //             'like',
+    //             '%' . $request->possession_no . '%'
+    //         );
+    //     }
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Search by reference number
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     if ($request->filled('reference_no')) {
+    //         $query->where(
+    //             'reference_no',
+    //             'like',
+    //             '%' . $request->reference_no . '%'
+    //         );
+    //     }
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Filter by status
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     if ($request->filled('status')) {
+    //         $query->where(
+    //             'current_status',
+    //             $request->status
+    //         );
+    //     }
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Filter active/inactive
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     if ($request->filled('is_active')) {
+    //         $query->where(
+    //             'is_active',
+    //             $request->is_active
+    //         );
+    //     }
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Search by owner name
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     if ($request->filled('owner_name')) {
+    //         $query->whereHas('owners', function ($q) use ($request) {
+    //             $q->where(
+    //                 'owner_name',
+    //                 'like',
+    //                 '%' . $request->owner_name . '%'
+    //             );
+    //         });
+    //     }
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Search by CNIC
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     if ($request->filled('cnic')) {
+    //         $query->whereHas('owners', function ($q) use ($request) {
+    //             $q->where(
+    //                 'cnic',
+    //                 'like',
+    //                 '%' . $request->cnic . '%'
+    //             );
+    //         });
+    //     }
+
+    //     $possessionCases = $query
+    //         ->paginate(20)
+    //         ->withQueryString();
+
+    //     return view(
+    //         'possession_cases.index',
+    //         compact('possessionCases')
+    //     );
+    // }
+
+
 
     /**
      * Get blocks according to selected project and property type.
@@ -3585,112 +4330,6 @@ class PossessionCaseController extends Controller
         );
     }
     
-    // project + property type numbering -- har 1 alag alag numbering --Old
-    // /**
-    //  * Generate next base possession number.
-    //  *
-    //  * Numbering project + property type ke hisaab se hogi.
-    //  *
-    //  * Example:
-    //  * 250
-    //  * 251
-    //  * 252
-    //  */
-
-    // private function generateBasePossessionNumber(Plot $plot): string
-    // {
-    //     /*
-    //     |--------------------------------------------------------------------------
-    //     | Lock Project
-    //     |--------------------------------------------------------------------------
-    //     |
-    //     | Same Project + Property Type mein agar 2 different plots par
-    //     | simultaneously new possession create ho rahi ho,
-    //     | to dono ko same MAX number milne se prevent karta hai.
-    //     |
-    //     */
-    //     Project::whereKey($plot->project_id)
-    //         ->lockForUpdate()
-    //         ->firstOrFail();
-
-
-    //     /*
-    //     |--------------------------------------------------------------------------
-    //     | Find Existing Base Possession Numbers
-    //     |--------------------------------------------------------------------------
-    //     |
-    //     | withTrashed() is liye use ho raha hai taake soft-deleted
-    //     | possession cases ke numbers bhi dobara reuse na hon.
-    //     |
-    //     */
-    //     $query = PossessionCase::withTrashed()
-    //         ->whereNotNull('possession_no')
-    //         ->whereRaw(
-    //             "possession_no REGEXP '^[0-9]+$'"
-    //         )
-    //         ->whereHas('plot', function ($q) use ($plot) {
-
-    //             /*
-    //             | Soft-deleted plot ke possession records bhi
-    //             | numbering mein count honge.
-    //             */
-    //             $q->withTrashed()
-    //                 ->where(
-    //                     'project_id',
-    //                     $plot->project_id
-    //                 );
-
-    //             /*
-    //             | Property Type ke hisaab se separate numbering.
-    //             */
-    //             if ($plot->property_type_id !== null) {
-
-    //                 $q->where(
-    //                     'property_type_id',
-    //                     $plot->property_type_id
-    //                 );
-
-    //             } else {
-
-    //                 $q->whereNull(
-    //                     'property_type_id'
-    //                 );
-    //             }
-    //         });
-
-
-    //     /*
-    //     |--------------------------------------------------------------------------
-    //     | Get Highest Existing Base Number
-    //     |--------------------------------------------------------------------------
-    //     |
-    //     | Example:
-    //     | 1, 2, 3, 7, 9
-    //     |
-    //     | MAX = 9
-    //     | Next = 10
-    //     |
-    //     | Gaps reuse nahi honge.
-    //     |
-    //     */
-    //     $maxNumber = $query->max(
-    //         DB::raw(
-    //             'CAST(possession_no AS UNSIGNED)'
-    //         )
-    //     );
-
-
-    //     /*
-    //     |--------------------------------------------------------------------------
-    //     | Next Number
-    //     |--------------------------------------------------------------------------
-    //     */
-    //     return (string) (
-    //         ((int) $maxNumber) + 1
-    //     );
-    // }
-
-
     /**
      * Extract base possession number.
      *
@@ -3715,628 +4354,6 @@ class PossessionCaseController extends Controller
         );
     }
 
-
-
-    /**
-     * Store a new possession case.
-     */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-
-            /*
-            |--------------------------------------------------------------------------
-            | Plot
-            |--------------------------------------------------------------------------
-            */
-            'plot_id' => [
-                'required',
-                'integer',
-                Rule::exists('plots', 'id')
-                    ->where(function ($query) {
-                        $query->whereNull('deleted_at');
-                    }),
-            ],
-
-            /*
-            |--------------------------------------------------------------------------
-            | Reference Number
-            |--------------------------------------------------------------------------
-            */
-            'reference_no' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            /*
-            |--------------------------------------------------------------------------
-            | Approval
-            |--------------------------------------------------------------------------
-            */
-            'need_approval' => [
-                'nullable',
-                'boolean',
-            ],
-
-            /*
-            |--------------------------------------------------------------------------
-            | Current Holder
-            |--------------------------------------------------------------------------
-            */
-            'current_holder_type' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'current_holder_id' => [
-                'nullable',
-                'integer',
-            ],
-
-            'current_holder_name' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            /*
-            |--------------------------------------------------------------------------
-            | Received Date
-            |--------------------------------------------------------------------------
-            */
-            'received_at' => [
-                'nullable',
-                'date',
-            ],
-
-            /*
-            |--------------------------------------------------------------------------
-            | Remarks
-            |--------------------------------------------------------------------------
-            */
-            'remarks' => [
-                'nullable',
-                'string',
-            ],
-
-            /*
-            |--------------------------------------------------------------------------
-            | Owners
-            |--------------------------------------------------------------------------
-            */
-            'owners' => [
-                'required',
-                'array',
-                'min:1',
-            ],
-
-            'owners.*.owner_id' => [
-                'nullable',
-                'integer',
-                'exists:owners,id',
-            ],
-
-            'owners.*.owner_name' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-
-            'owners.*.relative_name' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'owners.*.cnic' => [
-                'required',
-                'string',
-                'max:30',
-            ],
-
-            'owners.*.address' => [
-                'nullable',
-                'string',
-            ],
-
-            'owners.*.contact_no' => [
-                'nullable',
-                'string',
-                'max:50',
-            ],
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Transaction
-        |--------------------------------------------------------------------------
-        */
-        DB::transaction(function () use ($validated) {
-
-            /*
-            |--------------------------------------------------------------------------
-            | Lock Plot
-            |--------------------------------------------------------------------------
-            |
-            | Same plot par agar simultaneously possession create ho
-            | to sequence control mein rahe.
-            |
-            */
-            $plot = Plot::whereKey(
-                $validated['plot_id']
-            )
-                ->lockForUpdate()
-                ->firstOrFail();
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Find Previous Possession
-            |--------------------------------------------------------------------------
-            */
-
-            // soft delete k sath wala code is mn soft delete ka possession no b reserve he ho ga resue nae hoga 
-            // yani previouse possession find krty howay softdelete kia howa possession b find hoga
-            $previousCase = PossessionCase::withTrashed()
-                ->where(
-                    'plot_id',
-                    $plot->id
-                )
-                ->orderBy(
-                    'possession_sequence',
-                    'desc'
-                )
-                ->lockForUpdate()
-                ->first();
-
-            $nextSequence =
-                // soft delete ko b sath mn find kryga awr uska number b dekhy ga
-                ((int) PossessionCase::withTrashed()
-                    ->where(
-                // soft delete ko find nae krny ka code 
-                // ((int) PossessionCase::where(
-                    'plot_id',
-                    $plot->id
-                )->max('possession_sequence')) + 1;
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Base Possession Number
-            |--------------------------------------------------------------------------
-            */
-            $basePossessionNo = null;
-
-            if ($previousCase) {
-                $basePossessionNo =
-                    $this->getBasePossessionNumber(
-                        $previousCase->possession_no
-                    );
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Agar previous case ka base number available nahi
-            |--------------------------------------------------------------------------
-            */
-            if (
-                !$basePossessionNo ||
-                !ctype_digit($basePossessionNo)
-            ) {
-                $basePossessionNo =
-                    $this->generateBasePossessionNumber(
-                        $plot
-                    );
-            }
-
-
-            if ($nextSequence === 1) {
-
-                $possessionNo =
-                    $basePossessionNo;
-
-            } else {
-
-                $possessionNo =
-                    $basePossessionNo
-                    . '-T'
-                    . ($nextSequence - 1);
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Create Possession Case
-            |--------------------------------------------------------------------------
-            */
-            $case = PossessionCase::create([
-
-                'plot_id' =>
-                    $plot->id,
-
-                'possession_no' =>
-                    $possessionNo,
-
-                'reference_no' =>
-                    $validated['reference_no']
-                    ?? null,
-
-                'possession_sequence' =>
-                    $nextSequence,
-
-                /*
-                | Initial creation always revision 0.
-                */
-                'revision_no' =>
-                    0,
-
-                'need_approval' =>
-                    $validated['need_approval']
-                    ?? false,
-
-                'current_status' =>
-                    'received',
-
-                'current_holder_type' =>
-                    $validated['current_holder_type']
-                    ?? null,
-
-                'current_holder_id' =>
-                    $validated['current_holder_id']
-                    ?? null,
-
-                'current_holder_name' =>
-                    $validated['current_holder_name']
-                    ?? null,
-
-                'received_at' =>
-                    $validated['received_at']
-                    ?? now()->toDateString(),
-
-                'remarks' =>
-                    $validated['remarks']
-                    ?? null,
-
-                'is_active' =>
-                    true,
-
-                'created_by' =>
-                    Auth::id(),
-            ]);
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Save Owners
-            |--------------------------------------------------------------------------
-            */
-            foreach (
-                $validated['owners']
-                as $ownerData
-            ) {
-
-                $owner = null;
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Owner ID
-                |--------------------------------------------------------------------------
-                */
-                if (!empty($ownerData['owner_id'])) {
-
-                    $owner = Owner::find(
-                        $ownerData['owner_id']
-                    );
-
-                    if (!$owner) {
-
-                        throw \Illuminate\Validation\ValidationException::withMessages([
-                            'owners' =>
-                                'Selected owner record was not found.',
-                        ]);
-                    }
-                }
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | CNIC
-                |--------------------------------------------------------------------------
-                */
-                $cnic = trim(
-                    $ownerData['cnic']
-                );
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Search owner by CNIC
-                |--------------------------------------------------------------------------
-                */
-                $ownerByCnic = Owner::where(
-                    'cnic',
-                    $cnic
-                )->first();
-                /*
-                |--------------------------------------------------------------------------
-                | Existing CNIC
-                |--------------------------------------------------------------------------
-                */
-                if ($ownerByCnic) {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Selected owner ID different hai
-                    |--------------------------------------------------------------------------
-                    */
-                    if (
-                        $owner &&
-                        $owner->id !== $ownerByCnic->id
-                    ) {
-
-                        throw \Illuminate\Validation\ValidationException::withMessages([
-                            'owners' =>
-                                "CNIC {$cnic} is already registered with another owner: {$ownerByCnic->owner_name}. Please verify the CNIC.",
-                        ]);
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Name safety check
-                    |--------------------------------------------------------------------------
-                    */
-                    $enteredName =
-                        trim(
-                            $ownerData['owner_name']
-                        );
-
-                    $existingName =
-                        trim(
-                            $ownerByCnic->owner_name
-                        );
-
-                    if (
-                        strcasecmp(
-                            $enteredName,
-                            $existingName
-                        ) !== 0
-                    ) {
-
-                        throw \Illuminate\Validation\ValidationException::withMessages([
-                            'owners' =>
-                                "This CNIC is already registered with the name '{$existingName}'. Please verify the CNIC and owner name.",
-                        ]);
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Update Existing Owner
-                    |--------------------------------------------------------------------------
-                    |
-                    | CNIC already exists, so this is the master owner record.
-                    | We update the latest owner information from the form.
-                    |
-                    */
-                    $ownerByCnic->update([
-
-                        'owner_name' =>
-                            $ownerData['owner_name'],
-
-                        'relative_name' =>
-                            $ownerData['relative_name']
-                            ?? null,
-
-                        /*
-                        | CNIC is the unique identity.
-                        | Keep the normalized/current CNIC.
-                        */
-                        'cnic' =>
-                            $cnic,
-
-                        'address' =>
-                            $ownerData['address']
-                            ?? null,
-
-                        'contact_no' =>
-                            $ownerData['contact_no']
-                            ?? null,
-                    ]);
-
-                    // | Use Updated Owner
-                    $owner =
-                        $ownerByCnic;
-                }
-
-                // if ($ownerByCnic) {
-
-                //     /*
-                //     | Selected owner ID different hai
-                //     */
-                //     if (
-                //         $owner &&
-                //         $owner->id !== $ownerByCnic->id
-                //     ) {
-
-                //         throw \Illuminate\Validation\ValidationException::withMessages([
-                //             'owners' =>
-                //                 "CNIC {$cnic} is already registered with another owner: {$ownerByCnic->owner_name}. Please verify the CNIC.",
-                //         ]);
-                //     }
-
-
-                //     /*
-                //     |--------------------------------------------------------------------------
-                //     | Name safety check
-                //     |--------------------------------------------------------------------------
-                //     */
-                //     $enteredName =
-                //         trim(
-                //             $ownerData['owner_name']
-                //         );
-
-                //     $existingName =
-                //         trim(
-                //             $ownerByCnic->owner_name
-                //         );
-
-                //     if (
-                //         strcasecmp(
-                //             $enteredName,
-                //             $existingName
-                //         ) !== 0
-                //     ) {
-
-                //         throw \Illuminate\Validation\ValidationException::withMessages([
-                //             'owners' =>
-                //                 "This CNIC is already registered with the name '{$existingName}'. Please verify the CNIC and owner name.",
-                //         ]);
-                //     }
-
-
-                //     /*
-                //     |--------------------------------------------------------------------------
-                //     | Existing owner use karein
-                //     |--------------------------------------------------------------------------
-                //     */
-                //     $owner =
-                //         $ownerByCnic;
-                // }
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | New CNIC
-                |--------------------------------------------------------------------------
-                */
-                else {
-
-                    if ($owner) {
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Existing selected owner
-                        |--------------------------------------------------------------------------
-                        */
-                        $owner->update([
-
-                            'owner_name' =>
-                                $ownerData['owner_name'],
-
-                            'relative_name' =>
-                                $ownerData['relative_name']
-                                ?? null,
-
-                            'cnic' =>
-                                $cnic,
-
-                            'address' =>
-                                $ownerData['address']
-                                ?? null,
-
-                            'contact_no' =>
-                                $ownerData['contact_no']
-                                ?? null,
-                        ]);
-
-                    } else {
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Completely new owner
-                        |--------------------------------------------------------------------------
-                        */
-                        $owner = Owner::create([
-
-                            'owner_name' =>
-                                $ownerData['owner_name'],
-
-                            'relative_name' =>
-                                $ownerData['relative_name']
-                                ?? null,
-
-                            'cnic' =>
-                                $cnic,
-
-                            'address' =>
-                                $ownerData['address']
-                                ?? null,
-
-                            'contact_no' =>
-                                $ownerData['contact_no']
-                                ?? null,
-                        ]);
-                    }
-                }
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Attach Owner
-                |--------------------------------------------------------------------------
-                */
-                $case->owners()->attach(
-                    $owner->id,
-                    [
-                        'address_snapshot' =>
-                            $ownerData['address']
-                            ?? $owner->address,
-                    ]
-                );
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | First History Record
-            |--------------------------------------------------------------------------
-            */
-            $case->histories()->create([
-
-                'plot_id' =>
-                    $case->plot_id,
-
-                'action' =>
-                    'Case Received',
-
-                'old_status' =>
-                    null,
-
-                'new_status' =>
-                    'received',
-
-                'old_holder' =>
-                    null,
-
-                'new_holder' =>
-                    $case->current_holder_name,
-
-                'handed_over_to' =>
-                    null,
-
-                'remarks' =>
-                    'Possession case created. Possession No: '
-                    . $case->possession_no,
-
-                'user_id' =>
-                    Auth::id(),
-            ]);
-        });
-
-
-        return redirect()
-            ->route('possession-cases.index')
-            ->with(
-                'success',
-                'Possession case created successfully.'
-            );
-    }
 
 
     /**

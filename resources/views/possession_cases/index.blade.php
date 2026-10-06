@@ -52,36 +52,169 @@
     @endif
 
 
+    
     {{-- Filters --}}
+    {{-- =========================================================
+    SEARCH / FILTER
+    ========================================================= --}}
     <div class="card shadow-sm mb-4">
 
         <div class="card-header bg-light">
-
             <strong>
                 🔎 Search / Filter
             </strong>
-
         </div>
 
         <div class="card-body">
 
             <form method="GET"
-                  action="{{ route('possession-cases.index') }}">
+                action="{{ route('possession-cases.index') }}"
+                id="possessionSearchForm">
 
+                {{-- =================================================
+                    ROW 1
+                ================================================== --}}
                 <div class="row g-3">
+
+                    {{-- Project --}}
+                    <div class="col-md-3">
+
+                        <label for="search_project" class="form-label">
+                            Project
+                        </label>
+
+                        <select name="project_id"
+                                id="search_project"
+                                class="form-select">
+
+                            <option value="">
+                                -- All Projects --
+                            </option>
+
+                            @foreach($projects as $project)
+
+                                <option value="{{ $project->id }}"
+                                    {{ request('project_id') == $project->id ? 'selected' : '' }}>
+
+                                    {{ $project->project_name }}
+
+                                </option>
+
+                            @endforeach
+
+                        </select>
+
+                    </div>
+
+
+                    {{-- Property Type --}}
+                    <div class="col-md-3">
+
+                        <label for="search_property_type" class="form-label">
+                            Property Type
+                        </label>
+
+                        <select name="property_type_id"
+                                id="search_property_type"
+                                class="form-select">
+
+                            <option value="">
+                                -- All Property Types --
+                            </option>
+
+                            @foreach($propertyTypes as $propertyType)
+
+                                <option value="{{ $propertyType->id }}"
+                                    {{ request('property_type_id') == $propertyType->id ? 'selected' : '' }}>
+
+                                    {{ $propertyType->name }}
+
+                                </option>
+
+                            @endforeach
+
+                        </select>
+
+                    </div>
+
+
+                    {{-- Block --}}
+                    <div class="col-md-3">
+
+                        <label for="search_block" class="form-label">
+                            Block
+                        </label>
+
+                        <select name="block_id"
+                                id="search_block"
+                                class="form-select">
+
+                            <option value="">
+                                -- All Blocks --
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    {{-- Street --}}
+                    <div class="col-md-3">
+
+                        <label for="search_street" class="form-label">
+                            Street
+                        </label>
+
+                        <select name="street_id"
+                                id="search_street"
+                                class="form-select">
+
+                            <option value="">
+                                -- All Streets --
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                {{-- =================================================
+                    ROW 2
+                ================================================== --}}
+                <div class="row g-3 mt-1">
+
+                    {{-- Plot Number --}}
+                    <div class="col-md-2">
+
+                        <label for="search_plot_number" class="form-label">
+                            Plot No
+                        </label>
+
+                        <input type="text"
+                            name="plot_number"
+                            id="search_plot_number"
+                            class="form-control"
+                            value="{{ request('plot_number') }}"
+                            placeholder="Plot No">
+
+                    </div>
+
 
                     {{-- Possession No --}}
                     <div class="col-md-2">
 
-                        <label class="form-label">
+                        <label for="search_possession_no" class="form-label">
                             Possession No
                         </label>
 
-                        <input type="number"
-                               name="possession_no"
-                               class="form-control"
-                               value="{{ request('possession_no') }}"
-                               placeholder="Possession No">
+                        <input type="text"
+                            name="possession_no"
+                            id="search_possession_no"
+                            class="form-control"
+                            value="{{ request('possession_no') }}"
+                            placeholder="e.g. 250-T1">
 
                     </div>
 
@@ -89,15 +222,16 @@
                     {{-- Owner --}}
                     <div class="col-md-3">
 
-                        <label class="form-label">
+                        <label for="search_owner_name" class="form-label">
                             Owner Name
                         </label>
 
                         <input type="text"
-                               name="owner_name"
-                               class="form-control"
-                               value="{{ request('owner_name') }}"
-                               placeholder="Owner name">
+                            name="owner_name"
+                            id="search_owner_name"
+                            class="form-control"
+                            value="{{ request('owner_name') }}"
+                            placeholder="Owner name">
 
                     </div>
 
@@ -105,15 +239,16 @@
                     {{-- CNIC --}}
                     <div class="col-md-2">
 
-                        <label class="form-label">
+                        <label for="search_cnic" class="form-label">
                             CNIC
                         </label>
 
                         <input type="text"
-                               name="cnic"
-                               class="form-control"
-                               value="{{ request('cnic') }}"
-                               placeholder="CNIC">
+                            name="cnic"
+                            id="search_cnic"
+                            class="form-control"
+                            value="{{ request('cnic') }}"
+                            placeholder="CNIC">
 
                     </div>
 
@@ -121,15 +256,16 @@
                     {{-- Status --}}
                     <div class="col-md-3">
 
-                        <label class="form-label">
+                        <label for="search_status" class="form-label">
                             Status
                         </label>
 
                         <select name="status"
+                                id="search_status"
                                 class="form-select">
 
                             <option value="">
-                                All Statuses
+                                -- All Statuses --
                             </option>
 
                             <option value="received"
@@ -167,13 +303,72 @@
                                 Completed
                             </option>
 
+                            <option value="cancelled"
+                                {{ request('status') == 'cancelled' ? 'selected' : '' }}>
+                                Cancelled
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                {{-- =================================================
+                    ROW 3
+                ================================================== --}}
+                <div class="row g-3 mt-1">
+
+                    {{-- Active --}}
+                    <div class="col-md-3">
+
+                        <label for="search_is_active" class="form-label">
+                            Active
+                        </label>
+
+                        <select name="is_active"
+                                id="search_is_active"
+                                class="form-select">
+
+                            <option value="">
+                                -- All --
+                            </option>
+
+                            <option value="1"
+                                {{ request('is_active') === '1' ? 'selected' : '' }}>
+                                Active
+                            </option>
+
+                            <option value="0"
+                                {{ request('is_active') === '0' ? 'selected' : '' }}>
+                                Inactive
+                            </option>
+
                         </select>
 
                     </div>
 
 
+                    {{-- Reference No --}}
+                    <div class="col-md-3">
+
+                        <label for="search_reference_no" class="form-label">
+                            Reference No
+                        </label>
+
+                        <input type="text"
+                            name="reference_no"
+                            id="search_reference_no"
+                            class="form-control"
+                            value="{{ request('reference_no') }}"
+                            placeholder="Reference No">
+
+                    </div>
+
+
                     {{-- Buttons --}}
-                    <div class="col-md-2 d-flex align-items-end gap-2">
+                    <div class="col-md-6 d-flex align-items-end gap-2">
 
                         <button type="submit"
                                 class="btn btn-primary">
@@ -183,9 +378,11 @@
 
                         </button>
 
-                        <a href="{{ route('possession-cases.index') }}"
-                           class="btn btn-secondary">
 
+                        <a href="{{ route('possession-cases.index') }}"
+                        class="btn btn-secondary">
+
+                            <i class="bi bi-arrow-counterclockwise"></i>
                             Reset
 
                         </a>
@@ -199,7 +396,6 @@
         </div>
 
     </div>
-
 
     {{-- Cases Table --}}
     <div class="card shadow-sm">
@@ -974,5 +1170,224 @@
     </div>
 
 </div>
+    {{-- =========================================================
+        SEARCH FILTER AJAX
+    ========================================================= --}}
+@endsection
+@section('scripts')
+<script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
+
+<script>
+
+$(document).ready(function () {
+
+    let selectedProjectId = "{{ request('project_id') }}";
+    let selectedPropertyTypeId = "{{ request('property_type_id') }}";
+    let selectedBlockId = "{{ request('block_id') }}";
+    let selectedStreetId = "{{ request('street_id') }}";
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load Blocks
+    |--------------------------------------------------------------------------
+    */
+    function loadSearchBlocks(projectId, propertyTypeId, selectedBlockId = '') {
+
+        let $block = $('#search_block');
+        let $street = $('#search_street');
+
+        $block.html('<option value="">-- All Blocks --</option>');
+        $street.html('<option value="">-- All Streets --</option>');
+
+        if (!projectId) {
+            return;
+        }
+
+        $block.html('<option value="">Loading...</option>');
+
+        $.ajax({
+            url: "{{ url('possession-cases/ajax/blocks') }}/" + projectId,
+            type: "GET",
+            data: {
+                property_type_id: propertyTypeId
+            },
+            success: function (blocks) {
+
+                $block.html(
+                    '<option value="">-- All Blocks --</option>'
+                );
+
+                $.each(blocks, function (index, block) {
+
+                    let selected =
+                        String(block.id) === String(selectedBlockId)
+                            ? 'selected'
+                            : '';
+
+                    $block.append(
+                        '<option value="' + block.id + '" ' + selected + '>' +
+                        block.block_name +
+                        '</option>'
+                    );
+
+                });
+
+                /*
+                |--------------------------------------------------------------------------
+                | If block was already selected, load streets
+                |--------------------------------------------------------------------------
+                */
+                if (selectedBlockId) {
+
+                    loadSearchStreets(
+                        selectedBlockId,
+                        selectedStreetId
+                    );
+
+                }
+
+            },
+            error: function () {
+
+                $block.html(
+                    '<option value="">-- Unable to load blocks --</option>'
+                );
+
+            }
+        });
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load Streets
+    |--------------------------------------------------------------------------
+    */
+    function loadSearchStreets(blockId, selectedStreetId = '') {
+
+        let $street = $('#search_street');
+
+        $street.html(
+            '<option value="">-- All Streets --</option>'
+        );
+
+        if (!blockId) {
+            return;
+        }
+
+        $street.html(
+            '<option value="">Loading...</option>'
+        );
+
+        $.ajax({
+            url: "{{ url('possession-cases/ajax/streets') }}/" + blockId,
+            type: "GET",
+            success: function (streets) {
+
+                $street.html(
+                    '<option value="">-- All Streets --</option>'
+                );
+
+                $.each(streets, function (index, street) {
+
+                    let selected =
+                        String(street.id) === String(selectedStreetId)
+                            ? 'selected'
+                            : '';
+
+                    $street.append(
+                        '<option value="' + street.id + '" ' + selected + '>' +
+                        street.street_name +
+                        '</option>'
+                    );
+
+                });
+
+            },
+            error: function () {
+
+                $street.html(
+                    '<option value="">-- Unable to load streets --</option>'
+                );
+
+            }
+        });
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Project Change
+    |--------------------------------------------------------------------------
+    */
+    $('#search_project').on('change', function () {
+
+        let projectId = $(this).val();
+        let propertyTypeId = $('#search_property_type').val();
+
+        loadSearchBlocks(
+            projectId,
+            propertyTypeId,
+            ''
+        );
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Property Type Change
+    |--------------------------------------------------------------------------
+    */
+    $('#search_property_type').on('change', function () {
+
+        let projectId = $('#search_project').val();
+        let propertyTypeId = $(this).val();
+
+        loadSearchBlocks(
+            projectId,
+            propertyTypeId,
+            ''
+        );
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Block Change
+    |--------------------------------------------------------------------------
+    */
+    $('#search_block').on('change', function () {
+
+        let blockId = $(this).val();
+
+        loadSearchStreets(
+            blockId,
+            ''
+        );
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load existing selections after page reload
+    |--------------------------------------------------------------------------
+    */
+    if (selectedProjectId) {
+
+        loadSearchBlocks(
+            selectedProjectId,
+            selectedPropertyTypeId,
+            selectedBlockId
+        );
+
+    }
+
+});
+
+</script>
 
 @endsection

@@ -18,8 +18,13 @@ class ActivityLogController extends Controller
 
     public function index(Request $request)
     {
-        $query = Activity::with('causer')
+        $query = Activity::with([
+            'causer',
+            'subject',
+        ])
             ->latest();
+        // $query = Activity::with('causer')
+        //     ->latest();
 
         // Filter by User
         if ($request->user_id) {
