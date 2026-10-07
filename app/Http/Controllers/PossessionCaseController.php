@@ -3490,6 +3490,13 @@ class PossessionCaseController extends Controller
             | Save Owners
             |--------------------------------------------------------------------------
             */
+            // new entry for log
+            $ownerChanges = [
+                'attached' => [],
+                'detached' => [],
+                'updated' => [],
+            ];
+
             foreach (
                 $validated['owners']
                 as $ownerData
@@ -3701,14 +3708,29 @@ class PossessionCaseController extends Controller
                 | Attach Owner
                 |--------------------------------------------------------------------------
                 */
+                // new for log system
                 $case->owners()->attach(
                     $owner->id,
                     [
-                        'address_snapshot' =>
-                            $ownerData['address']
-                            ?? $owner->address,
+                        'address_snapshot' => $ownerData['address'] ?? $owner->address,
                     ]
                 );
+
+                $ownerChanges['attached'][] = [
+                    'owner_id' => $owner->id,
+                    'owner_name' => $owner->owner_name,
+                    'relative_name' => $owner->relative_name,
+                    'cnic' => $owner->cnic,
+                ];
+                // old before log
+                // $case->owners()->attach(
+                //     $owner->id,
+                //     [
+                //         'address_snapshot' =>
+                //             $ownerData['address']
+                //             ?? $owner->address,
+                //     ]
+                // );
             }
 
 
@@ -4384,9 +4406,8 @@ class PossessionCaseController extends Controller
     /**
      * Show edit form.
      */
-    public function edit(
-        PossessionCase $possessionCase
-    ) {
+    public function edit(PossessionCase $possessionCase)
+    {
         $possessionCase->load([
             'plot.project',
             'plot.block',
@@ -4396,23 +4417,27 @@ class PossessionCaseController extends Controller
             'owners',
         ]);
 
-        $projects = Project::orderBy(
-                'project_name'
-            )
+        $projects = Project::orderBy('project_name')
             ->get([
                 'id',
                 'project_name',
+            ]);
+
+        $propertyTypes = PropertyType::orderBy('name')
+            ->get([
+                'id',
+                'name',
             ]);
 
         return view(
             'possession_cases.edit',
             compact(
                 'possessionCase',
-                'projects'
+                'projects',
+                'propertyTypes'
             )
         );
     }
-
 
     /**
      * Update possession case.
@@ -4530,6 +4555,7 @@ class PossessionCaseController extends Controller
         |
         | Possession number plot ke sath linked hai.
         | Is liye existing case ko doosre plot par move nahi karenge.
+        |
         */
         if (
             (int) $validated['plot_id']
@@ -4592,16 +4618,40 @@ class PossessionCaseController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Existing owners
+            | Existing Owners
+            |--------------------------------------------------------------------------
+            |
+            | Update se pehle jo owners attached thay unki complete information
+            | save kar rahe hain taake attach/detach identify ho sake.
+            |
+            */
+            $oldOwners = $possessionCase
+                ->owners()
+                ->get()
+                ->keyBy('id');
+
+            $oldOwnerIds = $oldOwners
+                ->keys()
+                ->toArray();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Owner Changes
             |--------------------------------------------------------------------------
             */
-            $oldOwnerIds =
-                $possessionCase
-                    ->owners()
-                    ->pluck('owners.id')
-                    ->toArray();
+            $ownerChanges = [
+                'attached' => [],
+                'detached' => [],
+                'updated' => [],
+            ];
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Existing owner IDs submitted from form
+            |--------------------------------------------------------------------------
+            */
             $existingOwnerIds = [];
 
 
@@ -4618,6 +4668,11 @@ class PossessionCaseController extends Controller
                 $owner = null;
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | Owner ID
+                |--------------------------------------------------------------------------
+                */
                 $ownerId =
                     $ownerData['owner_id']
                     ?? $ownerData['id']
@@ -4640,6 +4695,11 @@ class PossessionCaseController extends Controller
                 }
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | CNIC
+                |--------------------------------------------------------------------------
+                */
                 $cnic =
                     trim(
                         $ownerData['cnic']
@@ -4660,6 +4720,11 @@ class PossessionCaseController extends Controller
                 */
                 if ($ownerByCnic) {
 
+                    /*
+                    |--------------------------------------------------------------------------
+                    | CNIC belongs to another owner
+                    |--------------------------------------------------------------------------
+                    */
                     if (
                         $owner &&
                         $owner->id
@@ -4684,6 +4749,11 @@ class PossessionCaseController extends Controller
                         );
 
 
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Owner name must match CNIC
+                    |--------------------------------------------------------------------------
+                    */
                     if (
                         strcasecmp(
                             $enteredName,
@@ -4698,8 +4768,34 @@ class PossessionCaseController extends Controller
                     }
 
 
-                    $owner =
-                        $ownerByCnic;
+                    $owner = $ownerByCnic;
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Update existing owner master record
+                    |--------------------------------------------------------------------------
+                    |
+                    | Agar existing CNIC hai to bhi latest information update hogi.
+                    |
+                    */
+                    $owner->update([
+
+                        'owner_name' =>
+                            $ownerData['owner_name'],
+
+                        'relative_name' =>
+                            $ownerData['relative_name']
+                            ?? null,
+
+                        'address' =>
+                            $ownerData['address']
+                            ?? null,
+
+                        'contact_no' =>
+                            $ownerData['contact_no']
+                            ?? null,
+                    ]);
 
                 } else {
 
@@ -4760,15 +4856,25 @@ class PossessionCaseController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
+                | Check whether owner was already attached
+                |--------------------------------------------------------------------------
+                */
+                $wasAlreadyAttached =
+                    in_array(
+                        $owner->id,
+                        $oldOwnerIds
+                    );
+
+
+                /*
+                |--------------------------------------------------------------------------
                 | Attach / update pivot
                 |--------------------------------------------------------------------------
                 */
                 $possessionCase
                     ->owners()
                     ->syncWithoutDetaching([
-
                         $owner->id => [
-
                             'address_snapshot' =>
                                 $ownerData['address']
                                 ?? $owner->address,
@@ -4776,6 +4882,35 @@ class PossessionCaseController extends Controller
                     ]);
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | New owner attached to this possession
+                |--------------------------------------------------------------------------
+                */
+                if (!$wasAlreadyAttached) {
+
+                    $ownerChanges['attached'][] = [
+
+                        'owner_id' =>
+                            $owner->id,
+
+                        'owner_name' =>
+                            $owner->owner_name,
+
+                        'relative_name' =>
+                            $owner->relative_name,
+
+                        'cnic' =>
+                            $owner->cnic,
+                    ];
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Keep submitted owner ID
+                |--------------------------------------------------------------------------
+                */
                 $existingOwnerIds[] =
                     $owner->id;
             }
@@ -4783,8 +4918,12 @@ class PossessionCaseController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Detach removed owners
+            | Detach Removed Owners
             |--------------------------------------------------------------------------
+            |
+            | Jo owner pehle attached tha lekin form mein ab nahi aya,
+            | us owner ko detach karna hai.
+            |
             */
             $ownersToDetach =
                 array_diff(
@@ -4793,8 +4932,43 @@ class PossessionCaseController extends Controller
                 );
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Save Detached Owner Information For Activity Log
+            |--------------------------------------------------------------------------
+            */
             if (!empty($ownersToDetach)) {
 
+                foreach ($ownersToDetach as $ownerId) {
+
+                    $detachedOwner =
+                        $oldOwners->get($ownerId);
+
+                    if ($detachedOwner) {
+
+                        $ownerChanges['detached'][] = [
+
+                            'owner_id' =>
+                                $detachedOwner->id,
+
+                            'owner_name' =>
+                                $detachedOwner->owner_name,
+
+                            'relative_name' =>
+                                $detachedOwner->relative_name,
+
+                            'cnic' =>
+                                $detachedOwner->cnic,
+                        ];
+                    }
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Actually Detach Owners
+                |--------------------------------------------------------------------------
+                */
                 $possessionCase
                     ->owners()
                     ->detach(
@@ -4812,6 +4986,48 @@ class PossessionCaseController extends Controller
                 'updated_by' =>
                     Auth::id(),
             ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Owner Activity Log
+            |--------------------------------------------------------------------------
+            |
+            | Sirf tab log banega jab attach ya detach hua ho.
+            |
+            */
+            if (
+                !empty($ownerChanges['attached']) ||
+                !empty($ownerChanges['detached'])
+            ) {
+
+                activity()
+                    ->performedOn($possessionCase)
+                    ->causedBy(auth()->user())
+                    ->withProperties([
+
+                        'owner_changes' =>
+                            $ownerChanges,
+
+                        'possession_context' => [
+
+                            'possession_no' =>
+                                $possessionCase->possession_no,
+
+                            'plot_id' =>
+                                $possessionCase->plot_id,
+
+                            'plot_number' =>
+                                $possessionCase
+                                    ->plot
+                                    ?->plot_number,
+                        ],
+
+                    ])
+                    ->log(
+                        'Owner Relationship Updated'
+                    );
+            }
         });
 
 
@@ -4825,7 +5041,6 @@ class PossessionCaseController extends Controller
                 'Possession case updated successfully.'
             );
     }
-
 
     /**
      * Update case status.

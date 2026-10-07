@@ -13,7 +13,7 @@
             </h3>
 
             <p class="text-muted mb-0">
-                Case #{{ $possessionCase->case_no }}
+                Possession #{{ $possessionCase->possession_no }}
             </p>
         </div>
 
@@ -74,7 +74,10 @@
             <div class="card-body">
 
 
-                {{-- PLOT SEARCH --}}
+                {{-- =========================
+                     PLOT SEARCH
+                ========================== --}}
+
                 <div class="border rounded p-3 mb-4 bg-light">
 
                     <h6 class="fw-bold mb-3">
@@ -86,7 +89,7 @@
 
 
                         {{-- Project --}}
-                        <div class="col-md-4">
+                        <div class="col-md-3">
 
                             <label class="form-label fw-bold">
                                 Project
@@ -103,7 +106,10 @@
                                 @foreach($projects as $project)
 
                                     <option value="{{ $project->id }}"
-                                        {{ old('project_id', $possessionCase->plot?->project_id) == $project->id ? 'selected' : '' }}>
+                                        {{ old(
+                                            'project_id',
+                                            $possessionCase->plot?->project_id
+                                        ) == $project->id ? 'selected' : '' }}>
 
                                         {{ $project->project_name }}
 
@@ -117,7 +123,7 @@
 
 
                         {{-- Block --}}
-                        <div class="col-md-4">
+                        <div class="col-md-3">
 
                             <label class="form-label fw-bold">
                                 Block
@@ -137,8 +143,42 @@
                         </div>
 
 
+                        {{-- Property Type --}}
+                        <div class="col-md-3">
+
+                            <label class="form-label fw-bold">
+                                Property Type
+                                <span class="text-danger">*</span>
+                            </label>
+
+                            <select id="property_type_id"
+                                    class="form-select">
+
+                                <option value="">
+                                    -- Select Property Type --
+                                </option>
+
+                                @foreach($propertyTypes as $propertyType)
+
+                                    <option value="{{ $propertyType->id }}"
+                                        {{ old(
+                                            'property_type_id',
+                                            $possessionCase->plot?->property_type_id
+                                        ) == $propertyType->id ? 'selected' : '' }}>
+
+                                        {{ $propertyType->name }}
+
+                                    </option>
+
+                                @endforeach
+
+                            </select>
+
+                        </div>
+
+
                         {{-- Street --}}
-                        <div class="col-md-4">
+                        <div class="col-md-3">
 
                             <label class="form-label fw-bold">
                                 Street
@@ -155,7 +195,7 @@
                             </select>
 
                             <small class="text-muted">
-                                Optional. Leave blank to search all streets.
+                                Optional.
                             </small>
 
                         </div>
@@ -172,7 +212,10 @@
                             <input type="text"
                                    id="plot_number"
                                    class="form-control"
-                                   value="{{ old('plot_number', $possessionCase->plot?->plot_number) }}"
+                                   value="{{ old(
+                                       'plot_number',
+                                       $possessionCase->plot?->plot_number
+                                   ) }}"
                                    placeholder="Enter plot number">
 
                         </div>
@@ -218,7 +261,10 @@
                 </div>
 
 
-                {{-- SELECTED PLOT --}}
+                {{-- =========================
+                     SELECTED PLOT
+                ========================== --}}
+
                 <div id="selectedPlotBox"
                      class="alert alert-success">
 
@@ -250,6 +296,11 @@
 
                                         Block:
                                         {{ $possessionCase->plot->block?->block_name ?? 'N/A' }}
+
+                                        <br>
+
+                                        Property Type:
+                                        {{ $possessionCase->plot->propertyType?->name ?? 'N/A' }}
 
                                         <br>
 
@@ -291,27 +342,48 @@
                 <input type="hidden"
                        name="plot_id"
                        id="plot_id"
-                       value="{{ old('plot_id', $possessionCase->plot_id) }}">
+                       value="{{ old(
+                           'plot_id',
+                           $possessionCase->plot_id
+                       ) }}">
 
 
-                {{-- Other Case Information --}}
+                {{-- =========================
+                     OTHER CASE INFORMATION
+                ========================== --}}
+
                 <div class="row">
 
 
-                    {{-- Case Number --}}
+                    {{-- Possession Number --}}
                     <div class="col-md-3 mb-3">
 
                         <label class="form-label fw-bold">
-                            Case No
-                            <span class="text-danger">*</span>
+                            Possession No
                         </label>
 
-                        <input type="number"
-                               name="case_no"
+                        <input type="text"
                                class="form-control"
-                               value="{{ old('case_no', $possessionCase->case_no) }}"
-                               min="1"
-                               required>
+                               value="{{ $possessionCase->possession_no }}"
+                               readonly>
+
+                    </div>
+
+
+                    {{-- Reference Number --}}
+                    <div class="col-md-3 mb-3">
+
+                        <label class="form-label fw-bold">
+                            Reference No
+                        </label>
+
+                        <input type="text"
+                               name="reference_no"
+                               class="form-control"
+                               value="{{ old(
+                                   'reference_no',
+                                   $possessionCase->reference_no
+                               ) }}">
 
                     </div>
 
@@ -370,9 +442,14 @@
 
                     </div>
 
+                </div>
+
+
+                <div class="row">
+
 
                     {{-- Current Holder ID --}}
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-4 mb-3">
 
                         <label class="form-label fw-bold">
                             Current Holder ID
@@ -387,11 +464,6 @@
                                ) }}">
 
                     </div>
-
-                </div>
-
-
-                <div class="row">
 
 
                     {{-- Current Holder Name --}}
@@ -422,10 +494,11 @@
                         <input type="date"
                                name="received_at"
                                class="form-control"
-
                                value="{{ old(
                                    'received_at',
-                                   optional($possessionCase->received_at)->format('Y-m-d')
+                                   optional(
+                                       $possessionCase->received_at
+                                   )->format('Y-m-d')
                                ) }}">
 
                     </div>
@@ -443,7 +516,10 @@
                     <textarea name="remarks"
                               class="form-control"
                               rows="3"
-                              placeholder="Enter remarks">{{ old('remarks', $possessionCase->remarks) }}</textarea>
+                              placeholder="Enter remarks">{{ old(
+                                  'remarks',
+                                  $possessionCase->remarks
+                              ) }}</textarea>
 
                 </div>
 
@@ -534,6 +610,29 @@
                                            ) }}"
 
                                            required>
+
+                                </div>
+
+
+                                {{-- Relative Name --}}
+                                <div class="col-md-6 mb-3">
+
+                                    <label class="form-label fw-bold">
+
+                                        F/H/W Name
+
+                                    </label>
+
+                                    <input type="text"
+                                           name="owners[{{ $index }}][relative_name]"
+                                           class="form-control"
+
+                                           value="{{ old(
+                                               'owners.' . $index . '.relative_name',
+                                               $owner->relative_name
+                                           ) }}"
+
+                                           placeholder="Father / Husband / Wife Name">
 
                                 </div>
 
@@ -677,6 +776,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const blockSelect =
         document.getElementById('block_id');
 
+    const propertyTypeSelect =
+        document.getElementById('property_type_id');
+
     const streetSelect =
         document.getElementById('street_id');
 
@@ -714,12 +816,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const oldStreetId =
         @json($possessionCase->plot?->street_id);
 
+    const oldPropertyTypeId =
+        @json($possessionCase->plot?->property_type_id);
+
 
     function updateSearchButton() {
 
         if (
             projectSelect.value &&
             blockSelect.value &&
+            propertyTypeSelect.value &&
             plotNumberInput.value.trim() !== ''
         ) {
 
@@ -733,6 +839,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load Blocks
+    |--------------------------------------------------------------------------
+    */
 
     function loadBlocks(
         projectId,
@@ -760,6 +872,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<option value="">-- Select Block --</option>';
 
             return;
+
         }
 
 
@@ -843,6 +956,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Load Streets
+    |--------------------------------------------------------------------------
+    */
+
     function loadStreets(
         blockId,
         selectedStreetId = null
@@ -862,6 +981,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<option value="">-- All Streets --</option>';
 
             return;
+
         }
 
 
@@ -935,6 +1055,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Project Change
+    |--------------------------------------------------------------------------
+    */
+
     projectSelect.addEventListener(
         'change',
         function () {
@@ -948,9 +1074,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
             loadBlocks(this.value);
 
+            updateSearchButton();
+
         }
     );
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Block Change
+    |--------------------------------------------------------------------------
+    */
 
     blockSelect.addEventListener(
         'change',
@@ -971,6 +1105,37 @@ document.addEventListener('DOMContentLoaded', function () {
     );
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Property Type Change
+    |--------------------------------------------------------------------------
+    */
+
+    propertyTypeSelect.addEventListener(
+        'change',
+        function () {
+
+            plotIdInput.value = '';
+
+            selectedPlotBox.style.display =
+                'none';
+
+            plotResults.innerHTML = '';
+
+            plotSearchMessage.innerHTML = '';
+
+            updateSearchButton();
+
+        }
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Street Change
+    |--------------------------------------------------------------------------
+    */
+
     streetSelect.addEventListener(
         'change',
         function () {
@@ -985,6 +1150,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     );
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Plot Number Change
+    |--------------------------------------------------------------------------
+    */
 
     plotNumberInput.addEventListener(
         'input',
@@ -1001,16 +1172,24 @@ document.addEventListener('DOMContentLoaded', function () {
     );
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Search Plot
+    |--------------------------------------------------------------------------
+    */
+
     searchPlotBtn.addEventListener(
         'click',
         function () {
-
 
             const projectId =
                 projectSelect.value;
 
             const blockId =
                 blockSelect.value;
+
+            const propertyTypeId =
+                propertyTypeSelect.value;
 
             const streetId =
                 streetSelect.value;
@@ -1022,6 +1201,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (
                 !projectId ||
                 !blockId ||
+                !propertyTypeId ||
                 !plotNumber
             ) {
 
@@ -1029,8 +1209,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     <div class="alert alert-warning mb-0">
 
-                        Please select Project, Block
-                        and enter Plot No.
+                        Please select Project, Block,
+                        Property Type and enter Plot No.
 
                     </div>
 
@@ -1058,6 +1238,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     project_id: projectId,
 
                     block_id: blockId,
+
+                    property_type_id: propertyTypeId,
 
                     plot_number: plotNumber
 
@@ -1213,6 +1395,20 @@ document.addEventListener('DOMContentLoaded', function () {
                                         <div>
 
                                             <strong>
+                                                Property Type:
+                                            </strong>
+
+                                            ${escapeHtml(
+                                                plot.property_type_name ??
+                                                'N/A'
+                                            )}
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <strong>
                                                 Street:
                                             </strong>
 
@@ -1295,6 +1491,12 @@ document.addEventListener('DOMContentLoaded', function () {
     );
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Select Plot
+    |--------------------------------------------------------------------------
+    */
+
     plotResults.addEventListener(
         'click',
         function (event) {
@@ -1373,6 +1575,12 @@ document.addEventListener('DOMContentLoaded', function () {
     );
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Change Plot
+    |--------------------------------------------------------------------------
+    */
+
     changePlotBtn.addEventListener(
         'click',
         function () {
@@ -1396,7 +1604,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Load current plot hierarchy
+    | Load Current Plot Hierarchy
     |--------------------------------------------------------------------------
     */
 
@@ -1409,6 +1617,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     }
 
+
+    updateSearchButton();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Escape HTML
+    |--------------------------------------------------------------------------
+    */
 
     function escapeHtml(value) {
 
@@ -1485,7 +1702,6 @@ document.addEventListener('DOMContentLoaded', function () {
         'click',
         function () {
 
-
             const row =
                 document.createElement('div');
 
@@ -1516,6 +1732,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="row">
 
 
+                    {{-- Owner Name --}}
+
                     <div class="col-md-6 mb-3">
 
                         <label class="form-label fw-bold">
@@ -1533,6 +1751,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     </div>
 
+
+                    {{-- Relative Name --}}
+
+                    <div class="col-md-6 mb-3">
+
+                        <label class="form-label fw-bold">
+
+                            F/H/W Name
+
+                        </label>
+
+
+                        <input type="text"
+                               name="owners[${ownerIndex}][relative_name]"
+                               class="form-control"
+                               placeholder="Father / Husband / Wife Name">
+
+                    </div>
+
+
+                    {{-- CNIC --}}
 
                     <div class="col-md-6 mb-3">
 
@@ -1568,6 +1807,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
 
 
+                    {{-- Contact --}}
+
                     <div class="col-md-6 mb-3">
 
                         <label class="form-label fw-bold">
@@ -1581,6 +1822,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     </div>
 
+
+                    {{-- Address --}}
 
                     <div class="col-md-12 mb-3">
 
@@ -1617,7 +1860,6 @@ document.addEventListener('DOMContentLoaded', function () {
     container.addEventListener(
         'click',
         function (event) {
-
 
             if (
                 !event.target.classList.contains(
@@ -1664,7 +1906,6 @@ document.addEventListener('DOMContentLoaded', function () {
     container.addEventListener(
         'click',
         function (event) {
-
 
             if (
                 !event.target.classList.contains(
@@ -1739,7 +1980,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             .then(data => {
 
-
                 if (data.found) {
 
                     const owner =
@@ -1752,9 +1992,15 @@ document.addEventListener('DOMContentLoaded', function () {
                         );
 
 
+                    const relativeNameInput =
+                        row.querySelector(
+                            '[name$="[relative_name]"]'
+                        );
+
+
                     /*
                     |--------------------------------------------------------------------------
-                    | Existing owner found
+                    | Existing Owner Found
                     |--------------------------------------------------------------------------
                     */
 
@@ -1781,6 +2027,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     nameInput.value =
                         owner.owner_name ?? '';
+
+
+                    relativeNameInput.value =
+                        owner.relative_name ?? '';
 
 
                     row.querySelector(
@@ -1847,7 +2097,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         '✓ Existing owner found. Details loaded.';
 
                 }
-
 
                 else {
 

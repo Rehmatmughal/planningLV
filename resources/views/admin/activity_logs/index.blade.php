@@ -4,293 +4,465 @@
 
 <div class="container">
 
+    <h2 class="mb-4">Activity Logs</h2>
 
-<h2 class="mb-4">Activity Logs</h2>
 
-<!-- Filters -->
-<form method="GET" class="row mb-4">
+    <!-- Filters -->
+    <form method="GET" class="row mb-4">
 
-    <div class="col-md-3">
-        <label>User</label>
-        <select name="user_id" class="form-control">
-            <option value="">All Users</option>
+        <div class="col-md-3">
+            <label>User</label>
 
-            @foreach($users as $user)
-                <option value="{{ $user->id }}"
-                    {{ request('user_id') == $user->id ? 'selected' : '' }}>
-                    {{ $user->name }}
+            <select name="user_id" class="form-control">
+
+                <option value="">
+                    All Users
                 </option>
-            @endforeach
-        </select>
-    </div>
 
-    <div class="col-md-3">
-        <label>Model</label>
-        <select name="model" class="form-control">
-            <option value="">All Models</option>
+                @foreach($users as $user)
 
-            @foreach($models as $model)
-                <option value="{{ $model }}"
-                    {{ request('model') == $model ? 'selected' : '' }}>
-                    {{ class_basename($model) }}
+                    <option
+                        value="{{ $user->id }}"
+                        {{ request('user_id') == $user->id ? 'selected' : '' }}
+                    >
+                        {{ $user->name }}
+                    </option>
+
+                @endforeach
+
+            </select>
+        </div>
+
+
+        <div class="col-md-3">
+
+            <label>Model</label>
+
+            <select name="model" class="form-control">
+
+                <option value="">
+                    All Models
                 </option>
-            @endforeach
-        </select>
-    </div>
 
-    <div class="col-md-2">
-        <label>From</label>
-        <input
-            type="date"
-            name="from_date"
-            value="{{ request('from_date') }}"
-            class="form-control"
-        >
-    </div>
+                @foreach($models as $model)
 
-    <div class="col-md-2">
-        <label>To</label>
-        <input
-            type="date"
-            name="to_date"
-            value="{{ request('to_date') }}"
-            class="form-control"
-        >
-    </div>
+                    <option
+                        value="{{ $model }}"
+                        {{ request('model') == $model ? 'selected' : '' }}
+                    >
+                        {{ class_basename($model) }}
+                    </option>
 
-    <div class="col-md-2 d-flex align-items-end">
-        <button class="btn btn-primary w-100">
-            Filter
-        </button>
-    </div>
+                @endforeach
 
-</form>
-
-
-<!-- Activity Logs -->
-<div class="card">
-    <div class="card-body">
-
-        <a href="{{ route('activity.logs.export') }}"
-           class="btn btn-success mb-3">
-            Export to Excel
-        </a>
-
-
-        <div class="table-responsive">
-
-            <table class="table table-bordered table-striped align-middle">
-
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>User</th>
-                        <th>Action</th>
-                        <th>Model</th>
-                        <th>Description</th>
-                        <th>Changes</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-
-                    @forelse($activities as $activity)
-
-                        <tr>
-
-                            <!-- Date -->
-                            <td>
-                                {{ $activity->created_at->format('d-m-Y H:i') }}
-                            </td>
-
-
-                            <!-- User -->
-                            <td>
-                                {{ optional($activity->causer)->name ?? 'System' }}
-                            </td>
-
-
-                            <!-- Event -->
-                            <td>
-                                {{ ucfirst($activity->event ?? 'Activity') }}
-                            </td>
-
-
-                            <!-- Model -->
-                            <td>
-                                {{ class_basename($activity->subject_type ?? '') }}
-                            </td>
-
-
-                            <!-- Description -->
-                            <td>
-                                {{ $activity->description }}
-                            </td>
-
-
-                            <!-- Changes -->
-                            <td>
-
-                                @php
-                                    $properties = $activity->properties ?? collect();
-
-                                    $attributes = $properties['attributes'] ?? [];
-                                    $old = $properties['old'] ?? [];
-
-                                    $plotContext = $properties['plot_context'] ?? null;
-                                @endphp
-
-
-                                {{-- Plot readable context --}}
-                                @if($plotContext)
-
-                                    <div class="small">
-
-                                        @if(!empty($plotContext['project']))
-                                            <strong>Project:</strong>
-                                            {{ $plotContext['project'] }}
-                                            <br>
-                                        @endif
-
-                                        @if(!empty($plotContext['block']))
-                                            <strong>Block:</strong>
-                                            {{ $plotContext['block'] }}
-                                            <br>
-                                        @endif
-
-                                        @if(!empty($plotContext['street']))
-                                            <strong>Street:</strong>
-                                            {{ $plotContext['street'] }}
-                                            <br>
-                                        @endif
-
-                                        @if(!empty($plotContext['plot_number']))
-                                            <strong>Plot:</strong>
-                                            {{ $plotContext['plot_number'] }}
-                                            <br>
-                                        @endif
-
-                                        @if(!empty($plotContext['property_type']))
-                                            <strong>Type:</strong>
-                                            {{ $plotContext['property_type'] }}
-                                            <br>
-                                        @endif
-
-                                        @if(!empty($plotContext['size']))
-                                            <strong>Size:</strong>
-                                            {{ $plotContext['size'] }}
-                                        @endif
-
-                                    </div>
-
-                                    @if(count($attributes) > 0)
-                                        <hr class="my-1">
-                                    @endif
-
-                                @endif
-
-
-                                {{-- Changed fields --}}
-                                @if(count($attributes) > 0)
-
-                                    @foreach($attributes as $key => $value)
-
-                                        @php
-                                            $oldValue = $old[$key] ?? null;
-
-                                            /*
-                                             * Relations / IDs ko Changes column mein
-                                             * raw ID ki jagah readable naam dikhane ki
-                                             * koshish.
-                                             */
-                                            $displayKey = ucwords(
-                                                str_replace(
-                                                    ['_', '-'],
-                                                    ' ',
-                                                    $key
-                                                )
-                                            );
-                                        @endphp
-
-
-                                        <div class="small mb-1">
-
-                                            <strong>
-                                                {{ $displayKey }}:
-                                            </strong>
-
-                                            @if(array_key_exists($key, $old))
-
-                                                <span class="text-danger">
-                                                    {{ is_array($oldValue) ? json_encode($oldValue) : ($oldValue === null || $oldValue === '' ? '—' : $oldValue) }}
-                                                </span>
-
-                                                <span class="mx-1">
-                                                    →
-                                                </span>
-
-                                            @endif
-
-                                            <span class="text-success">
-                                                {{ is_array($value) ? json_encode($value) : ($value === null || $value === '' ? '—' : $value) }}
-                                            </span>
-
-                                        </div>
-
-                                    @endforeach
-
-                                @elseif(!$plotContext)
-
-                                    <span class="text-muted">
-                                        No changes
-                                    </span>
-
-                                @endif
-
-                            </td>
-
-
-                            <!-- View -->
-                            <td>
-
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-info"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#logModal{{ $activity->id }}"
-                                >
-                                    View
-                                </button>
-
-                            </td>
-
-                        </tr>
-
-                    @empty
-
-                        <tr>
-                            <td colspan="7" class="text-center">
-                                No activity found
-                            </td>
-                        </tr>
-
-                    @endforelse
-
-                </tbody>
-
-            </table>
+            </select>
 
         </div>
 
 
-        {{ $activities->withQueryString()->links() }}
+        <div class="col-md-2">
+
+            <label>From</label>
+
+            <input
+                type="date"
+                name="from_date"
+                value="{{ request('from_date') }}"
+                class="form-control"
+            >
+
+        </div>
+
+
+        <div class="col-md-2">
+
+            <label>To</label>
+
+            <input
+                type="date"
+                name="to_date"
+                value="{{ request('to_date') }}"
+                class="form-control"
+            >
+
+        </div>
+
+
+        <div class="col-md-2 d-flex align-items-end">
+
+            <button class="btn btn-primary w-100">
+                Filter
+            </button>
+
+        </div>
+
+    </form>
+
+
+    <!-- Activity Logs -->
+    <div class="card">
+
+        <div class="card-body">
+
+
+            <a
+                href="{{ route('activity.logs.export') }}"
+                class="btn btn-success mb-3"
+            >
+                Export to Excel
+            </a>
+
+
+            <div class="table-responsive">
+
+                <table class="table table-bordered table-striped align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Date</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Model</th>
+                            <th>Description</th>
+                            <th>Changes</th>
+                            <th>Action</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @forelse($activities as $activity)
+
+                            @php
+
+                                $properties =
+                                    $activity->properties ?? collect();
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Normal model changes
+                                |--------------------------------------------------------------------------
+                                */
+
+                                $attributes =
+                                    $properties['attributes'] ?? [];
+
+                                $old =
+                                    $properties['old'] ?? [];
+
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Plot context
+                                |--------------------------------------------------------------------------
+                                */
+
+                                $plotContext =
+                                    $properties['plot_context']
+                                    ?? null;
+
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Possession context
+                                |--------------------------------------------------------------------------
+                                */
+
+                                $possessionContext =
+                                    $properties['possession_context']
+                                    ?? null;
+
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Owner changes
+                                |--------------------------------------------------------------------------
+                                */
+
+                                $ownerChanges =
+                                    $properties['owner_changes']
+                                    ?? null;
+
+                            @endphp
+
+
+                            <tr>
+
+
+                                <!-- Date -->
+                                <td>
+                                    {{ $activity->created_at->format('d-m-Y H:i') }}
+                                </td>
+
+
+                                <!-- User -->
+                                <td>
+                                    {{ optional($activity->causer)->name ?? 'System' }}
+                                </td>
+
+
+                                <!-- Event -->
+                                <td>
+                                    {{ ucfirst($activity->event ?? 'Activity') }}
+                                </td>
+
+
+                                <!-- Model -->
+                                <td>
+                                    {{ class_basename($activity->subject_type ?? '') }}
+                                </td>
+
+
+                                <!-- Description -->
+                                <td>
+                                    {{ $activity->description }}
+                                </td>
+
+
+                                <!-- Changes -->
+                                <td>
+
+                                    {{-- ================================================= --}}
+                                    {{-- Owner Changes                                     --}}
+                                    {{-- ================================================= --}}
+
+                                    @if(
+                                        $ownerChanges &&
+                                        (
+                                            !empty($ownerChanges['attached']) ||
+                                            !empty($ownerChanges['detached'])
+                                        )
+                                    )
+
+                                        {{-- Attached --}}
+                                        @if(!empty($ownerChanges['attached']))
+
+                                            <div class="small mb-2">
+
+                                                <strong class="text-success">
+                                                    Attached:
+                                                </strong>
+
+                                                @foreach(
+                                                    $ownerChanges['attached']
+                                                    as $owner
+                                                )
+
+                                                    <div class="mt-1">
+
+                                                        <span class="text-success">
+                                                            {{ $owner['owner_name'] ?? 'Unknown Owner' }}
+                                                        </span>
+
+                                                        @if(!empty($owner['cnic']))
+
+                                                            <small class="text-muted">
+                                                                — {{ $owner['cnic'] }}
+                                                            </small>
+
+                                                        @endif
+
+                                                    </div>
+
+                                                @endforeach
+
+                                            </div>
+
+                                        @endif
+
+
+                                        {{-- Detached --}}
+                                        @if(!empty($ownerChanges['detached']))
+
+                                            <div class="small">
+
+                                                <strong class="text-danger">
+                                                    Detached:
+                                                </strong>
+
+                                                @foreach(
+                                                    $ownerChanges['detached']
+                                                    as $owner
+                                                )
+
+                                                    <div class="mt-1">
+
+                                                        <span class="text-danger">
+                                                            {{ $owner['owner_name'] ?? 'Unknown Owner' }}
+                                                        </span>
+
+                                                        @if(!empty($owner['cnic']))
+
+                                                            <small class="text-muted">
+                                                                — {{ $owner['cnic'] }}
+                                                            </small>
+
+                                                        @endif
+
+                                                    </div>
+
+                                                @endforeach
+
+                                            </div>
+
+                                        @endif
+
+
+                                    {{-- ================================================= --}}
+                                    {{-- Normal Model Changes                            --}}
+                                    {{-- ================================================= --}}
+
+                                    @elseif(count($attributes) > 0)
+
+
+                                        @foreach($attributes as $key => $value)
+
+                                            @php
+
+                                                $oldValue =
+                                                    $old[$key]
+                                                    ?? null;
+
+                                                $displayKey =
+                                                    ucwords(
+                                                        str_replace(
+                                                            ['_', '-'],
+                                                            ' ',
+                                                            $key
+                                                        )
+                                                    );
+
+                                            @endphp
+
+
+                                            <div class="small mb-1">
+
+                                                <strong>
+                                                    {{ $displayKey }}:
+                                                </strong>
+
+
+                                                @if(array_key_exists($key, $old))
+
+                                                    <span class="text-danger">
+
+                                                        {{
+                                                            is_array($oldValue)
+                                                            ? json_encode($oldValue)
+                                                            : (
+                                                                $oldValue === null ||
+                                                                $oldValue === ''
+                                                                ? '—'
+                                                                : $oldValue
+                                                            )
+                                                        }}
+
+                                                    </span>
+
+
+                                                    <span class="mx-1">
+                                                        →
+                                                    </span>
+
+                                                @endif
+
+
+                                                <span class="text-success">
+
+                                                    {{
+                                                        is_array($value)
+                                                        ? json_encode($value)
+                                                        : (
+                                                            $value === null ||
+                                                            $value === ''
+                                                            ? '—'
+                                                            : $value
+                                                        )
+                                                    }}
+
+                                                </span>
+
+                                            </div>
+
+                                        @endforeach
+
+
+                                    {{-- ================================================= --}}
+                                    {{-- Context only                                     --}}
+                                    {{-- ================================================= --}}
+
+                                    @elseif($plotContext || $possessionContext)
+
+
+                                        <span class="text-muted">
+                                            Context only
+                                        </span>
+
+
+                                    @else
+
+                                        <span class="text-muted">
+                                            No changes
+                                        </span>
+
+                                    @endif
+
+                                </td>
+
+
+                                <!-- View -->
+                                <td>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-info"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#logModal{{ $activity->id }}"
+                                    >
+                                        View
+                                    </button>
+
+                                </td>
+
+                            </tr>
+
+
+                        @empty
+
+                            <tr>
+
+                                <td
+                                    colspan="7"
+                                    class="text-center"
+                                >
+                                    No activity found
+                                </td>
+
+                            </tr>
+
+                        @endforelse
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            {{ $activities->withQueryString()->links() }}
+
+        </div>
 
     </div>
+
 </div>
 
 
-</div>
 
 {{-- ========================================================= --}}
 {{-- MODALS                                                     --}}
@@ -300,269 +472,721 @@
 @foreach($activities as $activity)
 
 
-@php
-    $properties = $activity->properties ?? collect();
+    @php
 
-    $attributes = $properties['attributes'] ?? [];
-    $old = $properties['old'] ?? [];
-
-    $plotContext = $properties['plot_context'] ?? null;
-@endphp
+        $properties =
+            $activity->properties ?? collect();
 
 
-<div
-    class="modal fade"
-    id="logModal{{ $activity->id }}"
-    tabindex="-1"
-    aria-labelledby="logModalLabel{{ $activity->id }}"
-    aria-hidden="true"
->
+        /*
+        |--------------------------------------------------------------------------
+        | Normal changes
+        |--------------------------------------------------------------------------
+        */
 
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        $attributes =
+            $properties['attributes'] ?? [];
 
-        <div class="modal-content">
-
-
-            <!-- Header -->
-            <div class="modal-header">
-
-                <h5
-                    class="modal-title"
-                    id="logModalLabel{{ $activity->id }}"
-                >
-                    Activity Detail
-                </h5>
-
-                <button
-                    type="button"
-                    class="btn-close"
-                    data-bs-dismiss="modal"
-                    aria-label="Close"
-                ></button>
-
-            </div>
+        $old =
+            $properties['old'] ?? [];
 
 
-            <!-- Body -->
-            <div class="modal-body">
+        /*
+        |--------------------------------------------------------------------------
+        | Plot context
+        |--------------------------------------------------------------------------
+        */
+
+        $plotContext =
+            $properties['plot_context']
+            ?? null;
 
 
-                <!-- Basic Information -->
-                <h6 class="mb-3">
-                    Activity Information
-                </h6>
+        /*
+        |--------------------------------------------------------------------------
+        | Possession context
+        |--------------------------------------------------------------------------
+        */
 
-                <div class="row mb-3">
+        $possessionContext =
+            $properties['possession_context']
+            ?? null;
 
-                    <div class="col-md-6">
-                        <strong>User:</strong>
-                        {{ optional($activity->causer)->name ?? 'System' }}
-                    </div>
 
-                    <div class="col-md-6">
-                        <strong>Date/Time:</strong>
-                        {{ $activity->created_at->format('d-m-Y H:i:s') }}
-                    </div>
+        /*
+        |--------------------------------------------------------------------------
+        | Owner changes
+        |--------------------------------------------------------------------------
+        */
 
-                    <div class="col-md-6 mt-2">
-                        <strong>Action:</strong>
-                        {{ ucfirst($activity->event ?? 'Activity') }}
-                    </div>
+        $ownerChanges =
+            $properties['owner_changes']
+            ?? null;
 
-                    <div class="col-md-6 mt-2">
-                        <strong>Model:</strong>
-                        {{ class_basename($activity->subject_type ?? '') }}
-                    </div>
+    @endphp
+
+
+
+    <div
+        class="modal fade"
+        id="logModal{{ $activity->id }}"
+        tabindex="-1"
+        aria-labelledby="logModalLabel{{ $activity->id }}"
+        aria-hidden="true"
+    >
+
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+
+            <div class="modal-content">
+
+
+                <!-- Header -->
+                <div class="modal-header">
+
+                    <h5
+                        class="modal-title"
+                        id="logModalLabel{{ $activity->id }}"
+                    >
+                        Activity Detail
+                    </h5>
+
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"
+                    ></button>
 
                 </div>
 
 
-                <div class="mb-3">
-                    <strong>Description:</strong>
-
-                    <div class="mt-1">
-                        {{ $activity->description }}
-                    </div>
-                </div>
+                <!-- Body -->
+                <div class="modal-body">
 
 
-                <hr>
-
-
-                <!-- Plot Information -->
-                @if($plotContext)
+                    <!-- Basic Information -->
 
                     <h6 class="mb-3">
-                        Plot Information
+                        Activity Information
                     </h6>
 
-                    <div class="row">
 
-                        @if(!empty($plotContext['project']))
-                            <div class="col-md-6 mb-2">
-                                <strong>Project:</strong>
-                                {{ $plotContext['project'] }}
-                            </div>
-                        @endif
+                    <div class="row mb-3">
 
-                        @if(!empty($plotContext['block']))
-                            <div class="col-md-6 mb-2">
-                                <strong>Block:</strong>
-                                {{ $plotContext['block'] }}
-                            </div>
-                        @endif
 
-                        @if(!empty($plotContext['street']))
-                            <div class="col-md-6 mb-2">
-                                <strong>Street:</strong>
-                                {{ $plotContext['street'] }}
-                            </div>
-                        @endif
+                        <div class="col-md-6">
 
-                        @if(!empty($plotContext['plot_number']))
-                            <div class="col-md-6 mb-2">
-                                <strong>Plot Number:</strong>
-                                {{ $plotContext['plot_number'] }}
-                            </div>
-                        @endif
+                            <strong>
+                                User:
+                            </strong>
 
-                        @if(!empty($plotContext['property_type']))
-                            <div class="col-md-6 mb-2">
-                                <strong>Property Type:</strong>
-                                {{ $plotContext['property_type'] }}
-                            </div>
-                        @endif
+                            {{ optional($activity->causer)->name ?? 'System' }}
 
-                        @if(!empty($plotContext['size']))
-                            <div class="col-md-6 mb-2">
-                                <strong>Size:</strong>
-                                {{ $plotContext['size'] }}
-                            </div>
-                        @endif
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <strong>
+                                Date/Time:
+                            </strong>
+
+                            {{ $activity->created_at->format('d-m-Y H:i:s') }}
+
+                        </div>
+
+
+                        <div class="col-md-6 mt-2">
+
+                            <strong>
+                                Action:
+                            </strong>
+
+                            {{ ucfirst($activity->event ?? 'Activity') }}
+
+                        </div>
+
+
+                        <div class="col-md-6 mt-2">
+
+                            <strong>
+                                Model:
+                            </strong>
+
+                            {{ class_basename($activity->subject_type ?? '') }}
+
+                        </div>
 
                     </div>
+
+
+                    <div class="mb-3">
+
+                        <strong>
+                            Description:
+                        </strong>
+
+                        <div class="mt-1">
+                            {{ $activity->description }}
+                        </div>
+
+                    </div>
+
 
                     <hr>
 
-                @endif
 
 
-                <!-- Changed Fields -->
-                <h6 class="mb-3">
-                    Changes
-                </h6>
+                    {{-- ================================================= --}}
+                    {{-- Possession Information                           --}}
+                    {{-- ================================================= --}}
+
+                    @if($possessionContext)
+
+                        <h6 class="mb-3">
+                            Possession Information
+                        </h6>
 
 
-                @if(count($attributes) > 0)
+                        <div class="row">
 
-                    <div class="table-responsive">
+                            @if(!empty($possessionContext['possession_no']))
 
-                        <table class="table table-bordered table-sm">
+                                <div class="col-md-6 mb-2">
 
-                            <thead>
-                                <tr>
-                                    <th>Field</th>
-                                    <th>Old Value</th>
-                                    <th>New Value</th>
-                                </tr>
-                            </thead>
+                                    <strong>
+                                        Possession No:
+                                    </strong>
 
-                            <tbody>
+                                    {{ $possessionContext['possession_no'] }}
 
-                                @foreach($attributes as $key => $value)
+                                </div>
 
-                                    @php
-                                        $oldValue = $old[$key] ?? null;
+                            @endif
 
-                                        $displayKey = ucwords(
-                                            str_replace(
-                                                ['_', '-'],
-                                                ' ',
-                                                $key
+
+                            @if(!empty($possessionContext['reference_no']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Reference No:
+                                    </strong>
+
+                                    {{ $possessionContext['reference_no'] }}
+
+                                </div>
+
+                            @endif
+
+
+                            @if(!empty($possessionContext['plot_number']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Plot Number:
+                                    </strong>
+
+                                    {{ $possessionContext['plot_number'] }}
+
+                                </div>
+
+                            @endif
+
+                        </div>
+
+
+                        <hr>
+
+                    @endif
+
+
+
+                    {{-- ================================================= --}}
+                    {{-- Plot Information                                --}}
+                    {{-- ================================================= --}}
+
+                    @if($plotContext)
+
+                        <h6 class="mb-3">
+                            Plot Information
+                        </h6>
+
+
+                        <div class="row">
+
+
+                            @if(!empty($plotContext['project']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Project:
+                                    </strong>
+
+                                    {{ $plotContext['project'] }}
+
+                                </div>
+
+                            @endif
+
+
+                            @if(!empty($plotContext['block']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Block:
+                                    </strong>
+
+                                    {{ $plotContext['block'] }}
+
+                                </div>
+
+                            @endif
+
+
+                            @if(!empty($plotContext['street']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Street:
+                                    </strong>
+
+                                    {{ $plotContext['street'] }}
+
+                                </div>
+
+                            @endif
+
+
+                            @if(!empty($plotContext['plot_number']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Plot Number:
+                                    </strong>
+
+                                    {{ $plotContext['plot_number'] }}
+
+                                </div>
+
+                            @endif
+
+
+                            @if(!empty($plotContext['property_type']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Property Type:
+                                    </strong>
+
+                                    {{ $plotContext['property_type'] }}
+
+                                </div>
+
+                            @endif
+
+
+                            @if(!empty($plotContext['size']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Size:
+                                    </strong>
+
+                                    {{ $plotContext['size'] }}
+
+                                </div>
+
+                            @endif
+
+                        </div>
+
+
+                        <hr>
+
+                    @endif
+
+
+
+                    {{-- ================================================= --}}
+                    {{-- Owner Changes                                    --}}
+                    {{-- ================================================= --}}
+
+                    @if(
+                        $ownerChanges &&
+                        (
+                            !empty($ownerChanges['attached']) ||
+                            !empty($ownerChanges['detached'])
+                        )
+                    )
+
+                        <h6 class="mb-3">
+                            Owner Changes
+                        </h6>
+
+
+                        {{-- Attached Owners --}}
+
+                        @if(!empty($ownerChanges['attached']))
+
+                            <div class="mb-4">
+
+                                <h6 class="text-success">
+                                    Attached Owners
+                                </h6>
+
+
+                                <div class="table-responsive">
+
+                                    <table class="table table-bordered table-sm">
+
+                                        <thead>
+
+                                            <tr>
+
+                                                <th>
+                                                    Owner
+                                                </th>
+
+                                                <th>
+                                                    Relative Name
+                                                </th>
+
+                                                <th>
+                                                    CNIC
+                                                </th>
+
+                                            </tr>
+
+                                        </thead>
+
+
+                                        <tbody>
+
+                                            @foreach(
+                                                $ownerChanges['attached']
+                                                as $owner
                                             )
-                                        );
-                                    @endphp
+
+                                                <tr>
+
+                                                    <td>
+                                                        {{ $owner['owner_name'] ?? '—' }}
+                                                    </td>
+
+                                                    <td>
+                                                        {{ $owner['relative_name'] ?? '—' }}
+                                                    </td>
+
+                                                    <td>
+                                                        {{ $owner['cnic'] ?? '—' }}
+                                                    </td>
+
+                                                </tr>
+
+                                            @endforeach
+
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+
+                            </div>
+
+                        @endif
+
+
+
+                        {{-- Detached Owners --}}
+
+                        @if(!empty($ownerChanges['detached']))
+
+                            <div class="mb-4">
+
+                                <h6 class="text-danger">
+                                    Detached Owners
+                                </h6>
+
+
+                                <div class="table-responsive">
+
+                                    <table class="table table-bordered table-sm">
+
+                                        <thead>
+
+                                            <tr>
+
+                                                <th>
+                                                    Owner
+                                                </th>
+
+                                                <th>
+                                                    Relative Name
+                                                </th>
+
+                                                <th>
+                                                    CNIC
+                                                </th>
+
+                                            </tr>
+
+                                        </thead>
+
+
+                                        <tbody>
+
+                                            @foreach(
+                                                $ownerChanges['detached']
+                                                as $owner
+                                            )
+
+                                                <tr>
+
+                                                    <td>
+                                                        {{ $owner['owner_name'] ?? '—' }}
+                                                    </td>
+
+                                                    <td>
+                                                        {{ $owner['relative_name'] ?? '—' }}
+                                                    </td>
+
+                                                    <td>
+                                                        {{ $owner['cnic'] ?? '—' }}
+                                                    </td>
+
+                                                </tr>
+
+                                            @endforeach
+
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+
+                            </div>
+
+                        @endif
+
+                    @endif
+
+
+
+                    {{-- ================================================= --}}
+                    {{-- Normal Changed Fields                            --}}
+                    {{-- ================================================= --}}
+
+                    @if(count($attributes) > 0)
+
+                        <h6 class="mb-3">
+                            Changed Fields
+                        </h6>
+
+
+                        <div class="table-responsive">
+
+                            <table class="table table-bordered table-sm">
+
+                                <thead>
 
                                     <tr>
 
-                                        <td>
-                                            <strong>
-                                                {{ $displayKey }}
-                                            </strong>
-                                        </td>
+                                        <th>
+                                            Field
+                                        </th>
 
-                                        <td class="text-danger">
+                                        <th>
+                                            Old Value
+                                        </th>
 
-                                            @if(array_key_exists($key, $old))
-                                                {{ is_array($oldValue) ? json_encode($oldValue, JSON_PRETTY_PRINT) : ($oldValue === null || $oldValue === '' ? '—' : $oldValue) }}
-                                            @else
-                                                —
-                                            @endif
-
-                                        </td>
-
-                                        <td class="text-success">
-
-                                            {{ is_array($value) ? json_encode($value, JSON_PRETTY_PRINT) : ($value === null || $value === '' ? '—' : $value) }}
-
-                                        </td>
+                                        <th>
+                                            New Value
+                                        </th>
 
                                     </tr>
 
-                                @endforeach
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                @else
-
-                    <div class="text-muted">
-                        No field changes recorded.
-                    </div>
-
-                @endif
+                                </thead>
 
 
-                <hr>
+                                <tbody>
+
+                                    @foreach(
+                                        $attributes
+                                        as $key => $value
+                                    )
+
+                                        @php
+
+                                            $oldValue =
+                                                $old[$key]
+                                                ?? null;
+
+                                            $displayKey =
+                                                ucwords(
+                                                    str_replace(
+                                                        ['_', '-'],
+                                                        ' ',
+                                                        $key
+                                                    )
+                                                );
+
+                                        @endphp
 
 
-                <!-- Raw Properties -->
-                <details>
+                                        <tr>
 
-                    <summary class="fw-bold">
-                        Raw Properties
-                    </summary>
+                                            <td>
 
-                    <pre class="bg-light p-3 mt-2"
-                         style="white-space: pre-wrap; word-break: break-word;">{{ json_encode($properties, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                                                <strong>
+                                                    {{ $displayKey }}
+                                                </strong>
 
-                </details>
+                                            </td>
 
 
-            </div>
+                                            <td class="text-danger">
+
+                                                @if(
+                                                    array_key_exists(
+                                                        $key,
+                                                        $old
+                                                    )
+                                                )
+
+                                                    {{
+                                                        is_array($oldValue)
+                                                        ? json_encode(
+                                                            $oldValue,
+                                                            JSON_PRETTY_PRINT
+                                                        )
+                                                        : (
+                                                            $oldValue === null ||
+                                                            $oldValue === ''
+                                                            ? '—'
+                                                            : $oldValue
+                                                        )
+                                                    }}
+
+                                                @else
+
+                                                    —
+
+                                                @endif
+
+                                            </td>
 
 
-            <!-- Footer -->
-            <div class="modal-footer">
+                                            <td class="text-success">
 
-                <button
-                    type="button"
-                    class="btn btn-secondary"
-                    data-bs-dismiss="modal"
-                >
-                    Close
-                </button>
+                                                {{
+                                                    is_array($value)
+                                                    ? json_encode(
+                                                        $value,
+                                                        JSON_PRETTY_PRINT
+                                                    )
+                                                    : (
+                                                        $value === null ||
+                                                        $value === ''
+                                                        ? '—'
+                                                        : $value
+                                                    )
+                                                }}
+
+                                            </td>
+
+                                        </tr>
+
+                                    @endforeach
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    @endif
+
+
+
+                    {{-- ================================================= --}}
+                    {{-- No Changes                                      --}}
+                    {{-- ================================================= --}}
+
+                    @if(
+                        count($attributes) === 0 &&
+                        (
+                            !$ownerChanges ||
+                            (
+                                empty($ownerChanges['attached']) &&
+                                empty($ownerChanges['detached'])
+                            )
+                        )
+                    )
+
+                        <div class="text-muted mb-3">
+
+                            No field changes recorded.
+
+                        </div>
+
+                    @endif
+
+
+
+                    <hr>
+
+
+                    <!-- Raw Properties -->
+
+                    <details>
+
+                        <summary class="fw-bold">
+                            Raw Properties
+                        </summary>
+
+
+                        <pre
+                            class="bg-light p-3 mt-2"
+                            style="white-space: pre-wrap; word-break: break-word;"
+                        >{{ json_encode(
+                            $properties,
+                            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+                        ) }}</pre>
+
+                    </details>
+
+
+                </div>
+
+
+                <!-- Footer -->
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal"
+                    >
+                        Close
+                    </button>
+
+                </div>
 
             </div>
 
         </div>
 
     </div>
-
-</div>
 
 
 @endforeach
