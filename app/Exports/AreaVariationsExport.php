@@ -23,13 +23,55 @@ class AreaVariationsExport implements FromCollection, WithHeadings
             'plot.category',
             'plot.developmentStatus',
             'plot.possessionStatus',
-        ])->get();
+        ])
+        ->orderBy('plot_id')
+        ->orderByDesc('measured_date')
+        ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Find latest Area Variation for each plot
+        |--------------------------------------------------------------------------
+        */
+
+        $latestVariationIds = $variations
+            ->groupBy('plot_id')
+            ->map(function ($plotVariations) {
+
+                return $plotVariations
+                    ->sortByDesc('measured_date')
+                    ->first()
+                    ?->id;
+
+            })
+            ->filter()
+            ->values()
+            ->flip();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Users
+        |--------------------------------------------------------------------------
+        */
 
         $users = User::pluck('name', 'id');
 
-        return $variations->map(function ($variation) use ($users) {
+        /*
+        |--------------------------------------------------------------------------
+        | Prepare Excel rows
+        |--------------------------------------------------------------------------
+        */
+
+        return $variations->map(function ($variation) use (
+            $users,
+            $latestVariationIds
+        ) {
 
             $plot = $variation->plot;
+
+            $isLatest = isset(
+                $latestVariationIds[$variation->id]
+            );
 
             return [
 
@@ -53,6 +95,9 @@ class AreaVariationsExport implements FromCollection, WithHeadings
 
                 'Size' =>
                     $plot?->size?->title,
+
+                'Variation Status' =>
+                    $isLatest ? 'Latest' : 'Previous',
 
                 'Previous Area' =>
                     $variation->previous_area,
@@ -120,6 +165,7 @@ class AreaVariationsExport implements FromCollection, WithHeadings
             'Property Type',
             'Category',
             'Size',
+            'Variation Status',
             'Previous Area',
             'Measured Area',
             'Area Difference',
