@@ -7,14 +7,10 @@
     <h2 class="mb-4">Activity Logs</h2>
 
 
-    {{-- =========================================================
-        FILTERS
-    ========================================================== --}}
-
+    <!-- Filters -->
     <form method="GET" class="row mb-4">
 
         <div class="col-md-3">
-
             <label>User</label>
 
             <select name="user_id" class="form-control">
@@ -35,7 +31,6 @@
                 @endforeach
 
             </select>
-
         </div>
 
 
@@ -104,14 +99,11 @@
     </form>
 
 
-
-    {{-- =========================================================
-        ACTIVITY LOGS
-    ========================================================== --}}
-
+    <!-- Activity Logs -->
     <div class="card">
 
         <div class="card-body">
+
 
             <a
                 href="{{ route('activity.logs.export') }}"
@@ -150,7 +142,6 @@
 
                                 $properties =
                                     $activity->properties ?? collect();
-
 
                                 /*
                                 |--------------------------------------------------------------------------
@@ -197,345 +188,48 @@
                                     $properties['owner_changes']
                                     ?? null;
 
-                                $ownerContext =
-                                    $properties['owner_context']
-                                    ?? null;
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Area variation context
-                                |--------------------------------------------------------------------------
-                                */                                    
-                                $areaVariationContext =
-                                    $properties['area_variation_context']
-                                    ?? null;
-
                             @endphp
 
-                            {{-- =====================================================
-                                ONE ACTIVITY = ONE ROW
-                            ====================================================== --}}
 
                             <tr>
 
-                                {{-- Date --}}
 
+                                <!-- Date -->
                                 <td>
                                     {{ $activity->created_at->format('d-m-Y H:i') }}
                                 </td>
 
 
-                                {{-- User --}}
-
+                                <!-- User -->
                                 <td>
                                     {{ optional($activity->causer)->name ?? 'System' }}
                                 </td>
 
 
-                                {{-- Action --}}
-
+                                <!-- Event -->
                                 <td>
                                     {{ ucfirst($activity->event ?? 'Activity') }}
                                 </td>
 
 
-                                {{-- Model --}}
-
+                                <!-- Model -->
                                 <td>
                                     {{ class_basename($activity->subject_type ?? '') }}
                                 </td>
 
 
-                                {{-- Description --}}
-
+                                <!-- Description -->
                                 <td>
                                     {{ $activity->description }}
                                 </td>
 
 
-                                {{-- =================================================
-                                    CHANGES
-                                ================================================== --}}
-
+                                <!-- Changes -->
                                 <td>
 
-                                    {{-- =========================================
-                                        POSSESSION CONTEXT
-                                    ========================================== --}}
-
-                                    @if($possessionContext)
-
-                                        <div class="small mb-2">
-
-                                            @if(!empty($possessionContext['possession_no']))
-
-                                                <div>
-                                                    <strong>
-                                                        Possession:
-                                                    </strong>
-
-                                                    {{ $possessionContext['possession_no'] }}
-                                                </div>
-
-                                            @endif
-
-
-                                            @if(!empty($possessionContext['project_name']))
-
-                                                <div>
-                                                    <strong>
-                                                        Project:
-                                                    </strong>
-
-                                                    {{ $possessionContext['project_name'] }}
-                                                </div>
-
-                                            @endif
-
-
-                                            @if(!empty($possessionContext['block_name']))
-
-                                                <div>
-                                                    <strong>
-                                                        Block:
-                                                    </strong>
-
-                                                    {{ $possessionContext['block_name'] }}
-                                                </div>
-
-                                            @endif
-
-
-                                            @if(!empty($possessionContext['street_name']))
-
-                                                <div>
-                                                    <strong>
-                                                        Street:
-                                                    </strong>
-
-                                                    {{ $possessionContext['street_name'] }}
-                                                </div>
-
-                                            @endif
-
-
-                                            @if(!empty($possessionContext['plot_number']))
-
-                                                <div>
-                                                    <strong>
-                                                        Plot:
-                                                    </strong>
-
-                                                    {{ $possessionContext['plot_number'] }}
-                                                </div>
-
-                                            @endif
-
-
-                                            @if(!empty($possessionContext['property_type_name']))
-
-                                                <div>
-                                                    <strong>
-                                                        Property Type:
-                                                    </strong>
-
-                                                    {{ $possessionContext['property_type_name'] }}
-                                                </div>
-
-                                            @endif
-
-
-                                            @if(!empty($possessionContext['size_title']))
-
-                                                <div>
-                                                    <strong>
-                                                        Size:
-                                                    </strong>
-
-                                                    {{ $possessionContext['size_title'] }}
-                                                </div>
-
-                                            @endif
-
-                                        </div>
-
-                                    @endif
-                                    {{-- =========================================
-                                        PLOT CONTEXT
-                                    ========================================== --}}
-                                    @if($plotContext)
-
-                                        <div class="small mb-2">
-
-                                            @if(!empty($plotContext['project_name']))
-
-                                                <div>
-                                                    <strong>
-                                                        Project:
-                                                    </strong>
-
-                                                    {{ $plotContext['project_name'] }}
-                                                </div>
-
-                                            @endif
-
-
-                                            @if(!empty($plotContext['block_name']))
-
-                                                <div>
-                                                    <strong>
-                                                        Block:
-                                                    </strong>
-
-                                                    {{ $plotContext['block_name'] }}
-                                                </div>
-
-                                            @endif
-
-
-                                            @if(!empty($plotContext['street_name']))
-
-                                                <div>
-                                                    <strong>
-                                                        Street:
-                                                    </strong>
-
-                                                    {{ $plotContext['street_name'] }}
-                                                </div>
-
-                                            @endif
-
-
-                                            @if(!empty($plotContext['plot_number']))
-
-                                                <div>
-                                                    <strong>
-                                                        Plot:
-                                                    </strong>
-
-                                                    {{ $plotContext['plot_number'] }}
-                                                </div>
-
-                                            @endif
-
-
-                                            @if(!empty($plotContext['property_type_name']))
-
-                                                <div>
-                                                    <strong>
-                                                        Property Type:
-                                                    </strong>
-
-                                                    {{ $plotContext['property_type_name'] }}
-                                                </div>
-
-                                            @endif
-
-
-                                            @if(!empty($plotContext['size_title']))
-
-                                                <div>
-                                                    <strong>
-                                                        Size:
-                                                    </strong>
-
-                                                    {{ $plotContext['size_title'] }}
-                                                </div>
-
-                                            @endif
-
-                                        </div>
-
-                                    @endif
-
-                                    {{-- =========================================
-                                        AREA VARIATION CONTEXT
-                                    ========================================== --}}
-
-                                    @if($areaVariationContext)
-
-                                        <div class="small mb-2">
-
-                                            @if(!empty($areaVariationContext['project_name']))
-                                                <div>
-                                                    <strong>Project:</strong>
-                                                    {{ $areaVariationContext['project_name'] }}
-                                                </div>
-                                            @endif
-
-                                            @if(!empty($areaVariationContext['block_name']))
-                                                <div>
-                                                    <strong>Block:</strong>
-                                                    {{ $areaVariationContext['block_name'] }}
-                                                </div>
-                                            @endif
-
-                                            @if(!empty($areaVariationContext['street_name']))
-                                                <div>
-                                                    <strong>Street:</strong>
-                                                    {{ $areaVariationContext['street_name'] }}
-                                                </div>
-                                            @endif
-
-                                            @if(!empty($areaVariationContext['plot_number']))
-                                                <div>
-                                                    <strong>Plot:</strong>
-                                                    {{ $areaVariationContext['plot_number'] }}
-                                                </div>
-                                            @endif
-
-                                            @if(!empty($areaVariationContext['property_type_name']))
-                                                <div>
-                                                    <strong>Property Type:</strong>
-                                                    {{ $areaVariationContext['property_type_name'] }}
-                                                </div>
-                                            @endif
-
-                                            @if(!empty($areaVariationContext['size_title']))
-                                                <div>
-                                                    <strong>Size:</strong>
-                                                    {{ $areaVariationContext['size_title'] }}
-                                                </div>
-                                            @endif
-
-                                        </div>
-
-                                    @endif
-
-                                    {{-- =========================================
-                                        OWNER CONTEXT
-                                    ========================================== --}}
-
-                                    @if($ownerContext)
-
-                                        <div class="small mb-2">
-
-                                            @if(!empty($ownerContext['owner_name']))
-                                                <div>
-                                                    <strong>Owner:</strong>
-                                                    {{ $ownerContext['owner_name'] }}
-                                                </div>
-                                            @endif
-
-                                            @if(!empty($ownerContext['relative_name']))
-                                                <div>
-                                                    <strong>Relative Name:</strong>
-                                                    {{ $ownerContext['relative_name'] }}
-                                                </div>
-                                            @endif
-
-                                            @if(!empty($ownerContext['cnic']))
-                                                <div>
-                                                    <strong>CNIC:</strong>
-                                                    {{ $ownerContext['cnic'] }}
-                                                </div>
-                                            @endif
-
-                                        </div>
-
-                                    @endif
-                                    {{-- =========================================
-                                        OWNER CHANGES
-                                    ========================================== --}}
+                                    {{-- ================================================= --}}
+                                    {{-- Owner Changes                                     --}}
+                                    {{-- ================================================= --}}
 
                                     @if(
                                         $ownerChanges &&
@@ -545,9 +239,7 @@
                                         )
                                     )
 
-
                                         {{-- Attached --}}
-
                                         @if(!empty($ownerChanges['attached']))
 
                                             <div class="small mb-2">
@@ -555,7 +247,6 @@
                                                 <strong class="text-success">
                                                     Attached:
                                                 </strong>
-
 
                                                 @foreach(
                                                     $ownerChanges['attached']
@@ -565,18 +256,13 @@
                                                     <div class="mt-1">
 
                                                         <span class="text-success">
-
                                                             {{ $owner['owner_name'] ?? 'Unknown Owner' }}
-
                                                         </span>
-
 
                                                         @if(!empty($owner['cnic']))
 
                                                             <small class="text-muted">
-
                                                                 — {{ $owner['cnic'] }}
-
                                                             </small>
 
                                                         @endif
@@ -590,9 +276,7 @@
                                         @endif
 
 
-
                                         {{-- Detached --}}
-
                                         @if(!empty($ownerChanges['detached']))
 
                                             <div class="small">
@@ -600,7 +284,6 @@
                                                 <strong class="text-danger">
                                                     Detached:
                                                 </strong>
-
 
                                                 @foreach(
                                                     $ownerChanges['detached']
@@ -610,18 +293,13 @@
                                                     <div class="mt-1">
 
                                                         <span class="text-danger">
-
                                                             {{ $owner['owner_name'] ?? 'Unknown Owner' }}
-
                                                         </span>
-
 
                                                         @if(!empty($owner['cnic']))
 
                                                             <small class="text-muted">
-
                                                                 — {{ $owner['cnic'] }}
-
                                                             </small>
 
                                                         @endif
@@ -635,9 +313,9 @@
                                         @endif
 
 
-                                    {{-- =========================================
-                                        NORMAL MODEL CHANGES
-                                    ========================================== --}}
+                                    {{-- ================================================= --}}
+                                    {{-- Normal Model Changes                            --}}
+                                    {{-- ================================================= --}}
 
                                     @elseif(count($attributes) > 0)
 
@@ -714,9 +392,12 @@
                                         @endforeach
 
 
-                                    {{-- Context only --}}
+                                    {{-- ================================================= --}}
+                                    {{-- Context only                                     --}}
+                                    {{-- ================================================= --}}
 
                                     @elseif($plotContext || $possessionContext)
+
 
                                         <span class="text-muted">
                                             Context only
@@ -734,11 +415,7 @@
                                 </td>
 
 
-
-                                {{-- =================================================
-                                    VIEW
-                                ================================================== --}}
-
+                                <!-- View -->
                                 <td>
 
                                     <button
@@ -787,12 +464,13 @@
 
 
 
-{{-- =========================================================
-    MODALS
-    IMPORTANT: MODALS TABLE KE BAHAR HAIN
-========================================================= --}}
+{{-- ========================================================= --}}
+{{-- MODALS                                                     --}}
+{{-- IMPORTANT: Modals table ke bahar hain                       --}}
+{{-- ========================================================= --}}
 
 @foreach($activities as $activity)
+
 
     @php
 
@@ -834,6 +512,7 @@
             $properties['possession_context']
             ?? null;
 
+
         /*
         |--------------------------------------------------------------------------
         | Owner changes
@@ -844,21 +523,9 @@
             $properties['owner_changes']
             ?? null;
 
-        $ownerContext =
-            $properties['owner_context']
-            ?? null;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Area variation context
-        |--------------------------------------------------------------------------
-        */
-
-        $areaVariationContext =
-            $properties['area_variation_context']
-            ?? null;
-        // @endphp
     @endphp
+
+
 
     <div
         class="modal fade"
@@ -873,8 +540,7 @@
             <div class="modal-content">
 
 
-                {{-- Header --}}
-
+                <!-- Header -->
                 <div class="modal-header">
 
                     <h5
@@ -895,15 +561,11 @@
                 </div>
 
 
-
-                {{-- Body --}}
-
+                <!-- Body -->
                 <div class="modal-body">
 
 
-                    {{-- =====================================================
-                        BASIC ACTIVITY INFORMATION
-                    ====================================================== --}}
+                    <!-- Basic Information -->
 
                     <h6 class="mb-3">
                         Activity Information
@@ -911,6 +573,7 @@
 
 
                     <div class="row mb-3">
+
 
                         <div class="col-md-6">
 
@@ -971,14 +634,13 @@
                     </div>
 
 
-
                     <hr>
 
 
 
-                    {{-- =====================================================
-                        POSSESSION INFORMATION
-                    ====================================================== --}}
+                    {{-- ================================================= --}}
+                    {{-- Possession Information                           --}}
+                    {{-- ================================================= --}}
 
                     @if($possessionContext)
 
@@ -988,9 +650,6 @@
 
 
                         <div class="row">
-
-
-                            {{-- Possession No --}}
 
                             @if(!empty($possessionContext['possession_no']))
 
@@ -1007,8 +666,6 @@
                             @endif
 
 
-                            {{-- Reference No --}}
-
                             @if(!empty($possessionContext['reference_no']))
 
                                 <div class="col-md-6 mb-2">
@@ -1023,81 +680,6 @@
 
                             @endif
 
-                        </div>
-
-
-                        <hr>
-
-                    @endif
-
-
-
-                    {{-- =====================================================
-                        PLOT INFORMATION
-                    ====================================================== --}}
-
-                    @if($possessionContext)
-
-                        <h6 class="mb-3">
-                            Plot Information
-                        </h6>
-
-
-                        <div class="row">
-
-
-                            {{-- Project --}}
-
-                            @if(!empty($possessionContext['project_name']))
-
-                                <div class="col-md-6 mb-2">
-
-                                    <strong>
-                                        Project:
-                                    </strong>
-
-                                    {{ $possessionContext['project_name'] }}
-
-                                </div>
-
-                            @endif
-
-
-                            {{-- Block --}}
-
-                            @if(!empty($possessionContext['block_name']))
-
-                                <div class="col-md-6 mb-2">
-
-                                    <strong>
-                                        Block:
-                                    </strong>
-
-                                    {{ $possessionContext['block_name'] }}
-
-                                </div>
-
-                            @endif
-
-
-                            {{-- Street --}}
-
-                            @if(!empty($possessionContext['street_name']))
-
-                                <div class="col-md-6 mb-2">
-
-                                    <strong>
-                                        Street:
-                                    </strong>
-
-                                    {{ $possessionContext['street_name'] }}
-
-                                </div>
-
-                            @endif
-
-
-                            {{-- Plot Number --}}
 
                             @if(!empty($possessionContext['plot_number']))
 
@@ -1113,10 +695,90 @@
 
                             @endif
 
+                        </div>
 
-                            {{-- Property Type --}}
 
-                            @if(!empty($possessionContext['property_type_name']))
+                        <hr>
+
+                    @endif
+
+
+
+                    {{-- ================================================= --}}
+                    {{-- Plot Information                                --}}
+                    {{-- ================================================= --}}
+
+                    @if($plotContext)
+
+                        <h6 class="mb-3">
+                            Plot Information
+                        </h6>
+
+
+                        <div class="row">
+
+
+                            @if(!empty($plotContext['project']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Project:
+                                    </strong>
+
+                                    {{ $plotContext['project'] }}
+
+                                </div>
+
+                            @endif
+
+
+                            @if(!empty($plotContext['block']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Block:
+                                    </strong>
+
+                                    {{ $plotContext['block'] }}
+
+                                </div>
+
+                            @endif
+
+
+                            @if(!empty($plotContext['street']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Street:
+                                    </strong>
+
+                                    {{ $plotContext['street'] }}
+
+                                </div>
+
+                            @endif
+
+
+                            @if(!empty($plotContext['plot_number']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Plot Number:
+                                    </strong>
+
+                                    {{ $plotContext['plot_number'] }}
+
+                                </div>
+
+                            @endif
+
+
+                            @if(!empty($plotContext['property_type']))
 
                                 <div class="col-md-6 mb-2">
 
@@ -1124,24 +786,22 @@
                                         Property Type:
                                     </strong>
 
-                                    {{ $possessionContext['property_type_name'] }}
+                                    {{ $plotContext['property_type'] }}
 
                                 </div>
 
                             @endif
 
 
-                            {{-- Plot Size --}}
-
-                            @if(!empty($possessionContext['size_title']))
+                            @if(!empty($plotContext['size']))
 
                                 <div class="col-md-6 mb-2">
 
                                     <strong>
-                                        Plot Size:
+                                        Size:
                                     </strong>
 
-                                    {{ $possessionContext['size_title'] }}
+                                    {{ $plotContext['size'] }}
 
                                 </div>
 
@@ -1156,9 +816,9 @@
 
 
 
-                    {{-- =====================================================
-                        OWNER CHANGES
-                    ====================================================== --}}
+                    {{-- ================================================= --}}
+                    {{-- Owner Changes                                    --}}
+                    {{-- ================================================= --}}
 
                     @if(
                         $ownerChanges &&
@@ -1321,9 +981,9 @@
 
 
 
-                    {{-- =====================================================
-                        NORMAL CHANGED FIELDS
-                    ====================================================== --}}
+                    {{-- ================================================= --}}
+                    {{-- Normal Changed Fields                            --}}
+                    {{-- ================================================= --}}
 
                     @if(count($attributes) > 0)
 
@@ -1457,9 +1117,9 @@
 
 
 
-                    {{-- =====================================================
-                        NO CHANGES
-                    ====================================================== --}}
+                    {{-- ================================================= --}}
+                    {{-- No Changes                                      --}}
+                    {{-- ================================================= --}}
 
                     @if(
                         count($attributes) === 0 &&
@@ -1469,24 +1129,23 @@
                                 empty($ownerChanges['attached']) &&
                                 empty($ownerChanges['detached'])
                             )
-                        ) &&
-                        !$possessionContext &&
-                        !$plotContext
+                        )
                     )
 
                         <div class="text-muted mb-3">
+
                             No field changes recorded.
+
                         </div>
 
                     @endif
 
 
+
                     <hr>
 
 
-                    {{-- =====================================================
-                        RAW PROPERTIES
-                    ====================================================== --}}
+                    <!-- Raw Properties -->
 
                     <details>
 
@@ -1509,8 +1168,7 @@
                 </div>
 
 
-
-                {{-- Footer --}}
+                <!-- Footer -->
 
                 <div class="modal-footer">
 
@@ -1529,6 +1187,7 @@
         </div>
 
     </div>
+
 
 @endforeach
 

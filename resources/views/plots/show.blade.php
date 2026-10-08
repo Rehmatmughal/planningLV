@@ -5,7 +5,7 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>
-            Plot 11 Details —
+            Plot Details —
             {{ $plot->block->block_name }}-{{ $plot->plot_number }}
         </h3>
         <a href="{{ route('plot.print', $plot->id) }}"

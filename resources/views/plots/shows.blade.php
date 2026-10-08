@@ -99,7 +99,7 @@
                 </div>
             </form>
         </div>
-
+ 
         {{-- LOP TAB --}}
         <div class="tab-pane fade" id="lop" role="tabpanel">
             <form action="{{ route('lop.store') }}" method="POST">

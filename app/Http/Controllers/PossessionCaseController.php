@@ -5001,32 +5001,68 @@ class PossessionCaseController extends Controller
                 !empty($ownerChanges['detached'])
             ) {
 
+                $possessionCase->loadMissing([
+                    'plot.project',
+                    'plot.block',
+                    'plot.street',
+                    'plot.size',
+                    'plot.propertyType',
+                ]);
+
+                $plot = $possessionCase->plot;
+
                 activity()
                     ->performedOn($possessionCase)
                     ->causedBy(auth()->user())
                     ->withProperties([
-
-                        'owner_changes' =>
-                            $ownerChanges,
+                        'owner_changes' => $ownerChanges,
 
                         'possession_context' => [
+                            'possession_no' => $possessionCase->possession_no,
+                            'reference_no' => $possessionCase->reference_no,
 
-                            'possession_no' =>
-                                $possessionCase->possession_no,
+                            'project_id' => $plot?->project_id,
+                            'project_name' => $plot?->project?->project_name,
 
-                            'plot_id' =>
-                                $possessionCase->plot_id,
+                            'block_id' => $plot?->block_id,
+                            'block_name' => $plot?->block?->block_name,
 
-                            'plot_number' =>
-                                $possessionCase
-                                    ->plot
-                                    ?->plot_number,
+                            'street_id' => $plot?->street_id,
+                            'street_name' => $plot?->street?->street_name,
+
+                            'plot_id' => $plot?->id,
+                            'plot_number' => $plot?->plot_number,
+
+                            'property_type_id' => $plot?->property_type_id,
+                            'property_type_name' => $plot?->propertyType?->name,
+
+                            'size_id' => $plot?->size_id,
+                            'size_name' => $plot?->size?->name,
                         ],
-
                     ])
-                    ->log(
-                        'Owner Relationship Updated'
-                    );
+                    ->log('Owner Relationship Updated');
+                // old activity() 
+                // activity()
+                //     ->performedOn($possessionCase)
+                //     ->causedBy(auth()->user())
+                //     ->withProperties([
+                //         'owner_changes' =>
+                //             $ownerChanges,
+                //         'possession_context' => [
+                //             'possession_no' =>
+                //                 $possessionCase->possession_no,
+                //             'plot_id' =>
+                //                 $possessionCase->plot_id,
+                //             'plot_number' =>
+                //                 $possessionCase
+                //                     ->plot
+                //                     ?->plot_number,
+                //         ],
+
+                //     ])
+                //     ->log(
+                //         'Owner Relationship Updated'
+                //     );
             }
         });
 

@@ -60,24 +60,12 @@ class Plot extends Model
         return $this->belongsTo(Street::class);
     }
 
-    // public function plotsize() 
-    // { 
-    //     return $this->belongsTo(PlotSize::class, 'size_id'); 
-    // }
 
-    // public function psize() 
-    // { 
-    //     return $this->belongsTo(PlotSize::class); 
-    // }
     public function size() 
     { 
         return $this->belongsTo(PlotSize::class, 'size_id'); 
     }
 
-    // public function plotsizeav() 
-    // { 
-    //     return $this->belongsTo(PlotSize::class); 
-    // }
 
     public function category()
     {
@@ -120,32 +108,6 @@ class Plot extends Model
         return $this->belongsTo(Plotsize::class);
     }
 
-    // loging system
-    // public function getActivitylogOptions(): LogOptions
-    // {
-    //     return LogOptions::defaults()
-    //         ->useLogName('plot')
-    //         ->logFillable()
-    //         ->logOnlyDirty()
-    //         ->dontSubmitEmptyLogs()
-    //         ->logExcept(['deleted_at'])
-    //         ->setDescriptionForEvent(fn(string $eventName) => 
-    //             "Plot has been {$eventName}"
-    //         );
-    // }
-
-    // public function tapActivity(Activity $activity, string $eventName)
-    // {
-    //     if (auth()->check()) {
-    //         $activity->causer_id = auth()->id();
-    //     }
-
-    //     $activity->properties = $activity->properties->merge([
-    //         'project_id' => $this->project_id,
-    //         'block_id' => $this->block_id,
-    //         'street_id' => $this->street_id,
-    //     ]);
-    // }
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -197,32 +159,4 @@ class Plot extends Model
         ]);
     }
     
-    // public function getActivitylogOptions(): LogOptions
-    // {
-    //     return LogOptions::defaults()
-    //         ->useLogName('Development_status')
-    //         // ->logFillable()
-    //         ->logAll()
-    //         ->logOnlyDirty()
-    //         ->dontSubmitEmptyLogs()
-    //         ->setDescriptionForEvent(fn(string $eventName) => 
-    //             "Plot Status has been {$eventName}"
-    //         );
-    // }
- 
-    // public function tapActivity(Activity $activity, string $eventName)
-    // {
-    //     if (auth()->check()) {
-    //         $activity->causer_id = auth()->id();
-    //     }
-
-    //     $activity->properties = $activity->properties->merge([
-    //         'project_id' => $this->project_id,
-    //         'projet_name' => $this->project_name,
-    //         'block_name' => $this->block_name,
-    //         'block_id' => $this->block_id,
-    //         'street_id' => $this->street_id,
-    //     ]);
-    // }
-
 }

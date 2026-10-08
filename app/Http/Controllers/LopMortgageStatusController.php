@@ -234,6 +234,7 @@ class LopMortgageStatusController extends Controller
     /**
      * Update LOP + Mortgage status.
      */
+    
     public function update(Request $request, Plot $plot)
     {
         $validated = $request->validate([

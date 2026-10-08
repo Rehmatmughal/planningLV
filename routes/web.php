@@ -13,7 +13,7 @@ use App\Http\Controllers\AreaVariationController;
 use App\Http\Controllers\BlockController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DevelopmentStatusController;
-use App\Http\Controllers\LopStatusController;
+// use App\Http\Controllers\LopStatusController;
 use App\Http\Controllers\MortgageStatusController;
 use App\Http\Controllers\PlotController;
 use App\Http\Controllers\PossessionStatusController;
@@ -430,7 +430,8 @@ Route::middleware(['auth'])->group(function () {
     // for preselect project name
     
     Route::post('/development/store', [DevelopmentStatusController::class, 'storeOrUpdate'])->name('development.store');
-    Route::post('/lop/store', [LopStatusController::class, 'storeOrUpdate'])->name('lop.store');
+    // m b delete lop.store route
+    // Route::post('/lop/store', [LopStatusController::class, 'storeOrUpdate'])->name('lop.store');
     Route::post('/mortgage/store', [MortgageStatusController::class, 'storeOrUpdate'])->name('mortgage.store');
     Route::post('/possession/store', [PossessionStatusController::class, 'storeOrUpdate'])->name('possession.store');
     // new
@@ -445,12 +446,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('area_variations.verify');
     Route::post('/area-variations/{id}/mark-printed', [AreaVariationController::class, 'markAsPrinted'])
         ->name('area_variations.markPrinted');
-
-    // Existing storeOrUpdate routes for statuses (kept)
-    Route::post('/development/store', [DevelopmentStatusController::class, 'storeOrUpdate'])->name('development.store');
-    Route::post('/lop/store', [LopStatusController::class, 'storeOrUpdate'])->name('lop.store');
-    Route::post('/mortgage/store', [MortgageStatusController::class, 'storeOrUpdate'])->name('mortgage.store');
-    Route::post('/possession/store', [PossessionStatusController::class, 'storeOrUpdate'])->name('possession.store');
 
     // Plots Filtering (AJAX)
     Route::get('/plots/filter', [PlotController::class, 'filter'])->name('plots.filter');
@@ -597,10 +592,7 @@ Route::post(
     [OwnerController::class, 'import']
 )->name('owners.import');
 
-Route::get(
-    '/owners/find-by-cnic',
-    [OwnerController::class, 'findByCnic']
-)->name('owners.findByCnic');
+Route::get('/owners/find-by-cnic', [OwnerController::class, 'findByCnic'])->name('owners.findByCnic');
 
 Route::resource('owners', OwnerController::class)
     ->except(['show']);
