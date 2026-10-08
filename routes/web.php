@@ -442,10 +442,14 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/area-variations/{id}', [AreaVariationController::class, 'update'])->name('area_variations.update');
     Route::delete('/area-variations/{id}', [AreaVariationController::class, 'destroy'])->name('area_variations.destroy');
     Route::get('/area-variations/{id}/print', [AreaVariationController::class, 'print'])->name('area_variations.print');
-    Route::post('/area-variations/{id}/verify', [AreaVariationController::class, 'verify'])
-        ->name('area_variations.verify');
-    Route::post('/area-variations/{id}/mark-printed', [AreaVariationController::class, 'markAsPrinted'])
-        ->name('area_variations.markPrinted');
+    Route::post('/area-variations/{id}/verify', [AreaVariationController::class, 'verify'])->name('area_variations.verify');
+    Route::post('/area-variations/{id}/mark-printed', [AreaVariationController::class, 'markAsPrinted'])->name('area_variations.markPrinted');
+    // new method of import areavariation from direct button
+    Route::post('/area-variations/import', [AreaVariationController::class, 'import'])->name('area-variations.import');
+    // for export complete area variation
+    Route::get('/area-variations/export-all', [AreaVariationController::class, 'exportAll'])->name('area-variations.export-all');
+
+
 
     // Plots Filtering (AJAX)
     Route::get('/plots/filter', [PlotController::class, 'filter'])->name('plots.filter');

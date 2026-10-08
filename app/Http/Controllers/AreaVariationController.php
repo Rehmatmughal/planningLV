@@ -26,6 +26,11 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Spatie\Activitylog\Models\Activity;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Artisan;
+// for export complete areavariations
+use App\Exports\AreaVariationsExport;
+// use Maatwebsite\Excel\Facades\Excel;
+
 
 
 
@@ -38,6 +43,38 @@ class AreaVariationController extends Controller
             ->paginate(20);
 
         return view('admin.activity_logs', compact('logs'));
+    }
+
+    // export excel
+    public function exportAll()
+    {
+        return Excel::download(
+            new AreaVariationsExport,
+            'area_variations.xlsx'
+        );
+    }
+
+
+    // new import method from command and button
+    public function import()
+    {
+        try {
+            Artisan::call('import:area-variations');
+            $output = Artisan::output();
+            return redirect()
+                ->back()
+                // ->with('success', $output);
+                ->with('import_success', $output);
+        } catch (\Throwable $e) {
+            return redirect()
+                ->back()
+                ->with(
+                    // 'ierror',
+                    'import_error',
+                    'Area Variation import failed: ' .
+                    $e->getMessage()
+                );
+        }
     }
 
     public function exportExcel($id)

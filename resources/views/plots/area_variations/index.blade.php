@@ -3,26 +3,110 @@
 @section('content')
 {{-- {{ dd($areaVariations) }} --}}
 
+{{-- Page Header --}}
+<div class="d-flex justify-content-between align-items-center mb-3">
+
+    {{-- Page Title --}}
+    <a href="{{ route('area_variations.index') }}"
+       class="text-decoration-none text-dark">
+
+        <h4 class="fw-bold mb-0">
+            📐 Area Variations
+        </h4>
+
+    </a>
+
+
+    {{-- Right Side Actions --}}
+    <div class="d-flex gap-2 align-items-center">
+        {{-- Import Area Variations --}}
+        <form action="{{ route('area-variations.import') }}"
+              method="POST"
+              class="d-inline">
+            @csrf
+            <button type="submit"
+                    class="btn btn-primary"
+                    onclick="return confirm('Are you sure you want to import Area Variations from CSV?')">
+
+                Import Area Variations
+
+            </button>
+
+        </form>
+        
+        <a href="{{ route('area-variations.export-all') }}"
+        class="btn btn-success">
+            Export Excel
+        </a>
+
+        {{-- Workflow Summary --}}
+
+        {{-- Pending Verification --}}
+        <a href="{{ route('area_variations.index', ['workflow_status' => 1]) }}"
+           class="text-decoration-none">
+
+            <div class="card border-warning shadow-sm">
+
+                <div class="card-body py-2 px-3 text-center">
+
+                    <div class="small text-muted">
+                        Pending Verification
+                    </div>
+
+                    <div class="fw-bold fs-5 text-warning">
+                        {{ $pendingCount }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </a>
+
+
+        {{-- Ready for Print --}}
+        <a href="{{ route('area_variations.index', ['workflow_status' => 2]) }}"
+           class="text-decoration-none">
+
+            <div class="card border-info shadow-sm">
+
+                <div class="card-body py-2 px-3 text-center">
+
+                    <div class="small text-muted">
+                        Ready for Print
+                    </div>
+
+                    <div class="fw-bold fs-5 text-info">
+                        {{ $readyForPrintCount }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </a>
+
+    </div>
+
+</div>
+
 {{-- <div class="container mt-4"> --}}
 
     {{-- Page Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    {{-- <div class="d-flex justify-content-between align-items-center mb-3">
 
-        {{-- <h4 class="fw-bold mb-0">
-            📐 Area Variations
-        </h4> --}}
         <a href="{{ route('area_variations.index') }}"
         class="text-decoration-none text-dark">
             <h4 class="fw-bold mb-0">
                 📐 Area Variations
             </h4>
-        </a>
+        </a> --}}
 
         {{-- Workflow Summary --}}
-        <div class="d-flex gap-2">
+        {{-- <div class="d-flex gap-2"> --}}
 
             {{-- Pending Verification --}}
-            <a href="{{ route('area_variations.index', ['workflow_status' => 1]) }}"
+            {{-- <a href="{{ route('area_variations.index', ['workflow_status' => 1]) }}"
             class="text-decoration-none">
 
                 <div class="card border-warning shadow-sm">
@@ -37,11 +121,11 @@
                     </div>
                 </div>
 
-            </a>
+            </a> --}}
 
 
             {{-- Ready for Print --}}
-            <a href="{{ route('area_variations.index', ['workflow_status' => 2]) }}"
+            {{-- <a href="{{ route('area_variations.index', ['workflow_status' => 2]) }}"
             class="text-decoration-none">
 
                 <div class="card border-info shadow-sm">
@@ -60,7 +144,71 @@
 
         </div>
 
-    </div>
+    </div> --}}
+
+    {{-- Success Alert --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    {{-- Error Alert --}}
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show">
+            <strong>
+                Area Variation Import Failed
+            </strong>
+            <pre class="mb-0 mt-2"
+                style="white-space: pre-wrap; font-family: inherit;">{{ session('error') }}</pre>
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+            </button>
+        </div>
+    @endif
+    {{-- for import error --}}
+    @if(session('import_success'))
+
+        <div class="alert alert-success alert-dismissible fade show">
+
+            <strong>
+                Area Variation Import Result
+            </strong>
+
+            <pre class="mb-0 mt-2"
+                style="white-space: pre-wrap; font-family: inherit;">{{ session('import_success') }}</pre>
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+            </button>
+
+        </div>
+
+    @endif
+
+
+    @if(session('import_error'))
+
+        <div class="alert alert-danger alert-dismissible fade show">
+
+            <strong>
+                Area Variation Import Failed
+            </strong>
+
+            <pre class="mb-0 mt-2"
+                style="white-space: pre-wrap; font-family: inherit;">{{ session('import_error') }}</pre>
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+            </button>
+
+        </div>
+
+    @endif
+
 
     {{-- Success Alert --}}
     @if(session('success'))

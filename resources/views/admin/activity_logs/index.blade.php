@@ -4,7 +4,9 @@
 
 <div class="container">
 
-    <h2 class="mb-4">Activity Logs</h2>
+    <h2 class="mb-4">
+        Activity Logs
+    </h2>
 
 
     {{-- =========================================================
@@ -167,7 +169,7 @@
 
                                 /*
                                 |--------------------------------------------------------------------------
-                                | Plot context
+                                | Contexts
                                 |--------------------------------------------------------------------------
                                 */
 
@@ -175,23 +177,9 @@
                                     $properties['plot_context']
                                     ?? null;
 
-
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Possession context
-                                |--------------------------------------------------------------------------
-                                */
-
                                 $possessionContext =
                                     $properties['possession_context']
                                     ?? null;
-
-
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Owner changes
-                                |--------------------------------------------------------------------------
-                                */
 
                                 $ownerChanges =
                                     $properties['owner_changes']
@@ -200,16 +188,54 @@
                                 $ownerContext =
                                     $properties['owner_context']
                                     ?? null;
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Area variation context
-                                |--------------------------------------------------------------------------
-                                */                                    
+
                                 $areaVariationContext =
                                     $properties['area_variation_context']
                                     ?? null;
 
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Fields which should NOT be displayed
+                                |--------------------------------------------------------------------------
+                                */
+
+                                $hiddenActivityFields = [
+
+                                    'id',
+
+                                    'plot_id',
+                                    'project_id',
+                                    'block_id',
+                                    'street_id',
+                                    'property_type_id',
+                                    'size_id',
+
+                                    'created_at',
+                                    'updated_at',
+                                    'deleted_at',
+
+                                ];
+
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Area Variation workflow status
+                                |--------------------------------------------------------------------------
+                                */
+
+                                $workflowStatusLabels = [
+
+                                    1 => 'Pending',
+
+                                    2 => 'Ready for Print',
+
+                                    3 => 'Printed',
+
+                                ];
+
                             @endphp
+
 
                             {{-- =====================================================
                                 ONE ACTIVITY = ONE ROW
@@ -217,38 +243,59 @@
 
                             <tr>
 
-                                {{-- Date --}}
+
+                                {{-- =================================================
+                                    DATE
+                                ================================================== --}}
 
                                 <td>
+
                                     {{ $activity->created_at->format('d-m-Y H:i') }}
+
                                 </td>
 
 
-                                {{-- User --}}
+                                {{-- =================================================
+                                    USER
+                                ================================================== --}}
 
                                 <td>
+
                                     {{ optional($activity->causer)->name ?? 'System' }}
+
                                 </td>
 
 
-                                {{-- Action --}}
+                                {{-- =================================================
+                                    ACTION
+                                ================================================== --}}
 
                                 <td>
+
                                     {{ ucfirst($activity->event ?? 'Activity') }}
+
                                 </td>
 
 
-                                {{-- Model --}}
+                                {{-- =================================================
+                                    MODEL
+                                ================================================== --}}
 
                                 <td>
+
                                     {{ class_basename($activity->subject_type ?? '') }}
+
                                 </td>
 
 
-                                {{-- Description --}}
+                                {{-- =================================================
+                                    DESCRIPTION
+                                ================================================== --}}
 
                                 <td>
+
                                     {{ $activity->description }}
+
                                 </td>
 
 
@@ -257,6 +304,7 @@
                                 ================================================== --}}
 
                                 <td>
+
 
                                     {{-- =========================================
                                         POSSESSION CONTEXT
@@ -269,11 +317,13 @@
                                             @if(!empty($possessionContext['possession_no']))
 
                                                 <div>
+
                                                     <strong>
                                                         Possession:
                                                     </strong>
 
                                                     {{ $possessionContext['possession_no'] }}
+
                                                 </div>
 
                                             @endif
@@ -282,11 +332,13 @@
                                             @if(!empty($possessionContext['project_name']))
 
                                                 <div>
+
                                                     <strong>
                                                         Project:
                                                     </strong>
 
                                                     {{ $possessionContext['project_name'] }}
+
                                                 </div>
 
                                             @endif
@@ -295,11 +347,13 @@
                                             @if(!empty($possessionContext['block_name']))
 
                                                 <div>
+
                                                     <strong>
                                                         Block:
                                                     </strong>
 
                                                     {{ $possessionContext['block_name'] }}
+
                                                 </div>
 
                                             @endif
@@ -308,11 +362,13 @@
                                             @if(!empty($possessionContext['street_name']))
 
                                                 <div>
+
                                                     <strong>
                                                         Street:
                                                     </strong>
 
                                                     {{ $possessionContext['street_name'] }}
+
                                                 </div>
 
                                             @endif
@@ -321,11 +377,13 @@
                                             @if(!empty($possessionContext['plot_number']))
 
                                                 <div>
+
                                                     <strong>
                                                         Plot:
                                                     </strong>
 
                                                     {{ $possessionContext['plot_number'] }}
+
                                                 </div>
 
                                             @endif
@@ -334,11 +392,13 @@
                                             @if(!empty($possessionContext['property_type_name']))
 
                                                 <div>
+
                                                     <strong>
                                                         Property Type:
                                                     </strong>
 
                                                     {{ $possessionContext['property_type_name'] }}
+
                                                 </div>
 
                                             @endif
@@ -347,11 +407,13 @@
                                             @if(!empty($possessionContext['size_title']))
 
                                                 <div>
+
                                                     <strong>
                                                         Size:
                                                     </strong>
 
                                                     {{ $possessionContext['size_title'] }}
+
                                                 </div>
 
                                             @endif
@@ -359,9 +421,13 @@
                                         </div>
 
                                     @endif
+
+
+
                                     {{-- =========================================
                                         PLOT CONTEXT
                                     ========================================== --}}
+
                                     @if($plotContext)
 
                                         <div class="small mb-2">
@@ -369,11 +435,13 @@
                                             @if(!empty($plotContext['project_name']))
 
                                                 <div>
+
                                                     <strong>
                                                         Project:
                                                     </strong>
 
                                                     {{ $plotContext['project_name'] }}
+
                                                 </div>
 
                                             @endif
@@ -382,11 +450,13 @@
                                             @if(!empty($plotContext['block_name']))
 
                                                 <div>
+
                                                     <strong>
                                                         Block:
                                                     </strong>
 
                                                     {{ $plotContext['block_name'] }}
+
                                                 </div>
 
                                             @endif
@@ -395,11 +465,13 @@
                                             @if(!empty($plotContext['street_name']))
 
                                                 <div>
+
                                                     <strong>
                                                         Street:
                                                     </strong>
 
                                                     {{ $plotContext['street_name'] }}
+
                                                 </div>
 
                                             @endif
@@ -408,11 +480,13 @@
                                             @if(!empty($plotContext['plot_number']))
 
                                                 <div>
+
                                                     <strong>
                                                         Plot:
                                                     </strong>
 
                                                     {{ $plotContext['plot_number'] }}
+
                                                 </div>
 
                                             @endif
@@ -421,11 +495,13 @@
                                             @if(!empty($plotContext['property_type_name']))
 
                                                 <div>
+
                                                     <strong>
                                                         Property Type:
                                                     </strong>
 
                                                     {{ $plotContext['property_type_name'] }}
+
                                                 </div>
 
                                             @endif
@@ -434,11 +510,13 @@
                                             @if(!empty($plotContext['size_title']))
 
                                                 <div>
+
                                                     <strong>
                                                         Size:
                                                     </strong>
 
                                                     {{ $plotContext['size_title'] }}
+
                                                 </div>
 
                                             @endif
@@ -446,6 +524,8 @@
                                         </div>
 
                                     @endif
+
+
 
                                     {{-- =========================================
                                         AREA VARIATION CONTEXT
@@ -456,50 +536,99 @@
                                         <div class="small mb-2">
 
                                             @if(!empty($areaVariationContext['project_name']))
+
                                                 <div>
-                                                    <strong>Project:</strong>
+
+                                                    <strong>
+                                                        Project:
+                                                    </strong>
+
                                                     {{ $areaVariationContext['project_name'] }}
+
                                                 </div>
+
                                             @endif
+
 
                                             @if(!empty($areaVariationContext['block_name']))
+
                                                 <div>
-                                                    <strong>Block:</strong>
+
+                                                    <strong>
+                                                        Block:
+                                                    </strong>
+
                                                     {{ $areaVariationContext['block_name'] }}
+
                                                 </div>
+
                                             @endif
+
 
                                             @if(!empty($areaVariationContext['street_name']))
+
                                                 <div>
-                                                    <strong>Street:</strong>
+
+                                                    <strong>
+                                                        Street:
+                                                    </strong>
+
                                                     {{ $areaVariationContext['street_name'] }}
+
                                                 </div>
+
                                             @endif
+
 
                                             @if(!empty($areaVariationContext['plot_number']))
+
                                                 <div>
-                                                    <strong>Plot:</strong>
+
+                                                    <strong>
+                                                        Plot:
+                                                    </strong>
+
                                                     {{ $areaVariationContext['plot_number'] }}
+
                                                 </div>
+
                                             @endif
+
 
                                             @if(!empty($areaVariationContext['property_type_name']))
+
                                                 <div>
-                                                    <strong>Property Type:</strong>
+
+                                                    <strong>
+                                                        Property Type:
+                                                    </strong>
+
                                                     {{ $areaVariationContext['property_type_name'] }}
+
                                                 </div>
+
                                             @endif
 
+
                                             @if(!empty($areaVariationContext['size_title']))
+
                                                 <div>
-                                                    <strong>Size:</strong>
+
+                                                    <strong>
+                                                        Size:
+                                                    </strong>
+
                                                     {{ $areaVariationContext['size_title'] }}
+
                                                 </div>
+
                                             @endif
 
                                         </div>
 
                                     @endif
+
+
 
                                     {{-- =========================================
                                         OWNER CONTEXT
@@ -510,29 +639,55 @@
                                         <div class="small mb-2">
 
                                             @if(!empty($ownerContext['owner_name']))
+
                                                 <div>
-                                                    <strong>Owner:</strong>
+
+                                                    <strong>
+                                                        Owner:
+                                                    </strong>
+
                                                     {{ $ownerContext['owner_name'] }}
+
                                                 </div>
+
                                             @endif
+
 
                                             @if(!empty($ownerContext['relative_name']))
+
                                                 <div>
-                                                    <strong>Relative Name:</strong>
+
+                                                    <strong>
+                                                        Relative Name:
+                                                    </strong>
+
                                                     {{ $ownerContext['relative_name'] }}
+
                                                 </div>
+
                                             @endif
 
+
                                             @if(!empty($ownerContext['cnic']))
+
                                                 <div>
-                                                    <strong>CNIC:</strong>
+
+                                                    <strong>
+                                                        CNIC:
+                                                    </strong>
+
                                                     {{ $ownerContext['cnic'] }}
+
                                                 </div>
+
                                             @endif
 
                                         </div>
 
                                     @endif
+
+
+
                                     {{-- =========================================
                                         OWNER CHANGES
                                     ========================================== --}}
@@ -634,96 +789,241 @@
 
                                         @endif
 
+                                    @endif
+
+
 
                                     {{-- =========================================
                                         NORMAL MODEL CHANGES
                                     ========================================== --}}
 
-                                    @elseif(count($attributes) > 0)
-
+                                    @if(count($attributes) > 0)
 
                                         @foreach($attributes as $key => $value)
 
-                                            @php
+                                            @if(!in_array($key, $hiddenActivityFields))
 
-                                                $oldValue =
-                                                    $old[$key]
-                                                    ?? null;
+                                                @php
 
-                                                $displayKey =
-                                                    ucwords(
-                                                        str_replace(
-                                                            ['_', '-'],
-                                                            ' ',
-                                                            $key
+                                                    $oldValue =
+                                                        $old[$key]
+                                                        ?? null;
+
+
+                                                    $displayKey =
+                                                        ucwords(
+                                                            str_replace(
+                                                                ['_', '-'],
+                                                                ' ',
+                                                                $key
+                                                            )
+                                                        );
+
+
+                                                    /*
+                                                    |--------------------------------------------------------------------------
+                                                    | Workflow Status
+                                                    |--------------------------------------------------------------------------
+                                                    */
+
+                                                    if (
+                                                        $key === 'workflow_status' &&
+                                                        $areaVariationContext
+                                                    ) {
+
+                                                        $displayKey =
+                                                            'Workflow Status';
+
+
+                                                        $value =
+                                                            $workflowStatusLabels[$value]
+                                                            ?? $value;
+
+
+                                                        if (
+                                                            array_key_exists(
+                                                                $key,
+                                                                $old
+                                                            )
+                                                        ) {
+
+                                                            $oldValue =
+                                                                $workflowStatusLabels[$oldValue]
+                                                                ?? $oldValue;
+
+                                                        }
+
+                                                    }
+
+
+                                                    /*
+                                                    |--------------------------------------------------------------------------
+                                                    | Measured By
+                                                    |--------------------------------------------------------------------------
+                                                    */
+
+                                                    if (
+                                                        $key === 'measured_by' &&
+                                                        $areaVariationContext
+                                                    ) {
+
+                                                        $displayKey =
+                                                            'Measured By';
+
+
+                                                        $value =
+                                                            $areaVariationContext['measured_by_name']
+                                                            ?? $value;
+
+                                                    }
+
+
+                                                    /*
+                                                    |--------------------------------------------------------------------------
+                                                    | Measured Date
+                                                    |--------------------------------------------------------------------------
+                                                    */
+
+                                                    if (
+                                                        $key === 'measured_date'
+                                                    ) {
+
+                                                        $displayKey =
+                                                            'Measured Date';
+
+
+                                                        if (
+                                                            !empty($value)
+                                                        ) {
+
+                                                            try {
+
+                                                                $value =
+                                                                    \Carbon\Carbon::parse(
+                                                                        $value
+                                                                    )->format('d-m-Y');
+
+                                                            } catch (
+                                                                \Throwable $e
+                                                            ) {
+
+                                                            }
+
+                                                        }
+
+
+                                                        if (
+                                                            array_key_exists(
+                                                                $key,
+                                                                $old
+                                                            ) &&
+                                                            !empty($oldValue)
+                                                        ) {
+
+                                                            try {
+
+                                                                $oldValue =
+                                                                    \Carbon\Carbon::parse(
+                                                                        $oldValue
+                                                                    )->format('d-m-Y');
+
+                                                            } catch (
+                                                                \Throwable $e
+                                                            ) {
+
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                @endphp
+
+
+                                                <div class="small mb-1">
+
+                                                    <strong>
+                                                        {{ $displayKey }}:
+                                                    </strong>
+
+
+                                                    @if(
+                                                        array_key_exists(
+                                                            $key,
+                                                            $old
                                                         )
-                                                    );
+                                                    )
 
-                                            @endphp
+                                                        <span class="text-danger">
+
+                                                            {{
+                                                                is_array($oldValue)
+                                                                ? json_encode(
+                                                                    $oldValue
+                                                                )
+                                                                : (
+                                                                    $oldValue === null ||
+                                                                    $oldValue === ''
+                                                                    ? '—'
+                                                                    : $oldValue
+                                                                )
+                                                            }}
+
+                                                        </span>
 
 
-                                            <div class="small mb-1">
+                                                        <span class="mx-1">
+                                                            →
+                                                        </span>
 
-                                                <strong>
-                                                    {{ $displayKey }}:
-                                                </strong>
+                                                    @endif
 
 
-                                                @if(array_key_exists($key, $old))
-
-                                                    <span class="text-danger">
+                                                    <span class="text-success">
 
                                                         {{
-                                                            is_array($oldValue)
-                                                            ? json_encode($oldValue)
+                                                            is_array($value)
+                                                            ? json_encode(
+                                                                $value
+                                                            )
                                                             : (
-                                                                $oldValue === null ||
-                                                                $oldValue === ''
+                                                                $value === null ||
+                                                                $value === ''
                                                                 ? '—'
-                                                                : $oldValue
+                                                                : $value
                                                             )
                                                         }}
 
                                                     </span>
 
+                                                </div>
 
-                                                    <span class="mx-1">
-                                                        →
-                                                    </span>
-
-                                                @endif
-
-
-                                                <span class="text-success">
-
-                                                    {{
-                                                        is_array($value)
-                                                        ? json_encode($value)
-                                                        : (
-                                                            $value === null ||
-                                                            $value === ''
-                                                            ? '—'
-                                                            : $value
-                                                        )
-                                                    }}
-
-                                                </span>
-
-                                            </div>
+                                            @endif
 
                                         @endforeach
 
-
-                                    {{-- Context only --}}
-
-                                    @elseif($plotContext || $possessionContext)
-
-                                        <span class="text-muted">
-                                            Context only
-                                        </span>
+                                    @endif
 
 
-                                    @else
+
+                                    {{-- =========================================
+                                        NOTHING TO SHOW
+                                    ========================================== --}}
+
+                                    @if(
+                                        count($attributes) === 0 &&
+                                        empty($plotContext) &&
+                                        empty($possessionContext) &&
+                                        empty($areaVariationContext) &&
+                                        empty($ownerContext) &&
+                                        (
+                                            !$ownerChanges ||
+                                            (
+                                                empty($ownerChanges['attached']) &&
+                                                empty($ownerChanges['detached'])
+                                            )
+                                        )
+                                    )
 
                                         <span class="text-muted">
                                             No changes
@@ -736,7 +1036,7 @@
 
 
                                 {{-- =================================================
-                                    VIEW
+                                    VIEW BUTTON
                                 ================================================== --}}
 
                                 <td>
@@ -789,7 +1089,8 @@
 
 {{-- =========================================================
     MODALS
-    IMPORTANT: MODALS TABLE KE BAHAR HAIN
+    IMPORTANT:
+    MODALS TABLE KE BAHAR HAIN
 ========================================================= --}}
 
 @foreach($activities as $activity)
@@ -815,7 +1116,7 @@
 
         /*
         |--------------------------------------------------------------------------
-        | Plot context
+        | Contexts
         |--------------------------------------------------------------------------
         */
 
@@ -823,22 +1124,9 @@
             $properties['plot_context']
             ?? null;
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Possession context
-        |--------------------------------------------------------------------------
-        */
-
         $possessionContext =
             $properties['possession_context']
             ?? null;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Owner changes
-        |--------------------------------------------------------------------------
-        */
 
         $ownerChanges =
             $properties['owner_changes']
@@ -848,17 +1136,69 @@
             $properties['owner_context']
             ?? null;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Area variation context
-        |--------------------------------------------------------------------------
-        */
-
         $areaVariationContext =
             $properties['area_variation_context']
             ?? null;
-        // @endphp
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hidden fields
+        |--------------------------------------------------------------------------
+        */
+
+        $hiddenActivityFields = [
+
+            'id',
+
+            'plot_id',
+            'project_id',
+            'block_id',
+            'street_id',
+            'property_type_id',
+            'size_id',
+
+            'created_at',
+            'updated_at',
+            'deleted_at',
+
+        ];
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Workflow labels
+        |--------------------------------------------------------------------------
+        */
+
+        $workflowStatusLabels = [
+
+            1 => 'Pending',
+
+            2 => 'Ready for Print',
+
+            3 => 'Printed',
+
+        ];
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Plot context for modal
+        |--------------------------------------------------------------------------
+        |
+        | Possession, Plot aur Area Variation tino ke liye
+        | same Plot Information section use hoga.
+        |
+        */
+
+        $modalPlotContext =
+            $possessionContext
+            ?? $plotContext
+            ?? $areaVariationContext;
+
     @endphp
+
 
     <div
         class="modal fade"
@@ -873,7 +1213,9 @@
             <div class="modal-content">
 
 
-                {{-- Header --}}
+                {{-- =====================================================
+                    HEADER
+                ====================================================== --}}
 
                 <div class="modal-header">
 
@@ -896,7 +1238,9 @@
 
 
 
-                {{-- Body --}}
+                {{-- =====================================================
+                    BODY
+                ====================================================== --}}
 
                 <div class="modal-body">
 
@@ -911,6 +1255,7 @@
 
 
                     <div class="row mb-3">
+
 
                         <div class="col-md-6">
 
@@ -958,6 +1303,7 @@
                     </div>
 
 
+
                     <div class="mb-3">
 
                         <strong>
@@ -965,7 +1311,9 @@
                         </strong>
 
                         <div class="mt-1">
+
                             {{ $activity->description }}
+
                         </div>
 
                     </div>
@@ -1036,7 +1384,7 @@
                         PLOT INFORMATION
                     ====================================================== --}}
 
-                    @if($possessionContext)
+                    @if($modalPlotContext)
 
                         <h6 class="mb-3">
                             Plot Information
@@ -1048,7 +1396,7 @@
 
                             {{-- Project --}}
 
-                            @if(!empty($possessionContext['project_name']))
+                            @if(!empty($modalPlotContext['project_name']))
 
                                 <div class="col-md-6 mb-2">
 
@@ -1056,7 +1404,7 @@
                                         Project:
                                     </strong>
 
-                                    {{ $possessionContext['project_name'] }}
+                                    {{ $modalPlotContext['project_name'] }}
 
                                 </div>
 
@@ -1065,7 +1413,7 @@
 
                             {{-- Block --}}
 
-                            @if(!empty($possessionContext['block_name']))
+                            @if(!empty($modalPlotContext['block_name']))
 
                                 <div class="col-md-6 mb-2">
 
@@ -1073,7 +1421,7 @@
                                         Block:
                                     </strong>
 
-                                    {{ $possessionContext['block_name'] }}
+                                    {{ $modalPlotContext['block_name'] }}
 
                                 </div>
 
@@ -1082,7 +1430,7 @@
 
                             {{-- Street --}}
 
-                            @if(!empty($possessionContext['street_name']))
+                            @if(!empty($modalPlotContext['street_name']))
 
                                 <div class="col-md-6 mb-2">
 
@@ -1090,7 +1438,7 @@
                                         Street:
                                     </strong>
 
-                                    {{ $possessionContext['street_name'] }}
+                                    {{ $modalPlotContext['street_name'] }}
 
                                 </div>
 
@@ -1099,7 +1447,7 @@
 
                             {{-- Plot Number --}}
 
-                            @if(!empty($possessionContext['plot_number']))
+                            @if(!empty($modalPlotContext['plot_number']))
 
                                 <div class="col-md-6 mb-2">
 
@@ -1107,7 +1455,7 @@
                                         Plot Number:
                                     </strong>
 
-                                    {{ $possessionContext['plot_number'] }}
+                                    {{ $modalPlotContext['plot_number'] }}
 
                                 </div>
 
@@ -1116,7 +1464,7 @@
 
                             {{-- Property Type --}}
 
-                            @if(!empty($possessionContext['property_type_name']))
+                            @if(!empty($modalPlotContext['property_type_name']))
 
                                 <div class="col-md-6 mb-2">
 
@@ -1124,7 +1472,7 @@
                                         Property Type:
                                     </strong>
 
-                                    {{ $possessionContext['property_type_name'] }}
+                                    {{ $modalPlotContext['property_type_name'] }}
 
                                 </div>
 
@@ -1133,7 +1481,7 @@
 
                             {{-- Plot Size --}}
 
-                            @if(!empty($possessionContext['size_title']))
+                            @if(!empty($modalPlotContext['size_title']))
 
                                 <div class="col-md-6 mb-2">
 
@@ -1141,7 +1489,414 @@
                                         Plot Size:
                                     </strong>
 
-                                    {{ $possessionContext['size_title'] }}
+                                    {{ $modalPlotContext['size_title'] }}
+
+                                </div>
+
+                            @endif
+
+                        </div>
+
+
+                        <hr>
+
+                    @endif
+
+
+
+                    {{-- =====================================================
+                        AREA VARIATION INFORMATION
+                    ====================================================== --}}
+
+                    @if($areaVariationContext)
+
+                        <h6 class="mb-3">
+                            Area Variation Information
+                        </h6>
+
+
+                        <div class="row">
+
+
+                            {{-- Previous Area --}}
+
+                            @if(
+                                array_key_exists(
+                                    'previous_area',
+                                    $attributes
+                                )
+                            )
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Previous Area:
+                                    </strong>
+
+                                    {{ $attributes['previous_area'] ?? '—' }}
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Measured Area --}}
+
+                            @if(
+                                array_key_exists(
+                                    'measured_area',
+                                    $attributes
+                                )
+                            )
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Measured Area:
+                                    </strong>
+
+                                    {{ $attributes['measured_area'] ?? '—' }}
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Measured By --}}
+
+                            @if(
+                                array_key_exists(
+                                    'measured_by',
+                                    $attributes
+                                )
+                            )
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Measured By:
+                                    </strong>
+
+                                    {{ $areaVariationContext['measured_by_name'] ?? $attributes['measured_by'] ?? '—' }}
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Measured Date --}}
+
+                            @if(
+                                array_key_exists(
+                                    'measured_date',
+                                    $attributes
+                                )
+                            )
+
+                                @php
+
+                                    $modalMeasuredDate =
+                                        $attributes['measured_date']
+                                        ?? null;
+
+                                    if ($modalMeasuredDate) {
+
+                                        try {
+
+                                            $modalMeasuredDate =
+                                                \Carbon\Carbon::parse(
+                                                    $modalMeasuredDate
+                                                )->format('d-m-Y');
+
+                                        } catch (
+                                            \Throwable $e
+                                        ) {
+
+                                        }
+
+                                    }
+
+                                @endphp
+
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Measured Date:
+                                    </strong>
+
+                                    {{ $modalMeasuredDate ?: '—' }}
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Road Status --}}
+
+                            @if(
+                                array_key_exists(
+                                    'road_status_at_time',
+                                    $attributes
+                                )
+                            )
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Road Status At Time:
+                                    </strong>
+
+                                    {{ $attributes['road_status_at_time'] ?: '—' }}
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Sewer Status --}}
+
+                            @if(
+                                array_key_exists(
+                                    'sewer_status_at_time',
+                                    $attributes
+                                )
+                            )
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Sewer Status At Time:
+                                    </strong>
+
+                                    {{ $attributes['sewer_status_at_time'] ?: '—' }}
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- LOP Status --}}
+
+                            @if(
+                                array_key_exists(
+                                    'lop_status_at_time',
+                                    $attributes
+                                )
+                            )
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        LOP Status At Time:
+                                    </strong>
+
+                                    {{ $attributes['lop_status_at_time'] ?: '—' }}
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Overall Status --}}
+
+                            @if(
+                                array_key_exists(
+                                    'overall_status_at_time',
+                                    $attributes
+                                )
+                            )
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Overall Status At Time:
+                                    </strong>
+
+                                    {{ $attributes['overall_status_at_time'] ?: '—' }}
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Mortgage Status --}}
+
+                            @if(
+                                array_key_exists(
+                                    'mortgage_status_at_time',
+                                    $attributes
+                                )
+                            )
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Mortgage Status At Time:
+                                    </strong>
+
+                                    {{ $attributes['mortgage_status_at_time'] ?: '—' }}
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Possession Status --}}
+
+                            @if(
+                                array_key_exists(
+                                    'possession_status',
+                                    $attributes
+                                )
+                            )
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Possession Status:
+                                    </strong>
+
+                                    {{ $attributes['possession_status'] ?: '—' }}
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Workflow Status --}}
+
+                            @if(
+                                array_key_exists(
+                                    'workflow_status',
+                                    $attributes
+                                )
+                            )
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Workflow Status:
+                                    </strong>
+
+                                    {{
+                                        $workflowStatusLabels[
+                                            $attributes['workflow_status']
+                                        ]
+                                        ?? $attributes['workflow_status']
+                                        ?? '—'
+                                    }}
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Remarks --}}
+
+                            @if(
+                                array_key_exists(
+                                    'remarks',
+                                    $attributes
+                                )
+                            )
+
+                                <div class="col-md-12 mb-2">
+
+                                    <strong>
+                                        Remarks:
+                                    </strong>
+
+                                    {{ $attributes['remarks'] ?: '—' }}
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Source --}}
+
+                            @if(
+                                array_key_exists(
+                                    'source',
+                                    $attributes
+                                )
+                            )
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Source:
+                                    </strong>
+
+                                    {{ $attributes['source'] ?: '—' }}
+
+                                </div>
+
+                            @endif
+
+                        </div>
+
+
+                        <hr>
+
+                    @endif
+
+
+
+                    {{-- =====================================================
+                        OWNER CONTEXT
+                    ====================================================== --}}
+
+                    @if($ownerContext)
+
+                        <h6 class="mb-3">
+                            Owner Information
+                        </h6>
+
+
+                        <div class="row">
+
+
+                            @if(!empty($ownerContext['owner_name']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Owner:
+                                    </strong>
+
+                                    {{ $ownerContext['owner_name'] }}
+
+                                </div>
+
+                            @endif
+
+
+                            @if(!empty($ownerContext['relative_name']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        Relative Name:
+                                    </strong>
+
+                                    {{ $ownerContext['relative_name'] }}
+
+                                </div>
+
+                            @endif
+
+
+                            @if(!empty($ownerContext['cnic']))
+
+                                <div class="col-md-6 mb-2">
+
+                                    <strong>
+                                        CNIC:
+                                    </strong>
+
+                                    {{ $ownerContext['cnic'] }}
 
                                 </div>
 
@@ -1173,7 +1928,9 @@
                         </h6>
 
 
-                        {{-- Attached Owners --}}
+                        {{-- =============================================
+                            ATTACHED OWNERS
+                        ============================================== --}}
 
                         @if(!empty($ownerChanges['attached']))
 
@@ -1246,7 +2003,9 @@
 
 
 
-                        {{-- Detached Owners --}}
+                        {{-- =============================================
+                            DETACHED OWNERS
+                        ============================================== --}}
 
                         @if(!empty($ownerChanges['detached']))
 
@@ -1325,7 +2084,29 @@
                         NORMAL CHANGED FIELDS
                     ====================================================== --}}
 
-                    @if(count($attributes) > 0)
+                    @php
+
+                        $visibleAttributes = [];
+
+                        foreach ($attributes as $key => $value) {
+
+                            if (
+                                !in_array(
+                                    $key,
+                                    $hiddenActivityFields
+                                )
+                            ) {
+
+                                $visibleAttributes[$key] = $value;
+
+                            }
+
+                        }
+
+                    @endphp
+
+
+                    @if(count($visibleAttributes) > 0)
 
                         <h6 class="mb-3">
                             Changed Fields
@@ -1360,7 +2141,7 @@
                                 <tbody>
 
                                     @foreach(
-                                        $attributes
+                                        $visibleAttributes
                                         as $key => $value
                                     )
 
@@ -1369,6 +2150,7 @@
                                             $oldValue =
                                                 $old[$key]
                                                 ?? null;
+
 
                                             $displayKey =
                                                 ucwords(
@@ -1379,10 +2161,165 @@
                                                     )
                                                 );
 
+
+                                            /*
+                                            |--------------------------------------------------------------------------
+                                            | Workflow Status
+                                            |--------------------------------------------------------------------------
+                                            */
+
+                                            if (
+                                                $key === 'workflow_status' &&
+                                                $areaVariationContext
+                                            ) {
+
+                                                $displayKey =
+                                                    'Workflow Status';
+
+
+                                                $value =
+                                                    $workflowStatusLabels[$value]
+                                                    ?? $value;
+
+
+                                                if (
+                                                    array_key_exists(
+                                                        $key,
+                                                        $old
+                                                    )
+                                                ) {
+
+                                                    $oldValue =
+                                                        $workflowStatusLabels[$oldValue]
+                                                        ?? $oldValue;
+
+                                                }
+
+                                            }
+
+
+                                            /*
+                                            |--------------------------------------------------------------------------
+                                            | Measured By
+                                            |--------------------------------------------------------------------------
+                                            */
+
+                                            if (
+                                                $key === 'measured_by' &&
+                                                $areaVariationContext
+                                            ) {
+
+                                                $displayKey =
+                                                    'Measured By';
+
+
+                                                $value =
+                                                    $areaVariationContext['measured_by_name']
+                                                    ?? $value;
+
+
+                                                /*
+                                                | If old measured_by is an ID,
+                                                | try to show the old user's name.
+                                                */
+
+                                                if (
+                                                    array_key_exists(
+                                                        $key,
+                                                        $old
+                                                    ) &&
+                                                    !empty($oldValue)
+                                                ) {
+
+                                                    try {
+
+                                                        $oldUser =
+                                                            \App\Models\User::find(
+                                                                $oldValue
+                                                            );
+
+                                                        if ($oldUser) {
+
+                                                            $oldValue =
+                                                                $oldUser->name;
+
+                                                        }
+
+                                                    } catch (
+                                                        \Throwable $e
+                                                    ) {
+
+                                                    }
+
+                                                }
+
+                                            }
+
+
+                                            /*
+                                            |--------------------------------------------------------------------------
+                                            | Measured Date
+                                            |--------------------------------------------------------------------------
+                                            */
+
+                                            if (
+                                                $key === 'measured_date'
+                                            ) {
+
+                                                $displayKey =
+                                                    'Measured Date';
+
+
+                                                if (!empty($value)) {
+
+                                                    try {
+
+                                                        $value =
+                                                            \Carbon\Carbon::parse(
+                                                                $value
+                                                            )->format('d-m-Y');
+
+                                                    } catch (
+                                                        \Throwable $e
+                                                    ) {
+
+                                                    }
+
+                                                }
+
+
+                                                if (
+                                                    array_key_exists(
+                                                        $key,
+                                                        $old
+                                                    ) &&
+                                                    !empty($oldValue)
+                                                ) {
+
+                                                    try {
+
+                                                        $oldValue =
+                                                            \Carbon\Carbon::parse(
+                                                                $oldValue
+                                                            )->format('d-m-Y');
+
+                                                    } catch (
+                                                        \Throwable $e
+                                                    ) {
+
+                                                    }
+
+                                                }
+
+                                            }
+
                                         @endphp
 
 
                                         <tr>
+
+
+                                            {{-- Field --}}
 
                                             <td>
 
@@ -1392,6 +2329,8 @@
 
                                             </td>
 
+
+                                            {{-- Old Value --}}
 
                                             <td class="text-danger">
 
@@ -1424,6 +2363,8 @@
 
                                             </td>
 
+
+                                            {{-- New Value --}}
 
                                             <td class="text-success">
 
@@ -1462,26 +2403,32 @@
                     ====================================================== --}}
 
                     @if(
-                        count($attributes) === 0 &&
+                        count($visibleAttributes) === 0 &&
+                        empty($plotContext) &&
+                        empty($possessionContext) &&
+                        empty($areaVariationContext) &&
+                        empty($ownerContext) &&
                         (
                             !$ownerChanges ||
                             (
                                 empty($ownerChanges['attached']) &&
                                 empty($ownerChanges['detached'])
                             )
-                        ) &&
-                        !$possessionContext &&
-                        !$plotContext
+                        )
                     )
 
                         <div class="text-muted mb-3">
+
                             No field changes recorded.
+
                         </div>
 
                     @endif
 
 
+
                     <hr>
+
 
 
                     {{-- =====================================================
@@ -1510,7 +2457,9 @@
 
 
 
-                {{-- Footer --}}
+                {{-- =====================================================
+                    FOOTER
+                ====================================================== --}}
 
                 <div class="modal-footer">
 
@@ -1523,6 +2472,7 @@
                     </button>
 
                 </div>
+
 
             </div>
 
