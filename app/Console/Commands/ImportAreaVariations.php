@@ -347,7 +347,8 @@ class ImportAreaVariations extends Command
 
 
                     $sewerStatus =
-                        $sewerValue === 'constructed'
+                        // $sewerValue === 'constructed'
+                        $sewerValue === 'mh constructed'
                         ? 'constructed'
                         : 'not_constructed';
 

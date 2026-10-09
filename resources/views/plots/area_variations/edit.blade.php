@@ -151,29 +151,53 @@
                         <option value="not_developed">Not Developed</option>
                     </select>
                 </div> --}}
+
                 <div class="col-md-4">
-                    <label>Overall Status</label>
+                    <label class="form-label">Overall Status</label>
+
                     <select name="overall_status" class="form-select">
+                        <option value="">-- Select Overall Status --</option>
+
                         <option value="developed"
-                            {{-- @selected(optional($av->plot->developmentStatus)->overall_status == 'developed')> --}}                            
-                            @selected($av->overall_status_at_time == 'developed')
-                            Developed 
+                            @selected(old('overall_status', $av->overall_status_at_time ?? $av->plot?->developmentStatus?->overall_status) == 'developed')>
+                            Developed
                         </option>
 
                         <option value="under_development"
-                            {{-- @selected(optional($av->plot->developmentStatus)->overall_status == 'under_development')> --}}
-                            @selected($av->overall_status_at_time == 'under_development')
+                            @selected(old('overall_status', $av->overall_status_at_time ?? $av->plot?->developmentStatus?->overall_status) == 'under_development')>
                             Under Development
                         </option>
 
                         <option value="not_developed"
-                            {{-- @selected(optional($av->plot->developmentStatus)->overall_status == 'not_developed')> --}}
-                            @selected($av->overall_status_at_time == 'not_developed')
+                            @selected(old('overall_status', $av->overall_status_at_time ?? $av->plot?->developmentStatus?->overall_status) == 'not_developed')>
                             Not Developed
                         </option>
-
                     </select>
                 </div>
+
+                {{-- <div class="col-md-4">
+                    <label>Overall Status</label>
+                    <select name="overall_status" class="form-select">
+                        <option value="developed" --}}
+                            {{-- @selected(optional($av->plot->developmentStatus)->overall_status == 'developed')> --}}                            
+                            {{-- @selected($av->overall_status_at_time == 'developed')
+                            Developed 
+                        </option>
+
+                        <option value="under_development" --}}
+                            {{-- @selected(optional($av->plot->developmentStatus)->overall_status == 'under_development')> --}}
+                            {{-- @selected($av->overall_status_at_time == 'under_development')
+                            Under Development
+                        </option>
+
+                        <option value="not_developed" --}}
+                            {{-- @selected(optional($av->plot->developmentStatus)->overall_status == 'not_developed')> --}}
+                            {{-- @selected($av->overall_status_at_time == 'not_developed')
+                            Not Developed
+                        </option>
+ 
+                    </select>
+                </div> --}}
 
                 <div class="col-md-4">
                     <label>LOP Status</label>

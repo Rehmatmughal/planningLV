@@ -535,11 +535,17 @@ class DashboardController extends Controller
             });
 
 
-        $recentActivity = $recentPossessionActivity
-            ->merge($recentAreaActivity)
+        $recentActivity = collect($recentPossessionActivity->all())
+            ->merge($recentAreaActivity->all())
             ->sortByDesc('created_at')
             ->take(4)
             ->values();
+
+        // $recentActivity = $recentPossessionActivity
+        //     ->merge($recentAreaActivity)
+        //     ->sortByDesc('created_at')
+        //     ->take(4)
+        //     ->values();
 
 
         /*

@@ -123,7 +123,8 @@ class AreaVariationController extends Controller
         $sheet->setCellValue('S2', $variation->lop_status_at_time);  //  LOP status
 
 
-        $sheet->setCellValue('T2', $plot->possessionStatus->possession_status);  // possession status
+        // $sheet->setCellValue('T2', $plot->possessionStatus->possession_status);  // possession status
+        $sheet->setCellValue('T2', $plot->possessionStatus?->possession_status ?? '');
         $sheet->setCellValue('U2', $variation->measured_area);  // plot area
 
 
@@ -150,7 +151,8 @@ class AreaVariationController extends Controller
             $writer->save('php://output');
         }, 200, [
             "Content-Type" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "Content-Disposition" => "attachment; filename=\"report.xlsx\"",
+            // "Content-Disposition" => "attachment; filename=\"report.xlsx\"",
+            "Content-Disposition" => "attachment; filename=\"{$filename}\"",
             "Cache-Control" => "max-age=0",
         ]);
     }
@@ -186,7 +188,7 @@ class AreaVariationController extends Controller
             try {
                 $data = array_combine($header, $row);
 
-                // 🔹 Project ok 
+                // 🔹 Project
                 $project = Project::where('project_name', trim($data['Project']))->first();
                 if (!$project) {
                     throw new \Exception('Project not found');
