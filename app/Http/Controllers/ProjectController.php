@@ -13,10 +13,14 @@ class ProjectController extends Controller
      */
     public function index()
     {
-        $projects = Project::latest()->paginate(10);
+        $projects = Project::withCount('plots')
+            ->latest()
+            ->paginate(10);
+
+        // $projects = Project::latest()->paginate(10);
         return view('projects.index', compact('projects'));
     }
-
+ 
     /**
      * Show the form for creating a new resource.
      */

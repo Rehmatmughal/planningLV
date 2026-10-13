@@ -30,17 +30,9 @@ class BlockController extends Controller
     public function index(Request $request, Project $project = null)
     {
 
-        // Project id GET se ya route se
-        // case-1 (is mn agr value 0, '' ya koi b string hoto usko ye valid id manyga)
-        // $project_id = $request->project_id ?? $project?->id;
-        // case-2 (is mn agr value 0, '' ya koi b string hoto usko ye valid nae manta)
         $project_id = $request->project_id ?: $project?->id;
-
+        $plots = Block::withCount('plots');
         $query = Block::with('project');
-        // for future check for advance filter (next 3 lines)
-        // $query->when($request->block_name, function ($q) use ($request) {
-        //     $q->where('block_name', 'like', '%' . $request->block_name . '%');
-        // });
         if ($project_id) {
             $query->where('project_id', $project_id);
         }
@@ -59,7 +51,8 @@ class BlockController extends Controller
             'blocks',
             'projects',
             'project_id',
-            'project'
+            'project',
+            'plots'
         ));
     }
 

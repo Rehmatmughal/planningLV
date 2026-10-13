@@ -14,7 +14,7 @@
             + Add New Project
         </a>
     </div>
-
+ 
     {{-- Success Alert --}}
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -52,6 +52,9 @@
                                        class="fw-semibold text-decoration-none">
                                         {{ $project->project_name }}
                                     </a>
+                                    <span class="badge bg-secondary ms-2">
+                                        Plots: {{ number_format($project->plots_count) }}
+                                    </span>
                                 </td>
 
                                 <td>{{ $project->project_remarks ?? '-' }}</td>

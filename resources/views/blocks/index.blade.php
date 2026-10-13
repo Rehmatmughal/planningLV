@@ -140,6 +140,9 @@
 
                             <td class="fw-semibold">
                                 {{ $block->block_name }}
+                                <span class="badge bg-secondary ms-2">
+                                    Plots: {{ number_format($plots->plots_count) }}
+                                </span>
                             </td>
 
                             <td>
