@@ -94,16 +94,34 @@ class AreaVariationController extends Controller
         $filename =
             $plot->project->project_name."_".
             $plot->block->block_name."_".
-            $plot->street->street_name."_".
             $plot->plot_number."_".
+            $plot->street->street_name."_".
             $variation->measured_date.".xlsx";
 
             // dd($variation);
 
         // ✅ template load karo
-        $spreadsheet = IOFactory::load(
-            storage_path('app/templates/template.xlsx')
-        );
+        
+        // Plot mortgage status check karein
+        if (strtolower(trim($plot->mortgageStatus?->is_mortgaged ?? 'no')) === 'yes') {
+
+            // Mortgage plot ki Excel template
+            $spreadsheet = IOFactory::load(
+                storage_path('app/templates/template-mortgaged.xlsx')
+            );
+
+        } else {
+
+            // Normal plot ki Excel template
+            $spreadsheet = IOFactory::load(
+                storage_path('app/templates/template.xlsx')
+            );
+
+        }
+        
+        // $spreadsheet = IOFactory::load(
+        //     storage_path('app/templates/template.xlsx')
+        // );
 
         $sheet = $spreadsheet->getActiveSheet();
 
@@ -141,6 +159,8 @@ class AreaVariationController extends Controller
 
         $sheet->setCellValue('Z2', $variation->created_at ?? 'N/A');
         $sheet->setCellValue('AA2', $variation->updated_at ?? 'N/A');
+
+        $sheet->setCellValue('AB2', $plot->mortgageStatus->is_mortgaged ?? 'N/A');           // mortgaged status
 
         // $sheet->setCellValue('B8', $variation->measured_date);
         // $sheet->setCellValue('D8', $variation->measured_area);
