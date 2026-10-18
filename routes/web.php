@@ -525,6 +525,7 @@ Route::get('possession-cases/ajax/streets/{blockId}', [PossessionCaseController:
 Route::get('possession-cases/ajax/search-plots', [PossessionCaseController::class, 'searchPlots'])->name('possession-cases.ajax.search-plots');
 Route::get('possession-cases/ajax/property-types/{projectId}', [PossessionCaseController::class, 'getPropertyTypes'])->name('possession-cases.ajax.property-types');
 
+Route::get('possession-cases/report', [PossessionCaseController::class, 'report'])->name('possession-cases.report');
 Route::resource('possession-cases', PossessionCaseController::class);
     // imports possession case
 
@@ -579,29 +580,14 @@ Route::resource(
 
 // end property type assignment routes
 
-Route::patch(
-    'possession-cases/{possessionCase}/status',
-    [PossessionCaseController::class, 'updateStatus']
-)->name('possession-cases.update-status');
+Route::patch('possession-cases/{possessionCase}/status', [PossessionCaseController::class, 'updateStatus'])->name('possession-cases.update-status');
 // possession case cancelation route
-Route::post(
-    'possession-cases/{possessionCase}/cancel',
-    [PossessionCaseController::class, 'cancel']
-)->name('possession-cases.cancel');
+Route::post('possession-cases/{possessionCase}/cancel', [PossessionCaseController::class, 'cancel'])->name('possession-cases.cancel');
+// route for auto possession no
+Route::get('/possession-cases/ajax/possession-preview/{plotId}', [PossessionCaseController::class, 'getPossessionPreview'])->name('possession-cases.ajax.possession-preview');
 
 // owner routes
 // owner import
-Route::post(
-    '/owners/import',
-    [OwnerController::class, 'import']
-)->name('owners.import');
-
+Route::post('/owners/import', [OwnerController::class, 'import'])->name('owners.import');
 Route::get('/owners/find-by-cnic', [OwnerController::class, 'findByCnic'])->name('owners.findByCnic');
-
-Route::resource('owners', OwnerController::class)
-    ->except(['show']);
-// route for auto possession no
-Route::get(
-    '/possession-cases/ajax/possession-preview/{plotId}',
-    [PossessionCaseController::class, 'getPossessionPreview']
-)->name('possession-cases.ajax.possession-preview');
+Route::resource('owners', OwnerController::class)->except(['show']);

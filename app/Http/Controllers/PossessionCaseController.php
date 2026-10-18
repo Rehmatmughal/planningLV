@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Carbon\Carbon;
+use App\Exports\PossessionCaseReportExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 
 
@@ -3157,7 +3159,406 @@ class PossessionCaseController extends Controller
                 'propertyTypes'
             )
         );
+        
     }
+    
+    public function report(Request $request)
+    {
+        /*
+        |--------------------------------------------------------------------------
+        | Filters
+        |--------------------------------------------------------------------------
+        */
+
+        $request->validate([
+            'project_id' => ['nullable', 'integer', 'exists:projects,id'],
+            'block_id' => ['nullable', 'integer', 'exists:blocks,id'],
+            'property_type_id' => ['nullable', 'integer', 'exists:property_types,id'],
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Base Query
+        |--------------------------------------------------------------------------
+        | Query Builder Eloquent ke SoftDeletes scope ko automatically apply
+        | nahi karta, is liye deleted possession cases ko manually exclude karein.
+        */
+
+        $baseQuery = DB::table('possession_cases as pc')
+            ->join('plots as p', 'p.id', '=', 'pc.plot_id')
+            ->join('projects as pr', 'pr.id', '=', 'p.project_id')
+            ->join('blocks as b', 'b.id', '=', 'p.block_id')
+            ->join('property_types as pt', 'pt.id', '=', 'p.property_type_id')
+            ->whereNull('pc.deleted_at');
+
+        if ($request->filled('project_id')) {
+            $baseQuery->where('p.project_id', $request->project_id);
+        }
+
+        if ($request->filled('block_id')) {
+            $baseQuery->where('p.block_id', $request->block_id);
+        }
+
+        if ($request->filled('property_type_id')) {
+            $baseQuery->where('p.property_type_id', $request->property_type_id);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Common Counting Rules
+        |--------------------------------------------------------------------------
+        */
+
+        $countSql = "
+            COUNT(*) AS total,
+            SUM(CASE WHEN pc.current_status = 'completed'
+                THEN 1 ELSE 0 END) AS completed,
+            SUM(CASE WHEN pc.current_status NOT IN ('completed', 'cancelled')
+                THEN 1 ELSE 0 END) AS in_process,
+            SUM(CASE WHEN pc.current_status = 'cancelled'
+                THEN 1 ELSE 0 END) AS cancelled,
+            SUM(CASE WHEN COALESCE(pc.possession_sequence, 1) = 1
+                THEN 1 ELSE 0 END) AS original_possessions,
+            SUM(CASE WHEN pc.possession_sequence > 1
+                THEN 1 ELSE 0 END) AS re_possessions
+        ";
+
+        /*
+        |--------------------------------------------------------------------------
+        | Overall Summary
+        |--------------------------------------------------------------------------
+        */
+
+        $summary = (clone $baseQuery)
+            ->selectRaw($countSql)
+            ->first();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Status-wise Summary
+        |--------------------------------------------------------------------------
+        */
+
+        $statusLabels = [
+            'received'     => 'Received',
+            'prepared'     => 'Prepared',
+            'signed'       => 'Signed',
+            'approval'     => 'Approval',
+            'receive_back' => 'Received Back',
+            'handed_over'  => 'Handed Over',
+            'completed'    => 'Completed',
+            'cancelled'    => 'Cancelled',
+        ];
+
+        $statusCounts = (clone $baseQuery)
+            ->select('pc.current_status')
+            ->selectRaw('COUNT(*) AS total')
+            ->groupBy('pc.current_status')
+            ->pluck('total', 'current_status');
+
+        $statusSummary = [];
+
+        foreach ($statusLabels as $status => $label) {
+            $statusSummary[] = (object) [
+                'status' => $status,
+                'label' => $label,
+                'total' => (int) ($statusCounts[$status] ?? 0),
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Project-wise Report
+        |--------------------------------------------------------------------------
+        */
+
+        $projectReport = (clone $baseQuery)
+            ->select('pr.id', 'pr.project_name')
+            ->selectRaw($countSql)
+            ->groupBy('pr.id', 'pr.project_name')
+            ->orderBy('pr.project_name')
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Project + Block-wise Report
+        |--------------------------------------------------------------------------
+        */
+
+        $blockReport = (clone $baseQuery)
+            ->select(
+                'pr.project_name',
+                'b.block_name'
+            )
+            ->selectRaw($countSql)
+            ->groupBy(
+                'pr.id',
+                'pr.project_name',
+                'b.id',
+                'b.block_name'
+            )
+            ->orderBy('pr.project_name')
+            ->orderBy('b.block_name')
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Project + Block + Property Type Report
+        |--------------------------------------------------------------------------
+        */
+
+        $propertyTypeReport = (clone $baseQuery)
+            ->select(
+                'pr.project_name',
+                'b.block_name',
+                'pt.name as property_type_name'
+            )
+            ->selectRaw($countSql)
+            ->groupBy(
+                'pr.id',
+                'pr.project_name',
+                'b.id',
+                'b.block_name',
+                'pt.id',
+                'pt.name'
+            )
+            ->orderBy('pr.project_name')
+            ->orderBy('b.block_name')
+            ->orderBy('pt.name')
+            ->get();
+
+            
+        /*
+        |--------------------------------------------------------------------------
+        | Six Summary Reports - Exclude Cancelled Cases
+        |--------------------------------------------------------------------------
+        */
+
+        $detailRows = (clone $baseQuery)
+            ->where('pc.current_status', '!=', 'cancelled')
+            ->join('plotsizes as ps', 'ps.id', '=', 'p.size_id')
+            ->select(
+                'pr.id as project_id',
+                'pr.project_name',
+                'pt.id as property_type_id',
+                'pt.name as property_type_name',
+                'b.id as block_id',
+                'b.block_name',
+                'ps.title as size_title'
+            )
+            ->selectRaw("
+                CASE
+                    WHEN COALESCE(pc.possession_sequence, 1) = 1
+                    THEN 'possession'
+                    ELSE 're_possession'
+                END AS possession_kind,
+                COUNT(*) AS total
+            ")
+            ->groupBy(
+                'pr.id',
+                'pr.project_name',
+                'pt.id',
+                'pt.name',
+                'b.id',
+                'b.block_name',
+                'ps.id',
+                'ps.title',
+                'possession_kind'
+            )
+            ->orderBy('pr.project_name')
+            ->orderBy('pt.name')
+            ->orderBy('b.block_name')
+            ->orderBy('ps.title')
+            ->get();
+
+        $detailedSummaries = [
+            'residential_possessions' => [],
+            'residential_repossessions' => [],
+            'commercial_possessions' => [],
+            'commercial_repossessions' => [],
+        ];
+
+        $overallSummaries = [
+            'residential' => [],
+            'commercial' => [],
+        ];
+
+        $typeGroups = $detailRows->groupBy(function ($row) {
+            return $row->project_id . '|' . $row->property_type_id;
+        });
+
+        foreach ($typeGroups as $typeRows) {
+            $first = $typeRows->first();
+
+            $typeName = trim($first->property_type_name);
+
+            if (in_array($typeName, ['Residencia Plot', 'Greens Plot'], true)) {
+                $category = 'residential';
+            } elseif ($typeName === 'Commercial Plot') {
+                $category = 'commercial';
+            } else {
+                continue;
+            }
+
+            $sizes = $typeRows->pluck('size_title')
+                ->unique()
+                ->sort()
+                ->values()
+                ->all();
+
+            foreach ([
+                'possession' => 'possessions',
+                're_possession' => 'repossessions',
+            ] as $kind => $suffix) {
+                $sectionKey = $category . '_' . $suffix;
+
+                $kindRows = $typeRows
+                    ->where('possession_kind', $kind);
+
+                $blocks = $kindRows->groupBy('block_id');
+
+                $blockData = [];
+
+                foreach ($blocks as $blockRows) {
+                    $block = $blockRows->first();
+                    $counts = [];
+                    $total = 0;
+
+                    foreach ($sizes as $size) {
+                        $count = (int) $blockRows
+                            ->where('size_title', $size)
+                            ->sum('total');
+
+                        $counts[$size] = $count;
+                        $total += $count;
+                    }
+
+                    $blockData[] = [
+                        'block_name' => $block->block_name,
+                        'counts' => $counts,
+                        'total' => $total,
+                    ];
+                }
+
+                $detailedSummaries[$sectionKey][] = [
+                    'project_name' => $first->project_name,
+                    'property_type_name' => $typeName,
+                    'sizes' => $sizes,
+                    'blocks' => $blockData,
+                    'grand_total' => array_sum(
+                        array_column($blockData, 'total')
+                    ),
+                ];
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Overall Residential and Commercial Summaries
+        |--------------------------------------------------------------------------
+        */
+
+        $overallRows = $detailRows->groupBy(function ($row) {
+            return $row->project_id . '|' . $row->block_id;
+        });
+
+        foreach ($overallRows as $rows) {
+            $first = $rows->first();
+
+            foreach ([
+                'residential' => ['Residencia Plot', 'Greens Plot'],
+                'commercial' => ['Commercial Plot'],
+            ] as $category => $allowedTypes) {
+                $categoryRows = $rows->whereIn(
+                    'property_type_name',
+                    $allowedTypes
+                );
+
+                if ($categoryRows->isEmpty()) {
+                    continue;
+                }
+
+                $possession = (int) $categoryRows
+                    ->where('possession_kind', 'possession')
+                    ->sum('total');
+
+                $rePossession = (int) $categoryRows
+                    ->where('possession_kind', 're_possession')
+                    ->sum('total');
+
+                $overallSummaries[$category][] = [
+                    'project_name' => $first->project_name,
+                    'block_name' => $first->block_name,
+                    'possession' => $possession,
+                    're_possession' => $rePossession,
+                    'total' => $possession + $rePossession,
+                ];
+            }
+        }
+
+        foreach ($overallSummaries as $category => $rows) {
+            $overallSummaries[$category] = collect($rows)
+                ->sortBy([
+                    ['project_name', 'asc'],
+                    ['block_name', 'asc'],
+                ])
+                ->values()
+                ->all();
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Filter Dropdowns
+        |--------------------------------------------------------------------------
+        */
+
+        $projects = DB::table('projects')
+            ->select('id', 'project_name')
+            ->orderBy('project_name')
+            ->get();
+
+        $blocks = DB::table('blocks')
+            ->select('id', 'block_name')
+            ->orderBy('block_name')
+            ->get();
+
+        $propertyTypes = DB::table('property_types')
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+        
+        // Excel export — selected filters ke mutabiq
+        if ($request->input('export') === 'excel') {
+            $reportDate = now()->format('d-m-Y');
+
+            $filename = 'Possession_Cases_Report_'
+                . now()->format('Y-m-d_H-i-s')
+                . '.xlsx';
+
+            return Excel::download(
+                new PossessionCaseReportExport(
+                    $detailedSummaries,
+                    $overallSummaries,
+                    $reportDate
+                ),
+                $filename
+            );
+        }
+
+        return view('possession_cases.report', compact(
+            'summary',
+            'statusSummary',
+            'projectReport',
+            'blockReport',
+            'propertyTypeReport',
+            'projects',
+            'blocks',
+            'propertyTypes',
+            'detailedSummaries',
+            'overallSummaries'
+        ));
+    }
+
 
     /**
     * Show form for creating a new possession case.
