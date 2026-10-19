@@ -134,16 +134,151 @@ class PossessionCaseDetailSheet implements FromArray, WithTitle, ShouldAutoSize,
         return $rows;
     }
 
+    // public function styles(Worksheet $sheet): array
+    // {
+    //     return [
+    //         1 => [
+    //             'font' => [
+    //                 'bold' => true,
+    //                 'size' => 14,
+    //             ],
+    //         ],
+    //     ];
+    // }
+    
     public function styles(Worksheet $sheet): array
     {
-        return [
-            1 => [
-                'font' => [
-                    'bold' => true,
-                    'size' => 14,
+        $styles = [];
+
+        $lastRow = $sheet->getHighestRow();
+        $sheetLastColumn = $sheet->getHighestDataColumn();
+
+        // Har populated row par thin borders aur vertical alignment
+        for ($row = 1; $row <= $lastRow; $row++) {
+            $firstValue = trim((string) $sheet->getCell("A{$row}")->getValue());
+
+            if ($firstValue === '') {
+                continue;
+            }
+
+            $lastColumn = $sheet->getHighestDataColumn($row);
+            $range = "A{$row}:{$lastColumn}{$row}";
+
+            $styles[$range] = [
+                'alignment' => [
+                    'vertical' => 'center',
                 ],
-            ],
-        ];
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                        'color' => ['rgb' => 'D9E2F3'],
+                    ],
+                ],
+            ];
+
+            // Main report title
+            if ($firstValue === 'Possession Cases Report') {
+                $styles["A{$row}:{$sheetLastColumn}{$row}"] = [
+                    'font' => [
+                        'bold' => true,
+                        'size' => 16,
+                        'color' => ['rgb' => 'FFFFFF'],
+                    ],
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => '1F4E78'],
+                    ],
+                    'alignment' => [
+                        'vertical' => 'center',
+                    ],
+                ];
+            }
+
+            // Project aur property type headings
+            elseif (in_array($firstValue, ['Project', 'Property Type'], true)) {
+                $styles["A{$row}:{$lastColumn}{$row}"] = [
+                    'font' => [
+                        'bold' => true,
+                        'color' => ['rgb' => '1F1F1F'],
+                    ],
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => 'DDEBF7'],
+                    ],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                            'color' => ['rgb' => 'B4C6E7'],
+                        ],
+                    ],
+                ];
+            }
+
+            // Table column headings
+            elseif ($firstValue === 'Block') {
+                $styles["A{$row}:{$lastColumn}{$row}"] = [
+                    'font' => [
+                        'bold' => true,
+                        'color' => ['rgb' => 'FFFFFF'],
+                    ],
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => '4472C4'],
+                    ],
+                    'alignment' => [
+                        'horizontal' => 'center',
+                        'vertical' => 'center',
+                        'wrapText' => true,
+                    ],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                            'color' => ['rgb' => 'B4C6E7'],
+                        ],
+                    ],
+                ];
+            }
+
+            // Grand Total row
+            elseif ($firstValue === 'Grand Total') {
+                $styles["A{$row}:{$lastColumn}{$row}"] = [
+                    'font' => [
+                        'bold' => true,
+                    ],
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => 'FFF2CC'],
+                    ],
+                    'borders' => [
+                        'top' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM,
+                            'color' => ['rgb' => '7F6000'],
+                        ],
+                        'bottom' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                            'color' => ['rgb' => '7F6000'],
+                        ],
+                    ],
+                ];
+            }
+        }
+
+        // Report date
+        for ($row = 1; $row <= $lastRow; $row++) {
+            if (trim((string) $sheet->getCell("A{$row}")->getValue()) === 'Report Date') {
+                $styles["A{$row}:B{$row}"] = [
+                    'font' => [
+                        'bold' => true,
+                    ],
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => 'E2F0D9'],
+                    ],
+                ];
+            }
+        }
+
+        return $styles;
     }
 }
 
@@ -231,15 +366,129 @@ class PossessionCaseOverallSheet implements FromArray, WithTitle, ShouldAutoSize
         return $rows;
     }
 
+    // public function styles(Worksheet $sheet): array
+    // {
+    //     return [
+    //         1 => [
+    //             'font' => [
+    //                 'bold' => true,
+    //                 'size' => 14,
+    //             ],
+    //         ],
+    //     ];
+    // }
+    
     public function styles(Worksheet $sheet): array
     {
-        return [
-            1 => [
-                'font' => [
-                    'bold' => true,
-                    'size' => 14,
+        $styles = [];
+
+        $lastRow = $sheet->getHighestRow();
+        $sheetLastColumn = $sheet->getHighestDataColumn();
+
+        for ($row = 1; $row <= $lastRow; $row++) {
+            $firstValue = trim((string) $sheet->getCell("A{$row}")->getValue());
+
+            if ($firstValue === '') {
+                continue;
+            }
+
+            $lastColumn = $sheet->getHighestDataColumn($row);
+            $range = "A{$row}:{$lastColumn}{$row}";
+
+            $styles[$range] = [
+                'alignment' => [
+                    'vertical' => 'center',
                 ],
-            ],
-        ];
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                        'color' => ['rgb' => 'D9E2F3'],
+                    ],
+                ],
+            ];
+
+            if ($firstValue === 'Possession Cases Report') {
+                $styles["A{$row}:{$sheetLastColumn}{$row}"] = [
+                    'font' => [
+                        'bold' => true,
+                        'size' => 16,
+                        'color' => ['rgb' => 'FFFFFF'],
+                    ],
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => '1F4E78'],
+                    ],
+                    'alignment' => [
+                        'vertical' => 'center',
+                    ],
+                ];
+            } elseif ($firstValue === 'Project') {
+                $styles["A{$row}:B{$row}"] = [
+                    'font' => [
+                        'bold' => true,
+                        'color' => ['rgb' => '1F1F1F'],
+                    ],
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => 'DDEBF7'],
+                    ],
+                ];
+            } elseif ($firstValue === 'Sr. No.') {
+                $styles["A{$row}:E{$row}"] = [
+                    'font' => [
+                        'bold' => true,
+                        'color' => ['rgb' => 'FFFFFF'],
+                    ],
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => '4472C4'],
+                    ],
+                    'alignment' => [
+                        'horizontal' => 'center',
+                        'vertical' => 'center',
+                        'wrapText' => true,
+                    ],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                            'color' => ['rgb' => 'B4C6E7'],
+                        ],
+                    ],
+                ];
+            } elseif ($firstValue === 'Project Total') {
+                $styles["A{$row}:E{$row}"] = [
+                    'font' => [
+                        'bold' => true,
+                    ],
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => 'FFF2CC'],
+                    ],
+                    'borders' => [
+                        'top' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM,
+                            'color' => ['rgb' => '7F6000'],
+                        ],
+                    ],
+                ];
+            }
+        }
+
+        for ($row = 1; $row <= $lastRow; $row++) {
+            if (trim((string) $sheet->getCell("A{$row}")->getValue()) === 'Report Date') {
+                $styles["A{$row}:B{$row}"] = [
+                    'font' => [
+                        'bold' => true,
+                    ],
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => 'E2F0D9'],
+                    ],
+                ];
+            }
+        }
+
+        return $styles;
     }
+
 }
