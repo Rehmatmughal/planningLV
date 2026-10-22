@@ -6,6 +6,12 @@
 
     {{-- Page Header --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
+    
+        <a href="javascript:history.back()"
+        class="btn btn-outline-secondary">
+            &larr; Back
+        </a>
+
         <h4 class="fw-bold mb-0">
             {{-- 🧱 Blocks – --}}
             {{-- <span class="text-primary">{{ $project->project_name }}</span> --}}
@@ -141,7 +147,7 @@
                             <td class="fw-semibold">
                                 {{ $block->block_name }}
                                 <span class="badge bg-secondary ms-2">
-                                    Plots: {{ number_format($plots->plots_count) }}
+                                    Plots: {{ number_format($block->plots_count) }}
                                 </span>
                             </td>
 

@@ -49,8 +49,14 @@ Route::middleware('auth')->group(function () {
     // profile routes -- end --
 
     // activity routes -- start --
-    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity.logs');
-    Route::get('/activity-logs-export', [ActivityLogController::class, 'export'])->name('activity.logs.export');
+    // Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity.logs');
+    // Route::get('/activity-logs-export', [ActivityLogController::class, 'export'])->name('activity.logs.export');
+    
+    // activity routes -- start --
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->middleware('permission:activity.view')->name('activity.logs');
+    Route::get('/activity-logs-export', [ActivityLogController::class, 'export'])->middleware('permission:activity.view')->name('activity.logs.export');
+    // activity routes -- end --
+
     // activity routes -- end --
 
     Route::middleware('permission:user.view')->prefix('admin')->name('admin.')->group(function () {
@@ -64,14 +70,14 @@ Route::middleware('auth')->group(function () {
 
     });
 
-    Route::middleware('permission:role.view')->prefix('admin')->name('admin.')->group(function () {
-        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-        Route::get('/roles/create', [RoleController::class, 'create'])->middleware('permission:role.create')->name('roles.create');
-        Route::post('/roles', [RoleController::class, 'store'])->middleware('permission:role.store')->name('roles.store');
-        Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->middleware('permission:role.edit')->name('roles.edit');
-        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:role.delete')->name('roles.destroy');
+    // Route::middleware('permission:role.view')->prefix('admin')->name('admin.')->group(function () {
+    //     Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+    //     Route::get('/roles/create', [RoleController::class, 'create'])->middleware('permission:role.create')->name('roles.create');
+    //     Route::post('/roles', [RoleController::class, 'store'])->middleware('permission:role.store')->name('roles.store');
+    //     Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->middleware('permission:role.edit')->name('roles.edit');
+    //     Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:role.delete')->name('roles.destroy');
         
-    });
+    // });
     Route::middleware('permission:project.view')->prefix('admin')->group(function () {
         Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
         Route::get('/projects/create', [ProjectController::class, 'create'])->middleware('permission:project.create')->name('projects.create');
@@ -130,202 +136,29 @@ Route::middleware('auth')->group(function () {
         Route::delete('/development/{plot}', [DevelopmentStatusController::class, 'destroy'])->middleware('permission:development.edit')->name('development.destroy');
     });
 
+    Route::patch('possession-cases/{possessionCase}/status', [PossessionCaseController::class, 'updateStatus'])->name('possession-cases.update-status');
+    // possession case cancelation route
+    Route::post('possession-cases/{possessionCase}/cancel', [PossessionCaseController::class, 'cancel'])->name('possession-cases.cancel');
+    // route for auto possession no
+    Route::get('/possession-cases/ajax/possession-preview/{plotId}', [PossessionCaseController::class, 'getPossessionPreview'])->name('possession-cases.ajax.possession-preview');
+
+    // owner routes
+    // owner import
+    Route::post('/owners/import', [OwnerController::class, 'import'])->name('owners.import');
+    Route::get('/owners/find-by-cnic', [OwnerController::class, 'findByCnic'])->name('owners.findByCnic');
+    Route::resource('owners', OwnerController::class)->except(['show']);
+
 });
 
-// for checking only -- start --
-
-// for check end
-
-// new setting of routes -- End -- 
-
-// routes to be set
 
 //
 
 Route::middleware(['auth','role:admin|super-admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/admindashboard', [AdminDashboardController::class, 'index'])
-        // ->middleware('permission:user.create')
-        ->name('admin.index');
-
+    Route::get('/admindashboard', [AdminDashboardController::class, 'index'])->name('admin.index');
 });
 
-// testing stage
-// Route::middleware(['auth','permission:user.view'])->prefix('admin')->name('admin.')->group(function () {
-
-//     Route::get('/users', [UserController::class, 'index'])->name('users.index');
-//     Route::get('/users/create', [UserController::class, 'create'])
-//         ->middleware('permission:user.create')
-//         ->name('users.create');
-
-//     Route::post('/users', [UserController::class, 'store'])
-//         ->middleware('permission:user.create')
-//         ->name('users.store');
-
-//     Route::get('/users/{user}/edit', [UserController::class, 'edit'])
-//         ->middleware('permission:user.edit')
-//         ->name('users.edit');
-
-//     Route::put('/users/{user}', [UserController::class, 'update'])
-//         ->middleware('permission:user.edit')
-//         ->name('users.update');
-//     // for password change
-
-// });
-// testing stage end
-
-
-//  for passwrod change
-// ye change password remove kr dia ha ku k ye function already Auth.php mn ha
-    // Route::get('/change-password', function () {
-    //     return view('auth.change-password');
-    // })->middleware('auth')->name('password.form');
-    // Route::post('/change-password', [UserController::class, 'changePassword'])
-    //     ->middleware('auth')
-    //     ->name('password.change');
-
-
-// Route::middleware(['auth','role:admin|super-admin'])->prefix('admin')->name('admin.')->group(function () {
-// Route::middleware(['auth','permission:role.view'])->prefix('admin')->name('admin.')->group(function () {
-//     Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-//     Route::get('/roles/create', [RoleController::class, 'create'])
-//         ->middleware('permission:role.create')
-//         ->name('roles.create');
-
-//     Route::post('/roles', [RoleController::class, 'store'])
-//         ->middleware('permission:role.store')
-//         // ->name('roles.create');
-//         ->name('roles.store');
-//     Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])
-//         ->middleware('permission:role.edit')
-//         ->name('roles.edit');
-//     // Route::put('/roles/{role}', [RoleController::class, 'update'])
-//     //     ->middleware('permission:role.edit')
-//     //     ->name('roles.update'); 
-//     // Route::delete('/roles/{role}',[RoleController::class, 'destroy'])
-//     //     ->middleware('permission:role.delete')
-//     //     ->name('roles.destroy');
-//     Route::delete('/roles/{role}', [RoleController::class, 'destroy'])
-//         ->middleware('permission:role.delete')
-//         ->name('roles.destroy');
-
-//     // Route::resource('roles', RoleController::class);
-//     // old resource route
-//     // Route::resource('permissions', PermissionController::class);
-
-// });
-
-
-
-// project route change resource into manual
-
-// Route::middleware(['auth','permission:project.view'])->prefix('admin')->name('admin.')->group(function () {
-// Route::middleware(['auth','permission:project.view'])->prefix('admin')->group(function () {
-//     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
-//     Route::get('/projects/create', [ProjectController::class, 'create'])
-//         ->middleware('permission:project.create')
-//         ->name('projects.create');
-    
-//     Route::post('/projects', [ProjectController::class, 'store'])
-//         ->middleware('permission:project.create')
-//         ->name('projects.store');
-//     Route::get('/projects/{project}/edit', [ProjectController::class, 'edit'])
-//         ->middleware('permission:project.edit')
-//         ->name('projects.edit');
-//     Route::put('/projects/{project}', [ProjectController::class, 'update'])
-//         ->middleware('permission:project.update')
-//         ->name('projects.update');
-//     Route::delete('/projects/{project}',[ProjectController::class, 'destroy'])
-//         ->middleware('permission:project.delete')
-//         ->name('projects.destroy');
-// });
-
-// block route from resource to genral routes
-// Route::middleware(['auth','permission:block.view'])->prefix('admin')->group(function () {
-//     Route::get('/blocks', [BlockController::class, 'index'])->name('blocks.index');
-//     Route::get('/blocks/create', [BlockController::class, 'create'])
-//         ->middleware('permission:block.create')
-//         ->name('blocks.create');    
-//     Route::post('/blocks', [BlockController::class, 'store'])
-//         ->middleware('permission:block.create')
-//         ->name('blocks.store');
-//     Route::get('/blocks/{block}/edit', [BlockController::class, 'edit'])
-//         ->middleware('permission:block.edit')
-//         ->name('blocks.edit');
-//     Route::put('/blocks/{block}', [BlockController::class, 'update'])
-//         ->middleware('permission:block.update')
-//         ->name('blocks.update');
-//     Route::delete('/blocks/{block}',[BlockController::class, 'destroy'])
-//         ->middleware('permission:block.delete')
-//         ->name('blocks.destroy');
-// // index of blocks of selected project
-//     Route::get('/projects/{project}/blocks', [BlockController::class, 'index'])
-//         ->middleware('permission:block.view')
-//         ->name('projects.blocks.index');
-// });
-
-// routes for plotcontroller 
-// Route::middleware(['auth','permission:plot.view'])->prefix('admin')->group(function () {
-
-// // route for excel exports blockwise plots
-//     Route::get('/blocks/{block}/plots/export', [PlotController::class, 'exportBlockPlots'])
-//             ->middleware('permission:plot.excel')
-//             ->name('blocks.plots.export');
-//     Route::get('/streets/{street}/plots', [PlotController::class, 'indexByStreet'])
-//             ->middleware('permission:plot.view')
-//             ->name('streets.plots.index');
-//     Route::get('/plot/{id}', [PlotController::class, 'show'])
-//             ->middleware('permission:plot.view')
-//             ->name('plots.show');
-//     Route::get('/plots', [PlotController::class, 'index'])->name('plots.index');
-//     Route::get('/plots/create', [plotController::class, 'create'])
-//         ->middleware('permission:plot.create')
-//         ->name('plots.create');    
-//     Route::post('/plots', [PlotController::class, 'store'])
-//         ->middleware('permission:plot.create')
-//         ->name('plots.store');
-//     Route::get('/plots/{plot}/edit', [PlotController::class, 'edit'])
-//         ->middleware('permission:plot.edit')
-//         ->name('plots.edit');
-//     Route::put('/plots/{plot}', [PlotController::class, 'update'])
-//         ->middleware('permission:plot.update')
-//         ->name('plots.update');
-//     Route::delete('/plots/{plot}',[PlotController::class, 'destroy'])
-//         ->middleware('permission:plot.delete')
-//         ->name('plots.destroy');
-//         // deleted plots and restore route
-//     Route::get('/plots/deleted', [PlotController::class, 'deleted'])
-//         ->middleware('permission:plot.trashview')
-//         ->name('plots.deleted');
-
-//     Route::get('/plots/{id}/deleted-view', [PlotController::class, 'deletedView'])
-//         ->middleware('permission:plot.trashview')
-//         ->name('plots.deleted.view');
-
-//     Route::put('/plots/{id}/restore', [PlotController::class, 'restore'])
-//         ->middleware('permission:plot.restore')
-//         ->name('plots.restore');
-
-//     Route::delete('/plots/{id}/force-delete', [PlotController::class, 'forceDelete'])
-//         ->middleware('permission:plot.force-delete')
-//         ->name('plots.forceDelete');
-
-//     // getassigned size
-
-//     // Route::get(
-//     //     '/get-assigned-sizes/{project_id}/{block_id}/{property_type_id}',
-//     //     [PlotController::class, 'getAssignedSizes']
-//     // )->name('plots.assigned-sizes');
-//     Route::get(
-//         '/get-assigned-sizes/{project_id}/{block_id}/{property_type_id}',
-//         [PlotController::class, 'getAssignedSizes']
-//     )->name('plots.assigned-sizes');
-// });
-
 Route::middleware(['auth','permission:areavariation.view'])->prefix('admin')->group(function () {
-
-    Route::get('/area-variations/createnew/{plot_id}', [AreaVariationController::class, 'createnew'])
-        ->middleware('permission:areavariation.create')
-        ->name('area_variations.createnew');
+    Route::get('/area-variations/createnew/{plot_id}', [AreaVariationController::class, 'createnew'])->middleware('permission:areavariation.create')->name('area_variations.createnew');
 });
 
     // AJAX endpoints (controller methods described below)
@@ -344,7 +177,6 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
 
 // street controller resource into auth system
 Route::middleware(['auth','permission:street.view'])->prefix('admin')->group(function () {
-
     Route::get('/streets', [StreetController::class, 'index'])->name('streets.index');
     // for special streets index
     Route::get('/blocks/{block}/streets', [StreetController::class, 'index'])->name('blocks.streets.index');
@@ -355,63 +187,38 @@ Route::middleware(['auth','permission:street.view'])->prefix('admin')->group(fun
     Route::delete('/streets/{street}',[streetController::class, 'destroy'])->middleware('permission:street.delete')->name('streets.destroy');
 });
 // size routes resource into authsystem
-Route::middleware(['auth','permission:size.view'])->prefix('admin')->group(function () {
- 
+Route::middleware(['auth','permission:size.view'])->prefix('admin')->group(function () { 
     Route::get('/sizes', [PlotsizeController::class, 'index'])->name('sizes.index');
     Route::get('/sizes/create', [PlotsizeController::class, 'create'])->middleware('permission:size.create')->name('sizes.create');    
     Route::post('/ssizes', [PlotsizeController::class, 'store'])->middleware('permission:size.create')->name('sizes.store');
     Route::get('/sizes/{size}/edit', [PlotsizeController::class, 'edit'])->middleware('permission:size.edit')->name('sizes.edit');
     Route::put('/sizes/{size}', [PlotsizeController::class, 'update'])->middleware('permission:size.update')->name('sizes.update');
     Route::delete('/sizes/{size}',[PlotsizeController::class, 'destroy'])->middleware('permission:size.delete')->name('sizes.destroy');
-    
     // Trash / Deleted Sizes
     Route::get('sizes-trash', [PlotsizeController::class, 'trash'])->middleware('permission:size.trashview')->name('sizes.trash');
-
     // Restore Deleted Size
     Route::post('sizes/{id}/restore', [PlotsizeController::class, 'restore'])->middleware('permission:size.trashrestore')->name('sizes.restore');
-
     Route::delete('/sizes/{id}/force-delete', [PlotsizeController::class, 'forceDelete'])->middleware('permission:size.delete')->name('sizes.forceDelete');
 });
 
 Route::middleware(['auth'])->group(function () {
 
-    // Route::resource('projects', ProjectController::class);
-    // Route::resource('blocks', BlockController::class);
-    // Route::resource('plots', PlotController::class);
-    // Route::resource('streets', StreetController::class);
-    // Route::resource('sizes', PlotsizeController::class);
     Route::resource('categories', PlotCategoryTypeController::class);
 
     // new check 
     // Route::get('/',[BlockController::class,'showBlocks'])->name('home');
     Route::get('/add-block', [BlockController::class, 'addBlock'])->name('addblock');
-    // get blocks of special project
-    // Route::get('/getblocks/{proid}', [BlockController::class, 'projectwise'])->name('projectwiseb');
-
-    // delete street index by blockwise (old method)
-    // Route::get('/blocks/{block}/plots', [PlotController::class, 'indexByBlock'])
-    //     ->name('blocks.plots.index');
-
-    // Route::get('/projects/{project}/blocks', [BlockController::class, 'index'])->name('projects.blocks.index');
-
-    // Route::get('/getblocks/{proid}/{pname}', [BlockController::class, 'createpsproject'])->name('psproject');
-
-    // from chatbpt
     Route::get('/blocks/createpsproject/{project_id?}', [BlockController::class, 'createpsproject'])->name('blocks.createpsproject');
-
     Route::post('/save-block', [BlockController::class, 'saveBlock'])->name('saveblock');
     // for blockwise plot list
     Route::get('/get-plots/{block_id}', [PlotController::class, 'blockwise'])->name('getplots');
     // plot detail print route 
     Route::get('/plot/{id}/print', [PlotController::class, 'print'])->name('plot.print');
     // plot coordinate 
-    Route::get('/plot/{plot}/googlemap', [PlotController::class, 'getMap'])->name('googlemap.index');
-
-    
+    Route::get('/plot/{plot}/googlemap', [PlotController::class, 'getMap'])->name('googlemap.index');    
     // new store routes
     Route::get('/area-variations/create/{plot}', [AreaVariationController::class, 'create'])
         ->name('area_variations.create');
-
 
     // new routes
     // Route::post('/area-variations/{plot}/{area?}', [AreaVariationController::class, 'store'])->name('area_variations.store');
@@ -449,82 +256,49 @@ Route::middleware(['auth'])->group(function () {
     // for export complete area variation
     Route::get('/area-variations/export-all', [AreaVariationController::class, 'exportAll'])->name('area-variations.export-all');
 
-
-
     // Plots Filtering (AJAX)
     Route::get('/plots/filter', [PlotController::class, 'filter'])->name('plots.filter');
     // Fetch Blocks by Project
-    Route::get('/blocks/by-project/{project_id}', [BlockController::class, 'getBlocksByProject'])
-        ->name('blocks.byProject');
-
+    Route::get('/blocks/by-project/{project_id}', [BlockController::class, 'getBlocksByProject'])->name('blocks.byProject');
     // Fetch Streets by Block
-    Route::get('/streets/by-block/{block_id}', [StreetController::class, 'getStreetsByBlock'])
-        ->name('streets.byBlock');
-
-        // new working for admin pannel V1.2
-
+    Route::get('/streets/by-block/{block_id}', [StreetController::class, 'getStreetsByBlock'])->name('streets.byBlock');
         // for import area variations
     Route::get('/import-area-variations', [AreaVariationController::class, 'importAreaVariations']);
     // areavarition filter section depanded dropdown 
     Route::get('/ajax/blocks-by-project/{project}', function ($projectId) {
-        return \App\Models\Block::where('project_id', $projectId)
-            ->orderBy('block_name') 
-            ->get(['id', 'block_name']);
+        return \App\Models\Block::where('project_id', $projectId)->orderBy('block_name')->get(['id', 'block_name']);
     })->name('ajax.blocks.by.project');
     // route for excel exports
-    Route::get('/projects/{project}/blocks/excel', [BlockController::class, 'exportProjectBlocksExcel']
-    )->name('projects.blocks.excel');
+    Route::get('/projects/{project}/blocks/excel', [BlockController::class, 'exportProjectBlocksExcel'])->name('projects.blocks.excel');
 
 });
 
-
 Route::middleware(['auth','permission:user.view'])->prefix('admin')->name('admin.')->group(function () {
-
-    Route::delete('/users/{user}', [UserController::class, 'destroy'])
-        ->middleware('permission:user.delete')
-        ->name('users.destroy');
-
-//     // Route::post('/change-password', [UserController::class, 'changePassword'])
-//     //     ->name('password.change');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->middleware('permission:user.delete')->name('users.destroy');
     
 });
 
 // Route::middleware(['auth','role:admin|super-admin'])->prefix('admin')->name('admin.')->group(function () {
 Route::middleware(['auth','permission:role.view'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-    Route::get('/roles/create', [RoleController::class, 'create'])
-        ->middleware('permission:role.create')
-        ->name('roles.create');
-    
-    Route::post('/roles', [RoleController::class, 'store'])
-        ->middleware('permission:role.create')
-        ->name('roles.store');
-    Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])
-        ->middleware('permission:role.edit')
-        ->name('roles.edit');
-    Route::put('/roles/{role}', [RoleController::class, 'update'])
-        ->middleware('permission:role.edit')
-        ->name('roles.update');
-    Route::delete('/roles',[RoleController::class, 'destroy'])
-        ->middleware('permission:role.destroy')
-        ->name('roles.destroy');
-    
+    Route::get('/roles/create', [RoleController::class, 'create'])->middleware('permission:role.create')->name('roles.create');   
+    Route::post('/roles', [RoleController::class, 'store'])->middleware('permission:role.create')->name('roles.store');
+    Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->middleware('permission:role.edit')->name('roles.edit');
+    Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('permission:role.edit')->name('roles.update');
+    // Route::delete('/roles',[RoleController::class, 'destroy'])->middleware('permission:role.destroy')->name('roles.destroy');
+    Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:role.delete')->name('roles.destroy');
 
 });
 
 Route::middleware(['auth','permission:permission.view'])->prefix('admin')->name('admin.')->group(function () {
-    // Route::resource('roles', RoleController::class);
     Route::resource('permissions', PermissionController::class);
 
 });
-
 // AJAX routes of possession-case
-
 Route::get('possession-cases/ajax/blocks/{projectId}', [PossessionCaseController::class, 'getBlocks'])->name('possession-cases.ajax.blocks');
 Route::get('possession-cases/ajax/streets/{blockId}', [PossessionCaseController::class, 'getStreets'])->name('possession-cases.ajax.streets');
 Route::get('possession-cases/ajax/search-plots', [PossessionCaseController::class, 'searchPlots'])->name('possession-cases.ajax.search-plots');
 Route::get('possession-cases/ajax/property-types/{projectId}', [PossessionCaseController::class, 'getPropertyTypes'])->name('possession-cases.ajax.property-types');
-
 Route::get('possession-cases/report', [PossessionCaseController::class, 'report'])->name('possession-cases.report');
 Route::resource('possession-cases', PossessionCaseController::class);
     // imports possession case
@@ -538,14 +312,9 @@ Route::resource('possession-cases', PossessionCaseController::class);
     
 // property type Assignment routes
 Route::resource('property-types', PropertyTypeController::class);
-Route::get(
-    '/property-type-assignments/blocks/{project_id}',
-    [PropertyTypeAssignmentController::class, 'getBlocks']
-)->name('property-type-assignments.blocks');
+Route::get('/property-type-assignments/blocks/{project_id}',[PropertyTypeAssignmentController::class, 'getBlocks'])->name('property-type-assignments.blocks');
 
-Route::resource(
-    'property-type-assignments',
-    PropertyTypeAssignmentController::class
+Route::resource('property-type-assignments', PropertyTypeAssignmentController::class
 )->only([
     'index',
     'create',
@@ -555,20 +324,9 @@ Route::resource(
     'destroy',
 ]);
 
-// test
-// test 2
-Route::get(
-    '/plot-size-assignments/blocks/{project_id}',
-    [PlotSizeAssignmentController::class, 'getBlocks']
-)->name('plot-size-assignments.blocks');
-Route::get(
-    '/plot-size-assignments/sizes/{project_id}',
-    [PlotSizeAssignmentController::class, 'getSizes']
-)->name('plot-size-assignments.sizes');
-Route::resource(
-    'plot-size-assignments',
-    PlotSizeAssignmentController::class
-)->only([
+Route::get('/plot-size-assignments/blocks/{project_id}', [PlotSizeAssignmentController::class, 'getBlocks'])->name('plot-size-assignments.blocks');
+Route::get('/plot-size-assignments/sizes/{project_id}', [PlotSizeAssignmentController::class, 'getSizes'])->name('plot-size-assignments.sizes');
+Route::resource('plot-size-assignments', PlotSizeAssignmentController::class)->only([
     'index',
     'create',
     'store',
@@ -580,14 +338,3 @@ Route::resource(
 
 // end property type assignment routes
 
-Route::patch('possession-cases/{possessionCase}/status', [PossessionCaseController::class, 'updateStatus'])->name('possession-cases.update-status');
-// possession case cancelation route
-Route::post('possession-cases/{possessionCase}/cancel', [PossessionCaseController::class, 'cancel'])->name('possession-cases.cancel');
-// route for auto possession no
-Route::get('/possession-cases/ajax/possession-preview/{plotId}', [PossessionCaseController::class, 'getPossessionPreview'])->name('possession-cases.ajax.possession-preview');
-
-// owner routes
-// owner import
-Route::post('/owners/import', [OwnerController::class, 'import'])->name('owners.import');
-Route::get('/owners/find-by-cnic', [OwnerController::class, 'findByCnic'])->name('owners.findByCnic');
-Route::resource('owners', OwnerController::class)->except(['show']);

@@ -27,20 +27,57 @@ class BlockController extends Controller
      * Display a listing of the resource.
      */
 
+    // public function index(Request $request, Project $project = null)
+    // {
+
+    //     $project_id = $request->project_id ?: $project?->id;
+    //     $plots = Block::withCount('plots');
+    //     $query = Block::with('project');
+    //     if ($project_id) {
+    //         $query->where('project_id', $project_id);
+    //     }
+
+    //     $query->join('projects', 'projects.id', '=', 'blocks.project_id')
+    //         ->orderBy('projects.project_name')
+    //         ->orderBy('blocks.block_name')
+    //         ->select('blocks.*');
+
+    //     $blocks = $query->paginate(10);
+    //     $blocks->appends($request->all());
+
+    //     $projects = Project::orderBy('project_name')->get();
+
+    //     return view('blocks.index', compact(
+    //         'blocks',
+    //         'projects',
+    //         'project_id',
+    //         'project',
+    //         'plots'
+    //     ));
+    // }
+    
     public function index(Request $request, Project $project = null)
     {
-
         $project_id = $request->project_id ?: $project?->id;
-        $plots = Block::withCount('plots');
-        $query = Block::with('project');
+
+        $query = Block::with('project')
+            ->withCount('plots');
+
         if ($project_id) {
-            $query->where('project_id', $project_id);
+            $query->where('blocks.project_id', $project_id);
         }
 
+        // $query->join('projects', 'projects.id', '=', 'blocks.project_id')
+        //     ->orderBy('projects.project_name')
+        //     ->orderBy('blocks.block_name')
+        //     ->select('blocks.*');
+        
         $query->join('projects', 'projects.id', '=', 'blocks.project_id')
             ->orderBy('projects.project_name')
             ->orderBy('blocks.block_name')
-            ->select('blocks.*');
+            ->select('blocks.*')
+            ->withCount('plots');
+
 
         $blocks = $query->paginate(10);
         $blocks->appends($request->all());
@@ -51,10 +88,10 @@ class BlockController extends Controller
             'blocks',
             'projects',
             'project_id',
-            'project',
-            'plots'
+            'project'
         ));
     }
+
 
 // old index without filter lock
     // public function index(Request $request)

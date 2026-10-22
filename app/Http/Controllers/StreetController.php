@@ -23,9 +23,9 @@ class StreetController extends Controller
         $block_id = $request->block_id ?? $block?->id;
 
         $project_id = $request->project_id ?? $block?->project_id;
-        
-        
+                
         $streets = Street::with(['project','block'])
+            ->withCount('plots')
             ->when($project_id, function ($q) use ($project_id) {
                 $q->where('project_id', $project_id);
             })

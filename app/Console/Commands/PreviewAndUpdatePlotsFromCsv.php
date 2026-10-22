@@ -93,20 +93,32 @@ class PreviewAndUpdatePlotsFromCsv extends Command
 
         // Safety check: do not run against the live database.
 
+        // old safty check
+        // $database = DB::connection()->getDatabaseName();
+        // if ($database !== 'project_table-ibechs-temp') {
+        //     $this->error(
+        //         "Safety stop: current database is '{$database}'. "
+        //         . 'Testing must use project_table-ibechs-temp.'
+        //     );
+        //     return self::FAILURE;
+        // }
+
+        
         $database = DB::connection()->getDatabaseName();
-        if ($database !== 'project_table-ibechs-temp') {
+
+        $allowedDatabases = [
+            'project_table-ibechs-temp',
+            'project_table-ibechs',
+        ];
+
+        if (!in_array($database, $allowedDatabases, true)) {
             $this->error(
-
                 "Safety stop: current database is '{$database}'. "
-
-                . 'Testing must use project_table-ibechs-temp.'
-
-
+                . 'Only approved databases are allowed.'
             );
-
             return self::FAILURE;
-
         }
+
 
         foreach ($this->requiredTables as $table) {
 
@@ -925,12 +937,26 @@ class PreviewAndUpdatePlotsFromCsv extends Command
             return self::FAILURE;
         }
 
-        if (($meta['database'] ?? '') !== 'project_table-ibechs-temp') {
+        // if (($meta['database'] ?? '') !== 'project_table-ibechs-temp') {
+        //     $this->error(
+        //         'Preview was not generated for the temporary database.'
+        //     );
+        //     return self::FAILURE;
+        // }
+        
+        $currentDatabase = DB::connection()->getDatabaseName();
+        $previewDatabase = $meta['database'] ?? '';
+
+        if ($previewDatabase !== $currentDatabase) {
             $this->error(
-                'Preview was not generated for the temporary database.'
+                "Safety stop: preview database is '{$previewDatabase}', "
+                . "but current database is '{$currentDatabase}'. "
+                . 'Generate a new preview for the current database before applying.'
             );
+
             return self::FAILURE;
         }
+
         if (
             ($meta['source_sha256'] ?? '') !== hash_file('sha256', $file)
         ) {

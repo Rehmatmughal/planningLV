@@ -133,9 +133,10 @@
     <table class="table table-bordered">
         <thead>
             <tr>
+                <th>Street</th>
                 <th>Project</th>
                 <th>Block</th>
-                <th>Street</th>
+                
                 @if(auth()->user()->canany(['street.edit','street.delete','plot.view']))
                 <th>Actions</th>
                 @endif
@@ -143,16 +144,20 @@
         </thead>
         <tbody>
             @forelse($streets as $st)
-            <tr id="plot-row-{{ $st->id }}">
+            <tr id="plot-row-{{ $st->id }}">         
+                <td class="col-street">
+                    {{ $st->street_name ?? '-' }}
+                    <span class="badge bg-secondary ms-2">
+                        Plots: {{ number_format($st->plots_count) }}
+                    </span>
+                </td>
                 <td class="col-project">
                     {{ $st->project->project_name ?? '-' }}
                 </td>
                 <td class="col-block">
                     {{ $st->block->block_name ?? '-' }}
                 </td>
-                <td class="col-street">
-                    {{ $st->street_name ?? '-' }}
-                </td>
+                
                 @if(auth()->user()->canany(['street.edit','street.delete', 'plots.view']))
                 <td>
                     @can('street.edit')

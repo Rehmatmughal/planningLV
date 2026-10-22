@@ -9,10 +9,11 @@ use Illuminate\Routing\Controllers\Middleware;
 
 class AdminDashboardController extends Controller
 {
-       public static function middleware(): array
+
+    public static function middleware(): array
     {
         return [
-            new Middleware('role:admin'),
+            new Middleware('role:admin|super-admin'),
         ];
     }
 
