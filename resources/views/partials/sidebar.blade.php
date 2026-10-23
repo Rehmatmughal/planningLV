@@ -9,14 +9,10 @@
             Town Planning MIS
         </h5>
     </div>
-
-
     {{-- =========================================================
         SIDEBAR MENU
     ========================================================= --}}
     <ul class="nav flex-column sidebar-menu">
-
-
         {{-- =====================================================
             DASHBOARD
         ====================================================== --}}
@@ -24,16 +20,10 @@
 
             <a href="{{ route('dashboard') }}"
                class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-
                 <i class="fa fa-home fa-fw me-2"></i>
-
                 <span>Dashboard</span>
-
             </a>
-
         </li>
-
-
         {{-- =====================================================
             MASTERS
         ====================================================== --}}
@@ -44,152 +34,94 @@
                href="#masters"
                role="button"
                aria-expanded="{{ request()->routeIs(
-                    'admin.*',
+                    'admin.admin.*',
                     'sizes.*',
                     'categories.*',
                     'property-type-assignments.*',
                     'plot-size-assignments.*'
                ) ? 'true' : 'false' }}"
                aria-controls="masters">
-
                 <i class="fa fa-database fa-fw me-2"></i>
-
                 <span>Masters</span>
-
                 <i class="fa fa-chevron-down ms-auto sidebar-arrow"></i>
-
             </a>
-
-
             <div class="collapse
                 {{ request()->routeIs(
-                    'admin.*',
+                    'admin.admin.*',
                     'sizes.*',
                     'categories.*',
                     'property-type-assignments.*',
                     'plot-size-assignments.*'
                 ) ? 'show' : '' }}"
                 id="masters">
-
-
                 {{-- Admin --}}
                 <a href="{{ route('admin.admin.index') }}"
                    class="nav-link sidebar-submenu
-                   {{ request()->routeIs('admin.*') ? 'active' : '' }}">
-
+                   {{ request()->routeIs('admin.admin.*') ? 'active' : '' }}">
                     <i class="fa fa-user-shield fa-fw me-2"></i>
-
                     <span>Admin</span>
-
                 </a>
-                
-
-
                 {{-- Plot Sizes --}}
                 <a href="{{ route('sizes.index') }}"
                    class="nav-link sidebar-submenu
                    {{ request()->routeIs('sizes.*') ? 'active' : '' }}">
-
                     <i class="fa fa-ruler-combined fa-fw me-2"></i>
-
                     <span>Plot Sizes</span>
-
                 </a>
-
-
                 {{-- Plot Categories --}}
                 <a href="{{ route('categories.index') }}"
                    class="nav-link sidebar-submenu
                    {{ request()->routeIs('categories.*') ? 'active' : '' }}">
-
                     <i class="fa fa-layer-group fa-fw me-2"></i>
-
                     <span>Plot Categories</span>
-
                 </a>
-
-
                 {{-- Property Type Assignments --}}
                 <a href="{{ route('property-type-assignments.index') }}"
                    class="nav-link sidebar-submenu
                    {{ request()->routeIs('property-type-assignments.*') ? 'active' : '' }}">
-
                     <i class="fa fa-building fa-fw me-2"></i>
-
                     <span>Property Types</span>
-
                 </a>
-
-
                 {{-- Plot Size Assignments --}}
                 <a href="{{ route('plot-size-assignments.index') }}"
                    class="nav-link sidebar-submenu
                    {{ request()->routeIs('plot-size-assignments.*') ? 'active' : '' }}">
-
                     <i class="fa fa-list-check fa-fw me-2"></i>
-
                     <span>Plot Size Assignments</span>
-
                 </a>
-
-
             </div>
-
         </li>
-
         {{-- 3 items --}}
         {{-- =====================================================
             PROJECT
         ====================================================== --}}
         <li class="nav-item">
-
             <a href="{{ route('projects.index') }}"
             class="nav-link {{ request()->routeIs('projects.*') ? 'active' : '' }}">
-
                 <i class="fa fa-building fa-fw me-2"></i>
-
                 <span>Projects</span>
-
             </a>
-
         </li>
-
-
         {{-- =====================================================
             BLOCK
         ====================================================== --}}
         <li class="nav-item">
-
             <a href="{{ route('blocks.index') }}"
             class="nav-link {{ request()->routeIs('blocks.*') ? 'active' : '' }}">
-
                 <i class="fa fa-cubes fa-fw me-2"></i>
-
                 <span>Blocks</span>
-
             </a>
-
         </li>
-
-
         {{-- =====================================================
             STREETS
         ====================================================== --}}
         <li class="nav-item">
-
             <a href="{{ route('streets.index') }}"
             class="nav-link {{ request()->routeIs('streets.*') ? 'active' : '' }}">
-
                 <i class="fa fa-road fa-fw me-2"></i>
-
                 <span>Streets</span>
-
             </a>
-
         </li>
-
-
-
         {{-- =====================================================
             PLOT MANAGEMENT
         ====================================================== --}}
@@ -197,67 +129,113 @@
 
             <a href="{{ route('plots.index') }}"
                class="nav-link {{ request()->routeIs('plots.*') ? 'active' : '' }}">
-
                 <i class="fa fa-map fa-fw me-2"></i>
-
                 <span>Plot Management</span>
-
             </a>
-
         </li>
-
-
         {{-- =====================================================
             DEVELOPMENT
         ====================================================== --}}
         <li class="nav-item">
-
             <a href="{{ route('development.index') }}"
                class="nav-link {{ request()->routeIs('development.*') ? 'active' : '' }}">
-
                 <i class="fa fa-hard-hat fa-fw me-2"></i>
-
                 <span>Development Status</span>
-
             </a>
-
         </li>
-
-
         {{-- =====================================================
             LOP & MORTGAGE
         ====================================================== --}}
         <li class="nav-item">
-
             <a href="{{ route('lop-mortgage.index') }}"
                class="nav-link {{ request()->routeIs('lop-mortgage.*') ? 'active' : '' }}">
-
                 <i class="fa fa-file-contract fa-fw me-2"></i>
-
                 <span>LOP &amp; Mortgage</span>
-
             </a>
-
         </li>
-
-
         {{-- =====================================================
             AREA VARIATION
         ====================================================== --}}
         <li class="nav-item">
-
             <a href="{{ route('area_variations.index') }}"
                class="nav-link {{ request()->routeIs('area_variations.*') ? 'active' : '' }}">
-
                 <i class="fa fa-ruler-combined fa-fw me-2"></i>
-
                 <span>Area Variation</span>
-
             </a>
-
         </li>
+        {{-- =====================================================
+            ACCESS CONTROL
+        ====================================================== --}}
+        @if(
+            auth()->user()->can('user.view') ||
+            auth()->user()->can('role.view') ||
+            auth()->user()->can('permission.view') ||
+            auth()->user()->can('activity.view')
+        )
+        <li class="nav-item">
 
+            <a class="nav-link"
+               data-bs-toggle="collapse"
+               href="#accessControlMenu"
+               role="button"
+               aria-expanded="{{ request()->routeIs(
+                    'admin.users.*',
+                    'admin.roles.*',
+                    'admin.permissions.*',
+                    'activity.logs'
+               ) ? 'true' : 'false' }}"
+               aria-controls="accessControlMenu">
 
+                <i class="fa fa-user-shield fa-fw me-2"></i>
+                <span>Access Control</span>
+                <i class="fa fa-chevron-down ms-auto sidebar-arrow"></i>
+            </a>
+            <div class="collapse
+                {{ request()->routeIs(
+                    'admin.users.*',
+                    'admin.roles.*',
+                    'admin.permissions.*',
+                    'activity.logs'
+                ) ? 'show' : '' }}"
+                id="accessControlMenu">
+                @can('user.view')
+                <a href="{{ route('admin.users.index') }}"
+                   class="nav-link sidebar-submenu
+                   {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                    <i class="fa fa-users fa-fw me-2"></i>
+                    <span>Users</span>
+                </a>
+                @endcan
+
+                @can('role.view')
+                <a href="{{ route('admin.roles.index') }}"
+                   class="nav-link sidebar-submenu
+                   {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
+                    <i class="fa fa-user-tag fa-fw me-2"></i>
+                    <span>Roles</span>
+                </a>
+                @endcan
+
+                @can('permission.view')
+                <a href="{{ route('admin.permissions.index') }}"
+                   class="nav-link sidebar-submenu
+                   {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}">
+                    <i class="fa fa-key fa-fw me-2"></i>
+                    <span>Permissions</span>
+                </a>
+                @endcan
+
+                @can('activity.view')
+                <a href="{{ route('activity.logs') }}"
+                   class="nav-link sidebar-submenu
+                   {{ request()->routeIs('activity.logs') ? 'active' : '' }}">
+                    <i class="fa fa-clipboard-list fa-fw me-2"></i>
+                    <span>Activity Logs</span>
+                </a>
+                @endcan
+            </div>
+        </li>
+        @endif
         {{-- =====================================================
             POSSESSION
         ====================================================== --}}
@@ -278,10 +256,7 @@
                 <span>Possession</span>
 
                 <i class="fa fa-chevron-down ms-auto sidebar-arrow"></i>
-
             </a>
-
-
             <div class="collapse
                 {{ request()->routeIs(
                     'possession-cases.*',
@@ -289,41 +264,24 @@
                 ) ? 'show' : '' }}"
                 id="possessionMenu">
 
-
                 {{-- Possession Cases --}}
                 <a href="{{ route('possession-cases.index') }}"
                    class="nav-link sidebar-submenu
                    {{ request()->routeIs('possession-cases.*') ? 'active' : '' }}">
-
                     <i class="fa fa-file-signature fa-fw me-2"></i>
-
                     <span>Possession Cases</span>
-
                 </a>
-
-
                 {{-- Owners --}}
                 <a href="{{ route('owners.index') }}"
                    class="nav-link sidebar-submenu
                    {{ request()->routeIs('owners.*') ? 'active' : '' }}">
-
                     <i class="fa fa-users fa-fw me-2"></i>
-
                     <span>Owners</span>
-
                 </a>
-
-
             </div>
-
         </li>
-
-
     </ul>
-
 </div>
-
-
 {{-- =============================================================
     SIDEBAR CSS
 ============================================================= --}}
