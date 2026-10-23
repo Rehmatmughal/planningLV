@@ -1,97 +1,207 @@
+
 @extends('layouts.app')
 
 @section('content')
+@php
+    $currentUser = auth()->user();
+    $isSuperAdmin = $currentUser && $currentUser->hasRole('super-admin');
+    $superAdminCount = \App\Models\User::role('super-admin')->count();
+@endphp
+
+<div class="container-fluid py-4">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="h3 fw-bold mb-1">User Management</h2>
+            <p class="text-muted mb-0">
+                Manage user accounts, roles and permissions.
+            </p>
+        </div>
+
+        @can('user.create')
+            <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
+                <i class="bi bi-person-plus me-1"></i> Create User
+            </a>
+        @endcan
+    </div>
+
     @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"
+                    aria-label="Close"></button>
+        </div>
     @endif
- 
+
     @if (session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"
+                    aria-label="Close"></button>
+        </div>
     @endif
 
-<h2 class="text-xl font-bold mb-3">Users</h2>
-@can('user.create')
-<a href="{{ route('admin.users.create') }}"
-   class="bg-blue-600 text-white px-3 py-2 rounded">
-    Create User
-</a>
-@endcan
- 
-<table class="w-full mt-4 bg-white shadow rounded">
-    <thead>
-        <tr class="border-b">
-            <th class="p-2">Name</th>
-            <th class="p-2">Email</th>
-            <th class="p-2">Role</th>
-            <th class="p-2">Action</th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach($users as $user)
-        <tr class="border-b">
-            <td class="p-2">{{ $user->name }}</td>
-            <td class="p-2">{{ $user->email }}</td>
-            <td class="p-2">
-                {{ $user->getRoleNames()->first() }}
-            </td>
-            
-            <td class="p-2">
-                <a href="{{ route('admin.users.edit',$user) }}"
-                   class="text-blue-600">Edit</a>
-                   @can('user.delete')
-                   <form action="{{ route('admin.users.destroy', $user) }}"
-                        method="POST"
-                        class="inline"
-                        onsubmit="return confirm('Are you sure you want to delete this user?');">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="text-red-600">
-                            Delete
-                        </button>
-                    </form>
-                    @endcan 
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-semibold">Registered Users</h5>
+            <span class="badge bg-secondary">{{ $users->count() }} Users</span>
+        </div>
 
-            </td>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-3 py-3">#</th>
+                            <th class="py-3">Name</th>
+                            <th class="py-3">Email</th>
+                            <th class="py-3">Role</th>
+                            <th class="py-3 text-end pe-3">Actions</th>
+                        </tr>
+                    </thead>
 
-        </tr> 
-    @endforeach
-    </tbody>
+                    <tbody>
+                    @forelse ($users as $user)
+                        @php
+                            $isSelf = $currentUser && $currentUser->id === $user->id;
+                            $targetIsProtected = $user->hasAnyRole(['admin', 'super-admin']);
 
-</table>
-<h2 class="text-xl font-bold mt-8 mb-3">My Permissions</h2>
+                            $canEditTarget = $isSuperAdmin
+                                || (!$isSelf && !$targetIsProtected);
 
-<table class="w-full bg-white shadow rounded">
-    <thead>
-        <tr class="border-b bg-gray-100">
-            <th class="p-2 text-left">Permission</th>
-            <th class="p-2 text-center">Yes</th>
-            <th class="p-2 text-center">No</th>
-        </tr>
-    </thead>
+                            $canDeleteTarget = !$isSelf
+                                && (
+                                    $isSuperAdmin
+                                    || !$targetIsProtected
+                                )
+                                && (
+                                    !$user->hasRole('super-admin')
+                                    || $superAdminCount > 1
+                                );
+                        @endphp
 
-    <tbody>
-        @foreach($permissions as $permission)
-        <tr class="border-b">
-            <td class="p-2">{{ $permission->name }}</td>
+                        <tr>
+                            <td class="px-3 text-muted">{{ $loop->iteration }}</td>
 
-            {{-- YES column --}}
-            <td class="p-2 text-center">
-                {{-- @can($permission) --}}
-                @can($permission->name)
-                    ✅
-                @endcan
-            </td>
+                            <td class="fw-semibold">{{ $user->name }}</td>
 
-            {{-- NO column --}}
-            <td class="p-2 text-center">
-                @cannot($permission->name)
-                {{-- @cannot($permission) --}}
-                    ❌
-                @endcannot
-            </td>
-        </tr>
-        @endforeach
-    </tbody>
-</table>
+                            <td>{{ $user->email }}</td>
 
+                            <td>
+                                @forelse ($user->getRoleNames() as $roleName)
+                                    @php
+                                        $roleBadge = match ($roleName) {
+                                            'super-admin' => 'bg-danger',
+                                            'admin' => 'bg-primary',
+                                            'staff' => 'bg-success',
+                                            'guest' => 'bg-secondary',
+                                            default => 'bg-info text-dark',
+                                        };
+                                    @endphp
+
+                                    <span class="badge {{ $roleBadge }} me-1">
+                                        {{ ucwords(str_replace('-', ' ', $roleName)) }}
+                                    </span>
+                                @empty
+                                    <span class="badge bg-light text-dark border">
+                                        No Role
+                                    </span>
+                                @endforelse
+                            </td>
+
+                            <td class="text-end pe-3">
+                                <div class="d-inline-flex flex-wrap gap-2 justify-content-end">
+
+                                    @can('user.edit')
+                                        @if ($canEditTarget)
+                                            <a href="{{ route('admin.users.edit', $user) }}"
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil-square me-1"></i> Edit
+                                            </a>
+                                        @endif
+                                    @endcan
+
+                                    @can('user.delete')
+                                        @if ($canDeleteTarget)
+                                            <form
+                                                action="{{ route('admin.users.destroy', $user) }}"
+                                                method="POST"
+                                                onsubmit="return confirm('Are you sure you want to delete this user?');"
+                                            >
+                                                @csrf
+                                                @method('DELETE')
+
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-trash me-1"></i> Delete
+                                                </button>
+                                            </form>
+                                        @endif
+                                    @endcan
+
+                                    @if (
+                                        (!$canEditTarget || !auth()->user()->can('user.edit'))
+                                        && (!$canDeleteTarget || !auth()->user()->can('user.delete'))
+                                    )
+                                        <span class="text-muted small">No actions</span>
+                                    @endif
+
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <div class="text-muted mb-2">
+                                    <i class="bi bi-people fs-2"></i>
+                                </div>
+                                <div class="fw-semibold">No users found</div>
+                            </td>
+                        </tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 fw-semibold">My Permissions</h5>
+            <small class="text-muted">
+                Permissions available to your current account.
+            </small>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-3 py-3">Permission</th>
+                            <th class="py-3 text-center">Access</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach ($permissions as $permission)
+                            <tr>
+                                <td class="px-3">{{ $permission->name }}</td>
+
+                                <td class="text-center">
+                                    @can($permission->name)
+                                        <span class="badge bg-success">Yes</span>
+                                    @else
+                                        <span class="badge bg-secondary">No</span>
+                                    @endcan
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
 @endsection
